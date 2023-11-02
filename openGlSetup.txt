@@ -1,0 +1,25 @@
+create visual studio 2019 project
+copy dependencies folder into project directory
+copy glad.c into project directory
+open project
+go to Project > {project name} Properties
+make sure Configuration is set to "All Configurations"
+go to Configuration Properties > C/C++ > General
+add "dependencies/include" to Additional Include Directories
+go to Configuration Properties > Linker > General
+add "dependencies\glfw-3.3.8.bin.WIN32\lib-vc2019" to Additional Library Directories
+go to Configuration Properties > Linker > Input
+add "glfw3.lib" and "glfw3dll.lib" to Additional Directories
+press apply
+
+set Configuration to Release
+go to Configuration Properties > Linker > System
+set SubSystem to "Windows (/SUBSYSTEM:WINDOWS)"
+go to Configuration Properties > Linker > Advanced
+set Entry Point to "mainCRTStartup"
+press apply
+press Ok
+
+right click on Source Files in the Solution Explorer
+click Add > Existing item...
+add the glad.c source file into the project
