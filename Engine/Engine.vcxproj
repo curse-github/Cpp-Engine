@@ -22,9 +22,15 @@
     <ClCompile Include="glad.c" />
     <ClCompile Include="Src\Engine.cpp" />
     <ClCompile Include="Src\Lib.cpp" />
+    <ClCompile Include="Src\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Headers\Lib.h" />
+    <ClInclude Include="Headers\Engine.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\fs.glsl" />
+    <None Include="Shaders\vs.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -96,7 +102,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>dependencies/include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>dependencies/include;Headers</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
