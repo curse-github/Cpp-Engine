@@ -40,11 +40,28 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\fs.glsl">
+    <None Include="Shaders\twoTexFrag.glsl">
       <Filter>Shaders</Filter>
     </None>
     <None Include="Shaders\vs.glsl">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Shaders\colorFrag.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\texFrag.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\awesomeface.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resources\container.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resources\grass.png">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

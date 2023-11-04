@@ -9,8 +9,7 @@ uniform sampler2D texture2;
 uniform float mixVal;
 
 void main() {
-    //vec4 vertcolor = mix(texture(texture1,uv), texture(texture2,uv), mixVal);
-    //if (vertcolor.a<0.01) discard;
-    //FragColor = vertcolor;
-    FragColor = vec4(0.5,0,1,1);
+    vec4 vertcolor = mix(texture(texture1,uv), texture(texture2,uv), mixVal);
+    if (vertcolor.a<0.01) discard;
+    FragColor = vertcolor;
 } 

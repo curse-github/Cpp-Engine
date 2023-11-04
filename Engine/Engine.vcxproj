@@ -29,8 +29,15 @@
     <ClInclude Include="Headers\Engine.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\fs.glsl" />
+    <None Include="Shaders\colorFrag.glsl" />
+    <None Include="Shaders\texFrag.glsl" />
+    <None Include="Shaders\twoTexFrag.glsl" />
     <None Include="Shaders\vs.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\awesomeface.png" />
+    <Image Include="Resources\container.jpg" />
+    <Image Include="Resources\grass.png" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
