@@ -2,11 +2,12 @@
 #ifndef _ENGINEH
 #define _ENGINEH
 #include <glad/glad.h>// must be included first
-#include <GLFW/glfw3.h>// https://www.glfw.org/docs/3.3/
+#include <GLFW/glfw3.h>// https://www.glfw.org/docs/3.3
 #include <vector>
 #include <string>
 #include <functional>
 #include "Lib.h"
+#include <map>
 typedef std::function<void(GLFWwindow*, int, int)>           onresizefun;
 typedef std::function<void(GLFWwindow*, int, int, int, int)> onkeyfun;
 typedef std::function<void(GLFWwindow*, double, double)>     onscrollfun;
@@ -88,8 +89,6 @@ class Shader : public Object {
 	Shader() : Object() {}
 	Shader(Engine* _engine, string vertexPath, string fragmentPath);
 	void use();
-	void addTexture(Texture tex, string name, unsigned int location);
-	void bindTextures();
 	void setBool(const std::string& name, bool value);
 	void setInt(const std::string& name, int value);
 	void setFloat(const std::string& name, float value);
@@ -97,15 +96,19 @@ class Shader : public Object {
 	void setFloat3(const std::string& name, Vector3 value);
 	void setFloat4(const std::string& name, Vector4 value);
 	void setMat4x4(const std::string& name, Mat4x4 value);
+	void setTexture(const std::string& name, Texture tex, unsigned int location);
+	void bindTextures();
 };
 class Camera : public Object {
+	protected:
+	Camera* self;
 	public:
-	Shader* shader;
 	Mat4x4 projection;
 	Mat4x4 view;
-	Camera() : Object(), shader(nullptr), projection(Mat4x4()), view(Mat4x4()) {}
-	Camera(Engine* _engine, Shader* _shader);
-	void update();
+	Camera() : Object(), self(nullptr), projection(Mat4x4()), view(Mat4x4()) {}
+	Camera(Engine* _engine);
+	virtual void update();
+	void set(Shader* shader);
 };
 class LookAtCam : public Camera {
 	public:
@@ -114,12 +117,11 @@ class LookAtCam : public Camera {
 	Vector3 position;
 	Vector3 focus;
 	LookAtCam() : Camera(), aspect(0.0f), position(Vector3()), focus(Vector3()) {}
-	LookAtCam(Engine* _engine, Shader* _shader, float _aspect, Vector3 _position, Vector3 _focus);
+	LookAtCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _focus);
 	void update();
 };
 class FreeCam : public Camera {
-	public:
-	float fov=45;
+	protected:
 	float aspect;
 	Vector3 position;
 	Vector3 forward;
@@ -127,10 +129,12 @@ class FreeCam : public Camera {
 	float SPEED=2.5f;
 	float pitch=0.0f;
 	float yaw=-90.0f;
+	public:
+	float fov=45;
 	float SENSITIVITY=0.1f;
 	bool paused=false;
 	FreeCam() : Camera(), aspect(0.0f), position(Vector3()), forward(Vector3()), up(Vector3()) {}
-	FreeCam(Engine* _engine, Shader* _shader, float _aspect, Vector3 _position, Vector3 _forward, Vector3 _up);
+	FreeCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _forward, Vector3 _up);
 	void update();
 	void on_loop(double delta);
 	int inputs[6]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
@@ -143,11 +147,11 @@ class OrthoCam : public Camera {
 	Vector2 position;
 	Vector2 size;
 	OrthoCam() : Camera(), position(Vector2()), size(Vector2()) {}
-	OrthoCam(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _size);
+	OrthoCam(Engine* _engine, Vector2 _position, Vector2 _size);
 	void update();
 };
 class Texture : public Object {
-	protected:
+	public:
 	unsigned int ID;
 	public:
 	string path;
@@ -161,13 +165,12 @@ class CubeRenderer : public Object {
 	unsigned int VAO;
 	unsigned int VBO;
 	//unsigned int EBO;
-	unsigned int texture1, texture2;
 	void on_delete();
 	public:
 	Vector3 position;
 	Vector3 rotAxis;
 	float rotAngle;
-	CubeRenderer() : Object(), shader(), position(Vector3()), rotAxis(Vector3()), rotAngle(0.0f), VAO(0), VBO(0), texture1(0), texture2(0) {}
+	CubeRenderer() : Object(), shader(nullptr), position(Vector3()), rotAxis(Vector3()), rotAngle(0.0f), VAO(0), VBO(0) {}
 	CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _rotAxis, float _rotAngle);
 	void draw();
 };
@@ -177,14 +180,24 @@ class SpriteRenderer : public Object {
 	unsigned int VAO;
 	unsigned int VBO;
 	unsigned int EBO;
-	unsigned int texture1, texture2;
 	void on_delete();
 	public:
 	Vector2 position;
 	Vector3 rotAxis=Vector3(0.0f, 0.0f, 1.0f);
 	float rotAngle;
-	SpriteRenderer() : Object(), shader(), position(Vector2()), rotAngle(0.0f), VAO(0), VBO(0), EBO(0), texture1(0), texture2(0) {}
+	SpriteRenderer() : Object(), shader(nullptr), position(Vector2()), rotAngle(0.0f), VAO(0), VBO(0), EBO(0) {}
 	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _rotAngle);
 	void draw();
+};
+class TextRenderer : public Object {
+	protected:
+	Shader* shader;
+	unsigned int VAO;
+	unsigned int VBO;
+	void on_delete();
+	public:
+	TextRenderer() : Object(), shader(nullptr), VAO(0), VBO(0) {}
+	TextRenderer(Engine* _engine, Shader* _shader, const string& filePath);
+	void draw(std::string text, float x, float y, float scale, Vector3 color);
 };
 #endif

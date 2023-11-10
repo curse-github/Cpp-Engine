@@ -52,6 +52,12 @@
     <None Include="Shaders\texFrag.glsl">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Shaders\textFrag.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\textVs.glsl">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\awesomeface.png">

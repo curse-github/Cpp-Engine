@@ -9,6 +9,9 @@ void Log(bool out) { Log(to_string(out)); }
 void Log(int out) { Log(to_string(out)); }
 void Log(float out) { Log(to_string(out)); }
 void Log(double out) { Log(to_string(out)); }
+void Log(Vector2 out) { Log("("+to_string(out.x)+", "+to_string(out.y)+")"); }
+void Log(Vector3 out) { Log("("+to_string(out.x)+", "+to_string(out.y)+", "+to_string(out.z)+")"); }
+void Log(Mat4x4 out) { Log(out.to_string()); }
 
 Vector2::Vector2() { x=0; y=0; }
 Vector2::Vector2(float _x, float _y) { x=_x; y=_y; }
@@ -99,6 +102,12 @@ Mat4x4 Mat4x4::operator*(Mat4x4 b) {
 		getRow(3).dot(b.getColumn(0)), getRow(3).dot(b.getColumn(1)), getRow(3).dot(b.getColumn(2)), getRow(3).dot(b.getColumn(3))
 	};
 	return Mat4x4(ary);
+}
+std::string Mat4x4::to_string() {
+	return "[ "+std::to_string(get(0, 0))+", "+std::to_string(get(1, 0))+", "+std::to_string(get(2, 0))+", "+std::to_string(get(3, 0))+","+
+		"\n  "+std::to_string(get(0, 1))+", "+std::to_string(get(1, 1))+", "+std::to_string(get(2, 1))+", "+std::to_string(get(3, 1))+","+
+		"\n  "+std::to_string(get(0, 2))+", "+std::to_string(get(1, 2))+", "+std::to_string(get(2, 2))+", "+std::to_string(get(3, 2))+","+
+		"\n  "+std::to_string(get(0, 3))+", "+std::to_string(get(1, 3))+", "+std::to_string(get(2, 3))+", "+std::to_string(get(3, 3))+"]";
 }
 #define PI 3.1415926535897932384626433832795f
 float deg_to_rad(float deg) {

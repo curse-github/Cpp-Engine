@@ -12,6 +12,11 @@ void Log(bool out);
 void Log(int out);
 void Log(float out);
 void Log(double out);
+class Vector2;class Vector3;
+void Log(Vector2 out);
+void Log(Vector3 out);
+class Mat4x4;
+void Log(Mat4x4 out);
 
 class Vector2 {
 	public:
@@ -92,6 +97,7 @@ class Mat4x4 {
 	Vector4 getRow(int y);
 	Vector4 operator*(Vector4 b);
 	Mat4x4 operator*(Mat4x4 b);
+	std::string to_string();
 };
 float deg_to_rad(float deg);
 float rad_to_deg(float deg);
@@ -100,5 +106,4 @@ Mat4x4 axisRotMat(Vector3 axis, float angle);
 Mat4x4 ortho(float left, float right, float bottom, float top, float near, float far);
 Mat4x4 perspective(float fov, float aspect, float near, float far);
 Mat4x4 lookAt(Vector3 position, Vector3 target, Vector3 up);
-
 #endif

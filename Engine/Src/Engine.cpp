@@ -2,20 +2,33 @@
 #include <algorithm>
 #include <fstream>
 #include <stb_image.h>
+#include <freetype/freetype.h>
+//#include <map>
 #define clamp(a,b,c) max(b,min(a,c))
+
 #pragma region Engine
 Engine::Engine(Vector2 size, const char* title, bool vsync) {
 	initialized=true;
-	if(!glfwInit()) { ended=true; return; }
+	if(!glfwInit()) {
+		ended=true;
+		//Log("");//error
+		return;
+	}
 
 	window=glfwCreateWindow((int)size.x, (int)size.y, title, NULL, NULL);
-	if(!window) { ended=true; glfwTerminate(); return; }
+	if(!window) {
+		glfwTerminate();
+		ended=true;
+		//Log("");//error
+		return;
+	}
 	glfwMakeContextCurrent(window);
 
 	if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		ended=true;
 		glfwDestroyWindow(window);
 		glfwTerminate();
+		//Log("");//error
 		return;
 	}
 	glViewport(0, 0, (int)size.x, (int)size.y);
@@ -35,7 +48,7 @@ Engine::Engine(Vector2 size, const char* title, bool vsync) {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	//glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 }
 void Engine::Loop() {
 	if(ended||!initialized) return;
@@ -43,7 +56,7 @@ void Engine::Loop() {
 	while(!glfwWindowShouldClose(window)) {
 		double delta=glfwGetTime()-lastFrameTime;
 		lastFrameTime=glfwGetTime();
-		glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+		glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 		for_each(onLoop.begin(), onLoop.end(), [delta](onloopfun callback) {
 			callback(delta);
@@ -69,7 +82,10 @@ void Engine::Delete() {
 }
 
 void engine_on_error(int error, const char* description) {
-	Log("Error: "+string(description)); __debugbreak();
+	Log("Error: "+string(description));
+#ifdef _DEBUG
+	__debugbreak();
+#endif
 }
 void Engine::on_resize(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height); screenSize=Vector2((float)width, (float)height);
@@ -119,48 +135,48 @@ void Engine::on_mouse_enter(GLFWwindow* window, int entered) {
 #pragma region Object
 Object::Object(Engine* _engine) : engine(_engine) { initialized=true; }
 void Object::sub_resize() {
-	(*engine).onResize.push_back([this](GLFWwindow* window, int width, int height) {
-		this->on_resize(window, width, height);
+	(*engine).onResize.push_back([=](GLFWwindow* window, int width, int height) {
+		(*this).on_resize(window, width, height);
 	});
 }
 void Object::sub_key() {
-	(*engine).onKey.push_back([this](GLFWwindow* window, int key, int scancode, int action, int mods) {
-		this->on_key(window, key, scancode, action, mods);
+	(*engine).onKey.push_back([=](GLFWwindow* window, int key, int scancode, int action, int mods) {
+		(*this).on_key(window, key, scancode, action, mods);
 	});
 }
 void Object::sub_scroll() {
-	(*engine).onScroll.push_back([this](GLFWwindow* window, double xoffset, double yoffset) {
-		this->on_scroll(window, xoffset, yoffset);
+	(*engine).onScroll.push_back([=](GLFWwindow* window, double xoffset, double yoffset) {
+		(*this).on_scroll(window, xoffset, yoffset);
 	});
 }
 void Object::sub_mouse() {
-	(*engine).onMouse.push_back([this](GLFWwindow* window, double mouseX, double mouseY) {
-		this->on_mouse(window, mouseX, mouseY);
+	(*engine).onMouse.push_back([=](GLFWwindow* window, double mouseX, double mouseY) {
+		(*this).on_mouse(window, mouseX, mouseY);
 	});
 }
 void Object::sub_mouse_delta() {
-	(*engine).onMouseDelta.push_back([this](GLFWwindow* window, float deltaX, float deltaY) {
-		this->on_mouse_delta(window, deltaX, deltaY);
+	(*engine).onMouseDelta.push_back([=](GLFWwindow* window, float deltaX, float deltaY) {
+		(*this).on_mouse_delta(window, deltaX, deltaY);
 	});
 }
 void Object::sub_mouse_button() {
-	(*engine).onMouseButton.push_back([this](GLFWwindow* window, int button, int action, int mods) {
-		this->on_mouse_button(window, button, action, mods);
+	(*engine).onMouseButton.push_back([=](GLFWwindow* window, int button, int action, int mods) {
+		(*this).on_mouse_button(window, button, action, mods);
 	});
 }
 void Object::sub_mouse_enter() {
-	(*engine).onMouseEnter.push_back([this](GLFWwindow* window, int entered) {
-		this->on_mouse_enter(window, entered);
+	(*engine).onMouseEnter.push_back([=](GLFWwindow* window, int entered) {
+		(*this).on_mouse_enter(window, entered);
 	});
 }
 void Object::sub_delete() {
-	(*engine).onDelete.push_back([this]() {
-		this->on_delete();
+	(*engine).onDelete.push_back([=]() {
+		(*this).on_delete();
 	});
 }
 void Object::sub_loop() {
-	(*engine).onLoop.push_back([this](double delta) {
-		this->on_loop(delta);
+	(*engine).onLoop.push_back([=](double delta) {
+		(*this).on_loop(delta);
 	});
 }
 
@@ -192,6 +208,7 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 	FsReadDiskFile(&vertexShaderSourceStr, vertexPath);
 	if(sizeof(vertexShaderSourceStr)==0) {
 		Log("Error reading "+vertexPath+".");
+		//Log("");//error
 		(*engine).Delete();
 		return;
 	}
@@ -208,16 +225,20 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 	if(!vertexSuccess) {// glGetShaderInfoLog(vertexShader, 512, NULL, vertexInfoLog);
 		Log("Error initializing vertex shader.");
 		glDeleteShader(vertexShader);
+		//Log("");//error
 		(*engine).Delete();
 		return;
+
 	}
 	// read fragment shader from file
 	string fragmentShaderSourceStr;
 	FsReadDiskFile(&fragmentShaderSourceStr, fragmentPath);
 	if(sizeof(fragmentShaderSourceStr)==0) {
 		Log("Error reading "+fragmentPath+".");
+		//Log("");//error
 		(*engine).Delete();
 		return;
+
 	}
 	const char* fragmentShaderSource=fragmentShaderSourceStr.c_str();
 	unsigned int fragmentShader;
@@ -233,8 +254,10 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 		Log("Error initializing fragment shader.");
 		glDeleteShader(vertexShader);
 		glDeleteShader(fragmentShader);
+		//Log("");//error
 		(*engine).Delete();
 		return;
+
 	}
 	// create shader program
 	program=glCreateProgram();
@@ -250,30 +273,17 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 	if(!programSuccess) {// glGetProgramInfoLog(shaderProgram, 512, NULL, programInfoLog);
 		Log("Error initializing shader program.");
 		on_delete();
+		//Log("");//error
 		(*engine).Delete();
 		return;
+
 	}
 
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_CULL_FACE);
-
-	Object::sub_delete();
+	sub_delete();
 }
 void Shader::use() {
 	if((*engine).ended||!initialized) return;
 	glUseProgram(program);
-}
-void Shader::addTexture(Texture tex, string name, unsigned int location) {
-	setInt(name, location);
-	textures.push_back(tex);
-	textureLocations.push_back(location);
-}
-void Shader::bindTextures() {
-	for(size_t i=0; i<min(textures.size(), textureLocations.size()); i++) {
-		textures[i].Bind(this, textureLocations[i]);
-	}
 }
 void Shader::on_delete() {
 	if(!initialized) return;
@@ -322,33 +332,43 @@ void Shader::setMat4x4(const std::string& name, Mat4x4 value) {
 	int uniformLocation=glGetUniformLocation(program, name.c_str());
 	glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, &value.values[0]);
 }
+void Shader::setTexture(const std::string& name, Texture tex, unsigned int location) {
+	setInt(name, location);
+	textures.push_back(tex);
+	textureLocations.push_back(location);
+}
+void Shader::bindTextures() {
+	for(size_t i=0; i<min(textures.size(), textureLocations.size()); i++) {
+		textures[i].Bind(this, textureLocations[i]);
+	}
+}
 #pragma endregion// Shader
 
 #pragma region Camera
-Camera::Camera(Engine* _engine, Shader* _shader) : Object(_engine), shader(_shader), projection(Mat4x4()), view(Mat4x4()) {}
-void Camera::update() {
+// save reference to object as it is in the contructor to be used in the set function
+// similar effect as glfwSetWindowUserPointer in the main function
+Camera::Camera(Engine* _engine) : Object(_engine), projection(Mat4x4()), view(Mat4x4()) { self=this; }
+void Camera::update() {}
+void Camera::set(Shader* shader) {
 	if((*engine).ended||!initialized) return;
-	(*shader).setMat4x4("projection", projection);
-	(*shader).setMat4x4("view", view);
+	(*shader).setMat4x4("projection", self->projection);
+	(*shader).setMat4x4("view", self->view);
 }
 
-LookAtCam::LookAtCam(Engine* _engine, Shader* _shader, float _aspect, Vector3 _position, Vector3 _focus) :
-	Camera(_engine, _shader), aspect(_aspect), position(_position), focus(_focus) {
+LookAtCam::LookAtCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _focus) :
+	Camera(_engine), aspect(_aspect), position(_position), focus(_focus) {
 	if((*engine).ended||!initialized) { initialized=false;return; }
-	projection=perspective(deg_to_rad(fov), aspect, 0.1f, 100.0f);
-	Camera::update();
+	update();
 }
 void LookAtCam::update() {
 	if((*engine).ended||!initialized) return;
 	projection=perspective(deg_to_rad(fov), aspect, 0.1f, 100.0f);
 	view=lookAt(position, focus, Vector3(0.0f, 1.0f, 0.0f));
-	Camera::update();
 }
 
-FreeCam::FreeCam(Engine* _engine, Shader* _shader, float _aspect, Vector3 _position, Vector3 _forward, Vector3 _up) :
-	Camera(_engine, _shader), aspect(_aspect), position(_position), forward(_forward), up(_up) {
+FreeCam::FreeCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _forward, Vector3 _up) :
+	Camera(_engine), aspect(_aspect), position(_position), forward(_forward), up(_up) {
 	glfwSetInputMode((*engine).window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	update();
 	Object::sub_key();
 	Object::sub_scroll();
 	Object::sub_mouse_delta();
@@ -393,30 +413,28 @@ void FreeCam::on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY) {
 		cos(deg_to_rad(pitch))*sin(deg_to_rad(yaw))
 	).normalized();
 	forward=dir;
+	update();
 }
 void FreeCam::on_loop(double delta) {
 	float deltaf=((float)delta);
-	Vector2 inputVec=Vector2(
+	Vector3 inputVec=Vector3(
 		(float)(inputs[0]>=GLFW_PRESS)-(float)(inputs[2]>=GLFW_PRESS),
+		(float)(inputs[4]>=GLFW_PRESS)-(float)(inputs[5]>=GLFW_PRESS),
 		(float)(inputs[3]>=GLFW_PRESS)-(float)(inputs[1]>=GLFW_PRESS)
 	);
-	position+=((forward*inputVec.x)+(forward.cross(up).normalized()*inputVec.y)).normalized()*SPEED*deltaf;
-	if(inputs[4]>=GLFW_PRESS) position+=up*SPEED*deltaf;
-	if(inputs[5]>=GLFW_PRESS) position-=up*SPEED*deltaf;
+	position+=((forward*inputVec.x)+(up*inputVec.y)+(forward.cross(up).normalized()*inputVec.z)).normalized()*SPEED*deltaf;
 	update();
 }
 
-OrthoCam::OrthoCam(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _size) :
-	Camera(_engine, _shader), position(_position), size(_size) {
+OrthoCam::OrthoCam(Engine* _engine, Vector2 _position, Vector2 _size) :
+	Camera(_engine), position(_position), size(_size) {
 	initialized=true;
-	projection=ortho(-size.x/2.0f, size.x/2.0f, -size.y/2.0f, size.y/2.0f, 0.01, 100);
 	update();
 }
 void OrthoCam::update() {
 	if(!initialized) return;
-	projection=ortho(-size.x/2.0f, size.x/2.0f, -size.y/2.0f, size.y/2.0f, 0.01, 100);
+	projection=ortho(-size.x/2.0f, size.x/2.0f, -size.y/2.0f, size.y/2.0f, 0.01f, 100.0f);
 	view=translate(Vector3(-position, 0));
-	Camera::update();
 }
 #pragma endregion// Camera
 
@@ -449,6 +467,7 @@ Texture::Texture(Engine* _engine, string _path) :
 	if(!load_texture(&ID, path)) {
 		Log("Error initializing texture \""+path+"\".");
 		initialized=false;
+		//Log("");//error
 		(*engine).Delete();
 		return;
 	}
@@ -500,7 +519,7 @@ float cubevertices[]={
 	-0.5f, 0.5f, 0.5f, 0.0f, 0.0f
 };
 CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _rotAxis, float _rotAngle) :
-	Object(_engine), shader(_shader), position(_position), rotAxis(_rotAxis), rotAngle(_rotAngle), VAO(0), VBO(0), texture1(0), texture2(0) {
+	Object(_engine), shader(_shader), position(_position), rotAxis(_rotAxis), rotAngle(_rotAngle), VAO(0), VBO(0) {
 	if((*engine).ended) { initialized=false;return; }
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -512,7 +531,7 @@ CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cubevertices), cubevertices, GL_STATIC_DRAW);// fill VBO buffer with vertex data
 	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);// bind buffer so that following code will assign the EBO buffer
 	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);// fill EBO buffer with index data
-
+	// start, length, type, ?, total size, offset
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
 	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));// get vertex uv data
@@ -546,7 +565,7 @@ int quadindices[]={
 	1, 2, 3
 };
 SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _rotAngle) :
-	Object(_engine), shader(_shader), position(_position), rotAngle(_rotAngle), VAO(0), VBO(0), EBO(0), texture1(0), texture2(0) {
+	Object(_engine), shader(_shader), position(_position), rotAngle(_rotAngle), VAO(0), VBO(0), EBO(0) {
 	if((*engine).ended) { initialized=false;return; }
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -577,5 +596,128 @@ void SpriteRenderer::on_delete() {
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
+}
+
+struct Character {
+	unsigned int TextureID;  // ID handle of the glyph texture
+	Vector2   Size;		     // Size of glyph
+	Vector2   Bearing;       // Offset from baseline to left/top of glyph
+	unsigned int Advance;    // Offset to advance to next glyph
+};
+std::map<char, Character> Characters;
+TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, const string& filePath) :
+	Object(_engine), shader(_shader), VAO(0), VBO(0) {
+	if((*engine).ended) { initialized=false;return; }
+	FT_Library ft;
+	if(FT_Init_FreeType(&ft)) {
+		initialized=false;
+		//Log("");//error
+		(*engine).Delete();
+		return;
+	}
+	FT_Face face;
+	if(FT_New_Face(ft, "Fonts/MonocraftBetterBrackets.ttf", 0, &face)) {
+		//Log("");//error
+		(*engine).Delete();
+		return;
+	}
+	FT_Set_Pixel_Sizes(face, 0, 30);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // disable byte-alignment restriction
+	for(unsigned char c=0; c<128; c++) {
+		// load character glyph
+		if(FT_Load_Char(face, c, FT_LOAD_RENDER)) {
+			//Log("");//error
+			(*engine).Delete();
+			return;
+		}
+		// generate texture
+		unsigned int texture;
+		glGenTextures(1, &texture);
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glTexImage2D(
+			GL_TEXTURE_2D,
+			0, GL_RED,
+			face->glyph->bitmap.width,
+			face->glyph->bitmap.rows,
+			0, GL_RED,
+			GL_UNSIGNED_BYTE,
+			face->glyph->bitmap.buffer
+		);
+		// set texture options
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		// now store character for later use
+		Character character={
+			texture,
+			Vector2((float)face->glyph->bitmap.width, (float)face->glyph->bitmap.rows),
+			Vector2((float)face->glyph->bitmap_left, (float)face->glyph->bitmap_top),
+			(unsigned int)face->glyph->advance.x
+		};
+		Characters.insert(std::pair<char, Character>(c, character));
+	}
+	glBindTexture(GL_TEXTURE_2D, 0);
+	FT_Done_Face(face);
+	FT_Done_FreeType(ft);
+	//setup buffers
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*6*5, NULL, GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
+	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));// get vertex uv data
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	sub_delete();
+}
+void TextRenderer::draw(std::string text, float x, float y, float scale, Vector3 color) {
+	if((*engine).ended||!initialized) return;
+	(*shader).setFloat3("textColor", color);
+	glActiveTexture(GL_TEXTURE0);
+	glBindVertexArray(VAO);
+
+	// iterate through all characters
+	std::string::const_iterator c;
+	float xpos=0;
+	float ypos=0;
+	float w=0;
+	float h=0;
+	for(c=text.begin(); c!=text.end(); c++) {
+		Character ch=Characters[*c];
+		xpos=x+ch.Bearing.x*scale;
+		ypos=y-(ch.Size.y-ch.Bearing.y)*scale;
+		w=ch.Size.x*scale;
+		h=ch.Size.y*scale;
+		// update VBO for each character
+		float vertices[6][5]={
+			{ xpos, ypos+h, -1.0f, 0.0f, 0.0f },
+			{ xpos, ypos, -1.0f, 0.0f, 1.0f },
+			{ xpos+w, ypos, -1.0f, 1.0f, 1.0f },
+
+			{ xpos, ypos+h, -1.0f, 0.0f, 0.0f },
+			{ xpos+w, ypos, -1.0f, 1.0f, 1.0f },
+			{ xpos+w, ypos+h, -1.0f, 1.0f, 0.0f }
+		};
+		// render glyph texture over quad
+		glBindTexture(GL_TEXTURE_2D, ch.TextureID);
+		// update content of VBO memory
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		// render quad
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		// now advance cursors for next glyph (note that advance is number of 1/64 pixels)
+		x+=(ch.Advance>>6)*scale; // bitshift by 6 to get value in pixels (2^6 = 64)
+	}
+	glBindVertexArray(0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+void TextRenderer::on_delete() {
+	if(!initialized) return;
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO);
 }
 #pragma endregion// Renderers
