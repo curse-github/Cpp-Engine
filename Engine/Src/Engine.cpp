@@ -491,42 +491,34 @@ void Renderer::on_delete() {
 	glDeleteBuffers(1, &EBO);
 }
 float cubevertices[]={
-	0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
-	-0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
-	-0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-	-0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-	0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
-	0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
-	-0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-	0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
-	0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
-	0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
-	-0.5f, 0.5f, 0.5f, 0.0f, 1.0f,
-	-0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-	-0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
-	-0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
-	-0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
-	-0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
-	-0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
-	-0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
-	0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-	0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
-	0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-	0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-	0.5f, 0.5f, 0.5f, 0.0f, 1.0f,
-	0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-	-0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
-	0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
-	0.5f, -0.5f, 0.5f, 1.0f, 1.0f,
-	0.5f, -0.5f, 0.5f, 1.0f, 1.0f,
-	-0.5f, -0.5f, 0.5f, 0.0f, 1.0f,
-	-0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
-	-0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
-	0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-	0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-	0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-	-0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
-	-0.5f, 0.5f, 0.5f, 0.0f, 0.0f
+	0.5f, -0.5f, -0.5f, 0.0f, 0.0f,//0
+	-0.5f, -0.5f, -0.5f, 1.0f, 0.0f,//1
+	-0.5f, 0.5f, -0.5f, 1.0f, 1.0f,//2
+	0.5f, 0.5f, -0.5f, 0.0f, 1.0f,//3
+	-0.5f, -0.5f, 0.5f, 0.0f, 0.0f,//4
+	0.5f, -0.5f, 0.5f, 1.0f, 0.0f,//5
+	0.5f, 0.5f, 0.5f, 1.0f, 1.0f,//6
+	-0.5f, 0.5f, 0.5f, 0.0f, 1.0f,//7
+	-0.5f, -0.5f, -0.5f, 0.0f, 0.0f,//8
+	-0.5f, -0.5f, 0.5f, 1.0f, 0.0f,//9
+	-0.5f, 0.5f, 0.5f, 1.0f, 1.0f,//10
+	-0.5f, 0.5f, -0.5f, 0.0f, 1.0f,//11
+	0.5f, -0.5f, 0.5f, 0.0f, 0.0f,//12
+	0.5f, -0.5f, -0.5f, 1.0f, 0.0f,//13
+	0.5f, 0.5f, -0.5f, 1.0f, 1.0f,//14
+	0.5f, 0.5f, 0.5f, 0.0f, 1.0f,//15
+	0.5f, -0.5f, 0.5f, 1.0f, 1.0f,//16
+	-0.5f, -0.5f, 0.5f, 0.0f, 1.0f,//17
+	-0.5f, 0.5f, 0.5f, 0.0f, 0.0f,//18
+	0.5f, 0.5f, 0.5f, 1.0f, 0.0f,//19
+};
+int cubeindices[]={
+	0, 1, 2, 2, 3, 0,
+	4, 5, 6, 6, 7, 4,
+	8, 9, 10, 10, 11, 8,
+	12, 13, 14, 14, 15, 12,
+	8, 13, 16, 16, 17, 8,
+	18, 19, 14, 14, 11, 18
 };
 CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _rotAxis, float _rotAngle) :
 	Renderer(_engine, _shader), position(_position), rotAxis(_rotAxis), rotAngle(_rotAngle) {
@@ -539,8 +531,8 @@ CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, 
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);// bind buffer so that following code will assign the VBO buffer
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cubevertices), cubevertices, GL_STATIC_DRAW);// fill VBO buffer with vertex data
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);// bind buffer so that following code will assign the EBO buffer
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);// fill EBO buffer with index data
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);// bind buffer so that following code will assign the EBO buffer
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cubeindices), cubeindices, GL_STATIC_DRAW);// fill EBO buffer with index data
 	// start, length, type, ?, total size, offset
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
 	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
@@ -554,7 +546,7 @@ void CubeRenderer::draw() {
 	(*shader).use();
 	(*shader).setMat4x4("model", model);
 	glBindVertexArray(VAO);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
 
 float quadvertices[]={
