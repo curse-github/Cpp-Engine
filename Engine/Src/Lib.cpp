@@ -7,6 +7,7 @@ void Log(string out) {
 void Log(const char* out) { Log(string(out)); }
 void Log(bool out) { Log(out?"True":"False"); }
 void Log(int out) { Log(to_string(out)); }
+void Log(unsigned int out) { Log(to_string(out)); }
 void Log(float out) { Log(to_string(out)); }
 void Log(double out) { Log(to_string(out)); }
 void Log(Vector2 out) { Log("("+to_string(out.x)+", "+to_string(out.y)+")"); }

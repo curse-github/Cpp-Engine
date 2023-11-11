@@ -10,6 +10,7 @@ void Log(string out);
 void Log(const char* out);
 void Log(bool out);
 void Log(int out);
+void Log(unsigned int out);
 void Log(float out);
 void Log(double out);
 class Vector2;class Vector3;

@@ -7,7 +7,7 @@
 
 class FpsTracker : Object {
 	protected:
-	double lastFrames[1000]={};
+	double lastFrames[60]={};
 	FpsTracker* self=nullptr;
 	public:
 	int avgFps=0;
@@ -17,16 +17,16 @@ class FpsTracker : Object {
 	FpsTracker() : Object() {}
 	FpsTracker(Engine* _engine) : Object(_engine) { sub_loop(); self=this; }
 	void on_loop(double delta) {
-		for(unsigned int i=1; i<1000; i++) { lastFrames[i-1]=lastFrames[i]; }// move values back
-		lastFrames[999]=delta;// put delta at the end
+		for(unsigned int i=1; i<60; i++) { lastFrames[i-1]=lastFrames[i]; }// move values back
+		lastFrames[59]=delta;// put delta at the end
 		double sum=0.0f;
-		for(unsigned int i=0; i<1000; i++) { sum+=lastFrames[i]; }// sum values
-		avgFps=(int)(1000.0f/sum+0.5);
+		for(unsigned int i=0; i<60; i++) { sum+=lastFrames[i]; }// sum values
+		avgFps=(int)(60.0f/sum+0.5);
 		frameTime=(float)sum;//1000.0f*1000.0f;
 
 		highFps=0;
 		lowFps=100000;
-		for(unsigned int i=0; i<1000; i++) {
+		for(unsigned int i=0; i<60; i++) {
 			if((1/lastFrames[i])>highFps) highFps=(int)((1/lastFrames[i])+0.5);
 			if((1/lastFrames[i])<lowFps) lowFps=(int)((1/lastFrames[i])+0.5);
 		}
@@ -74,7 +74,7 @@ vector<Renderer*> transparentObjects;
 vector<TextRenderer*> debugText;
 int main(int argc, char** argv) {
 	// setup engine
-	engine=Engine(Vector2(1920, 1080), "Game!", false);
+	engine=Engine(Vector2(1920, 1080), "Game!", true);
 	if(!engine.initialized||engine.ended) {
 		Log("Engine failed to init");
 		return 0;
@@ -84,9 +84,14 @@ int main(int argc, char** argv) {
 	tracker=FpsTracker(&engine);
 	// setup textures
 	Texture tex=Texture(&engine, "Resources/awesomeface.png");
-	Texture tex2=Texture(&engine, "Resources/container.jpg");
+	Texture tex2=Texture(&engine, "Resources/container.jpg");;
+	if(!engine.initialized||engine.ended||!tex.initialized||!tex2.initialized) {
+		Log("Textures failed to init");
+		engine.Delete();
+		return 0;
+	}
 	// setup shaders
-	shader=Shader(&engine, "Shaders/vs.glsl", "Shaders/twoTexFrag.glsl");
+	shader=Shader(&engine, "Shaders/vs.glsl", "Shaders/mixTexFrag.glsl");
 	shader.setTexture("texture1", tex, 0);
 	shader.setTexture("texture2", tex2, 1);
 	shader.setFloat("mixVal", 0.50);
@@ -118,7 +123,7 @@ int main(int argc, char** argv) {
 	// setup text renderers
 	debugText.push_back(new TextRenderer(&engine, &textShader, "ms: ",Vector2(1.0f,1.0f),0.5f,Vector3(1.0f,1.0f,1.0f)));
 	debugText.push_back(new TextRenderer(&engine, &textShader, "Fps Avg: ",Vector2(1.0f,16.0f),0.5f,Vector3(1.0f,1.0f,1.0f)));
-	if(!engine.initialized||engine.ended){//||!characterMapInitialized) {
+	if(!engine.initialized||engine.ended||!characterMapInitialized) {
 		Log("Fonts failed to init");
 		engine.Delete();
 		return 0;

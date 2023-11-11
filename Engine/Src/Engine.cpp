@@ -17,8 +17,8 @@ Engine::Engine(Vector2 size, const char* title, bool vsync) {
 
 	window=glfwCreateWindow((int)size.x, (int)size.y, title, NULL, NULL);
 	if(!window) {
-		glfwTerminate();
 		ended=true;
+		glfwTerminate();
 		Log("Window failed to create.");//error
 		return;
 	}
@@ -227,10 +227,16 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 	// read vertex shader from file
 	string vertexShaderSourceStr;
 	FsReadDiskFile(&vertexShaderSourceStr, vertexPath);
-	if(sizeof(vertexShaderSourceStr)==0) {
-		Log("File failed to read \""+vertexPath+"\".");//error
-		engine->Delete();
-		return;
+	if(vertexShaderSourceStr.size()==0) {
+		Log("File \""+vertexPath+"\" failed to read.");//error
+		if (vertexPath=="Shaders/vs.glsl") vertexShaderSourceStr=vsShader;
+		if (vertexPath=="Shaders/textVs.glsl") vertexShaderSourceStr=textVsShader;
+		if(vertexShaderSourceStr.size()==0) {
+			engine->Delete();
+			return;
+		} else {
+			Log("Using hard coded shader for \""+vertexPath+"\".");
+		}
 	}
 	const char* vertexShaderSource=vertexShaderSourceStr.c_str();
 	unsigned int vertexShader;
@@ -252,12 +258,19 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 	// read fragment shader from file
 	string fragmentShaderSourceStr;
 	FsReadDiskFile(&fragmentShaderSourceStr, fragmentPath);
-	if(sizeof(fragmentShaderSourceStr)==0) {
-		glDeleteShader(vertexShader);
-		Log("File failed to read \""+fragmentPath+"\".");//error
-		engine->Delete();
-		return;
-
+	if(fragmentShaderSourceStr.size()==0) {
+		Log("File \""+fragmentPath+"\" failed to read.");//error
+		if (fragmentPath=="Shaders/colorFrag.glsl") fragmentShaderSourceStr=colorFragShader;
+		if (fragmentPath=="Shaders/texFrag.glsl") fragmentShaderSourceStr=texFragShader;
+		if (fragmentPath=="Shaders/mixTexFrag.glsl") fragmentShaderSourceStr=mixTexFragShader;
+		if (fragmentPath=="Shaders/textFrag.glsl") fragmentShaderSourceStr=textFragShader;
+		if(fragmentShaderSourceStr.size()==0) {
+			glDeleteShader(vertexShader);
+			engine->Delete();
+			return;
+		} else {
+			Log("Using hard coded shader for \""+fragmentPath+"\".");
+		}
 	}
 	const char* fragmentShaderSource=fragmentShaderSourceStr.c_str();
 	unsigned int fragmentShader;
@@ -491,7 +504,7 @@ Texture::Texture(Engine* _engine, string _path) :
 	if(!engine->initialized||engine->ended) { initialized=false;return; }
 	if(!load_texture(&ID, path)) {
 		initialized=false;
-		Log("texture \""+path+"\" failed to lead.");//error
+		Log("texture \""+path+"\" failed to load.");//error
 		engine->Delete();
 		return;
 	}

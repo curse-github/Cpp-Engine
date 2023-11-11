@@ -40,7 +40,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\twoTexFrag.glsl">
+    <None Include="Shaders\mixTexFrag.glsl">
       <Filter>Shaders</Filter>
     </None>
     <None Include="Shaders\vs.glsl">
