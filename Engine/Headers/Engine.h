@@ -189,6 +189,7 @@ class SpriteRenderer : public Renderer {
 	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _rotAngle);
 	void draw() override;
 };
+//extern bool characterMapInitialized;
 class TextRenderer : public Renderer {
 	public:
 	std::string text;

@@ -5,7 +5,7 @@ void Log(string out) {
 #endif // _DEBUG
 }
 void Log(const char* out) { Log(string(out)); }
-void Log(bool out) { Log(to_string(out)); }
+void Log(bool out) { Log(out?"True":"False"); }
 void Log(int out) { Log(to_string(out)); }
 void Log(float out) { Log(to_string(out)); }
 void Log(double out) { Log(to_string(out)); }

@@ -3,7 +3,7 @@
 #include <fstream>
 #include <stb_image.h>
 #include <freetype/freetype.h>
-//#include <map>
+#include <map>
 #define clamp(a,b,c) max(b,min(a,c))
 
 #pragma region Engine
@@ -82,28 +82,32 @@ void Engine::Delete() {
 }
 
 void engine_on_error(int error, const char* description) {
-	Log("Error: "+string(description));
+	Log("GLDW error: "+string(description));
 #ifdef _DEBUG
 	__debugbreak();
 #endif
 }
 void Engine::on_resize(GLFWwindow* window, int width, int height) {
+	if(ended||!initialized) return;
 	glViewport(0, 0, width, height); screenSize=Vector2((float)width, (float)height);
 	for_each(onResize.begin(), onResize.end(), [window, width, height](onresizefun callback) {
 		callback(window, width, height);
 	});
 }
 void Engine::on_key(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	if(ended||!initialized) return;
 	for_each(onKey.begin(), onKey.end(), [window, key, scancode, action, mods](onkeyfun callback) {
 		callback(window, key, scancode, action, mods);
 	});
 }
 void Engine::on_scroll(GLFWwindow* window, double xoffset, double yoffset) {
+	if(ended||!initialized) return;
 	for_each(onScroll.begin(), onScroll.end(), [window, xoffset, yoffset](onscrollfun callback) {
 		callback(window, xoffset, yoffset);
 	});
 }
 void Engine::on_mouse(GLFWwindow* window, double mouseX, double mouseY) {
+	if(ended||!initialized) return;
 	if(lastMouse.x==-1||lastMouse.y==-1) {
 		lastMouse.x=(float)mouseX; lastMouse.y=(float)mouseY; return;
 	}
@@ -116,16 +120,19 @@ void Engine::on_mouse(GLFWwindow* window, double mouseX, double mouseY) {
 	if((deltaX!=0)||(deltaY!=0)) on_mouse_delta(window, deltaX, deltaY);
 }
 void Engine::on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY) {
+	if(ended||!initialized) return;
 	for_each(onMouseDelta.begin(), onMouseDelta.end(), [window, deltaX, deltaY](onmousedeltafun callback) {
 		callback(window, deltaX, deltaY);
 	});
 }
 void Engine::on_mouse_button(GLFWwindow* window, int button, int action, int mods) {
+	if(ended||!initialized) return;
 	for_each(onMouseButton.begin(), onMouseButton.end(), [window, button, action, mods](onmousebuttonfun callback) {
 		callback(window, button, action, mods);
 	});
 }
 void Engine::on_mouse_enter(GLFWwindow* window, int entered) {
+	if(ended||!initialized) return;
 	for_each(onMouseEnter.begin(), onMouseEnter.end(), [window, entered](onmouseenterfun callback) {
 		callback(window, entered);
 	});
@@ -135,46 +142,55 @@ void Engine::on_mouse_enter(GLFWwindow* window, int entered) {
 #pragma region Object
 Object::Object(Engine* _engine) : engine(_engine) { initialized=true; }
 void Object::sub_resize() {
+	if(!engine->initialized||engine->ended||!initialized) return;
 	engine->onResize.push_back([=](GLFWwindow* window, int width, int height) {
 		this->on_resize(window, width, height);
 	});
 }
 void Object::sub_key() {
+	if(!engine->initialized||engine->ended||!initialized) return;
 	engine->onKey.push_back([=](GLFWwindow* window, int key, int scancode, int action, int mods) {
 		this->on_key(window, key, scancode, action, mods);
 	});
 }
 void Object::sub_scroll() {
+	if(!engine->initialized||engine->ended||!initialized) return;
 	engine->onScroll.push_back([=](GLFWwindow* window, double xoffset, double yoffset) {
 		this->on_scroll(window, xoffset, yoffset);
 	});
 }
 void Object::sub_mouse() {
+	if(!engine->initialized||engine->ended||!initialized) return;
 	engine->onMouse.push_back([=](GLFWwindow* window, double mouseX, double mouseY) {
 		this->on_mouse(window, mouseX, mouseY);
 	});
 }
 void Object::sub_mouse_delta() {
+	if(!engine->initialized||engine->ended||!initialized) return;
 	engine->onMouseDelta.push_back([=](GLFWwindow* window, float deltaX, float deltaY) {
 		this->on_mouse_delta(window, deltaX, deltaY);
 	});
 }
 void Object::sub_mouse_button() {
+	if(!engine->initialized||engine->ended||!initialized) return;
 	engine->onMouseButton.push_back([=](GLFWwindow* window, int button, int action, int mods) {
 		this->on_mouse_button(window, button, action, mods);
 	});
 }
 void Object::sub_mouse_enter() {
+	if(!engine->initialized||engine->ended||!initialized) return;
 	engine->onMouseEnter.push_back([=](GLFWwindow* window, int entered) {
 		this->on_mouse_enter(window, entered);
 	});
 }
 void Object::sub_delete() {
+	if(!engine->initialized||engine->ended||!initialized) return;
 	engine->onDelete.push_back([=]() {
 		this->on_delete();
 	});
 }
 void Object::sub_loop() {
+	if(!engine->initialized||engine->ended||!initialized) return;
 	engine->onLoop.push_back([=](double delta) {
 		this->on_loop(delta);
 	});
@@ -194,7 +210,7 @@ void Object::on_loop(double delta) {}
 #pragma region Shader
 void FsReadDiskFile(string* content, const string& filePath) {
 	ifstream fileStream(filePath, std::ios::in);
-	if(!fileStream.is_open()) { return; }
+	if(!fileStream.is_open()) return;
 	string line;
 	while(getline(fileStream, line)) {
 		*content+=line+"\n";
@@ -202,13 +218,13 @@ void FsReadDiskFile(string* content, const string& filePath) {
 	fileStream.close();
 }
 Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object(_engine) {
-	if((*engine).ended||!initialized) { initialized=false;return; }
+	if(!engine->initialized||engine->ended) { initialized=false;return; }
 	// read vertex shader from file
 	string vertexShaderSourceStr;
 	FsReadDiskFile(&vertexShaderSourceStr, vertexPath);
 	if(sizeof(vertexShaderSourceStr)==0) {
 		Log("File failed to read \""+vertexPath+"\".");//error
-		(*engine).Delete();
+		engine->Delete();
 		return;
 	}
 	const char* vertexShaderSource=vertexShaderSourceStr.c_str();
@@ -224,7 +240,7 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 	if(!vertexSuccess) {// glGetShaderInfoLog(vertexShader, 512, NULL, vertexInfoLog);
 		glDeleteShader(vertexShader);
 		Log("Vertex shader \""+vertexPath+"\" failed to init.");//error
-		(*engine).Delete();
+		engine->Delete();
 		return;
 
 	}
@@ -234,7 +250,7 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 	if(sizeof(fragmentShaderSourceStr)==0) {
 		glDeleteShader(vertexShader);
 		Log("File failed to read \""+fragmentPath+"\".");//error
-		(*engine).Delete();
+		engine->Delete();
 		return;
 
 	}
@@ -252,7 +268,7 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 		glDeleteShader(vertexShader);
 		glDeleteShader(fragmentShader);
 		Log("Fragment shader \""+fragmentPath+"\" failed to init.");//error
-		(*engine).Delete();
+		engine->Delete();
 		return;
 
 	}
@@ -270,15 +286,14 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 	if(!programSuccess) {// glGetProgramInfoLog(shaderProgram, 512, NULL, programInfoLog);
 		on_delete();
 		Log("Shader program failed to create.");//error
-		(*engine).Delete();
+		engine->Delete();
 		return;
-
 	}
 
 	sub_delete();
 }
 void Shader::use() {
-	if((*engine).ended||!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized) return;
 	glUseProgram(program);
 }
 void Shader::on_delete() {
@@ -287,54 +302,57 @@ void Shader::on_delete() {
 }
 // uniform utility functions
 void Shader::setBool(const std::string& name, bool value) {
-	if((*engine).ended||!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name.c_str());
 	glUniform1i(uniformLocation, (bool)value);
 }
 void Shader::setInt(const std::string& name, int value) {
-	if((*engine).ended||!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name.c_str());
 	glUniform1i(uniformLocation, value);
 }
 void Shader::setFloat(const std::string& name, float value) {
-	if((*engine).ended||!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name.c_str());
 	glUniform1f(uniformLocation, value);
 }
 void Shader::setFloat2(const std::string& name, Vector2 value) {
-	if((*engine).ended||!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name.c_str());
 	glUniform2f(uniformLocation, value.x, value.y);
 }
 void Shader::setFloat3(const std::string& name, Vector3 value) {
-	if((*engine).ended||!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name.c_str());
 	glUniform3f(uniformLocation, value.x, value.y, value.z);
 }
 void Shader::setFloat4(const std::string& name, Vector4 value) {
-	if((*engine).ended||!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name.c_str());
 	glUniform4f(uniformLocation, value.x, value.y, value.z, value.w);
 }
 void Shader::setMat4x4(const std::string& name, Mat4x4 value) {
-	if((*engine).ended||!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name.c_str());
 	glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, &value.values[0]);
 }
 void Shader::setTexture(const std::string& name, Texture tex, unsigned int location) {
+	if(!engine->initialized||engine->ended||!initialized) return;
 	setInt(name, location);
 	textures.push_back(tex);
 	textureLocations.push_back(location);
 }
 void Shader::bindTextures() {
+	if(!engine->initialized||engine->ended||!initialized) return;
 	for(size_t i=0; i<min(textures.size(), textureLocations.size()); i++) {
+		if(!textures[i].initialized) continue;
 		textures[i].Bind(this, textureLocations[i]);
 	}
 }
@@ -343,41 +361,44 @@ void Shader::bindTextures() {
 #pragma region Camera
 // save reference to object as it is in the contructor to be used in the set function
 // similar effect as glfwSetWindowUserPointer in the main function
-Camera::Camera(Engine* _engine) : Object(_engine), projection(Mat4x4()), view(Mat4x4()) { self=this; }
+Camera::Camera(Engine* _engine) : Object(_engine), projection(Mat4x4()), view(Mat4x4()), self(nullptr) {
+	if(!engine->initialized||engine->ended) { initialized=false;return; }
+	self=this;
+}
 void Camera::update() {}
 void Camera::set(Shader* shader) {
-	if((*engine).ended||!initialized) return;
-	(*shader).setMat4x4("projection", self->projection);
-	(*shader).setMat4x4("view", self->view);
+	if(!engine->initialized||engine->ended||!initialized||!shader->initialized) return;
+	shader->setMat4x4("projection", self->projection);
+	shader->setMat4x4("view", self->view);
 }
 
 LookAtCam::LookAtCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _focus) :
 	Camera(_engine), aspect(_aspect), position(_position), focus(_focus) {
-	if((*engine).ended||!initialized) { initialized=false;return; }
+	if(!engine->initialized||engine->ended) { initialized=false;return; }
 	update();
 }
 void LookAtCam::update() {
-	if((*engine).ended||!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized) return;
 	projection=perspective(deg_to_rad(fov), aspect, 0.1f, 100.0f);
 	view=lookAt(position, focus, Vector3(0.0f, 1.0f, 0.0f));
 }
 
 FreeCam::FreeCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _forward, Vector3 _up) :
 	Camera(_engine), aspect(_aspect), position(_position), forward(_forward), up(_up) {
-	glfwSetInputMode((*engine).window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetInputMode(engine->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	Object::sub_key();
 	Object::sub_scroll();
 	Object::sub_mouse_delta();
 	Object::sub_loop();
 }
 void FreeCam::update() {
-	if((*engine).ended||!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized) return;
 	projection=perspective(deg_to_rad(fov), aspect, 0.1f, 100.0f);
 	view=lookAt(position, position+forward, up);
 	Camera::update();
 }
 void FreeCam::on_key(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	if((*engine).ended||!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized) return;
 	if(key==GLFW_KEY_ESCAPE&&action==GLFW_PRESS) {
 		paused=!paused;
 		glfwSetInputMode(window, GLFW_CURSOR, paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
@@ -392,13 +413,13 @@ void FreeCam::on_key(GLFWwindow* window, int key, int scancode, int action, int 
 	else if(key==GLFW_KEY_LEFT_SHIFT) inputs[5]=action;
 }
 void FreeCam::on_scroll(GLFWwindow* window, double xoffset, double yoffset) {
-	if((*engine).ended||!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized) return;
 	fov-=(float)yoffset;
 	fov=clamp(fov, 1.0f, 90.0f);
 	update();
 }
 void FreeCam::on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY) {
-	if((*engine).ended||!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized) return;
 	if(paused) return;
 	pitch+=(float)deltaY*SENSITIVITY;
 	pitch=clamp(pitch, -89.0f, 89.0f);
@@ -412,6 +433,7 @@ void FreeCam::on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY) {
 	update();
 }
 void FreeCam::on_loop(double delta) {
+	if(!engine->initialized||engine->ended||!initialized) return;
 	float deltaf=((float)delta);
 	Vector3 inputVec=Vector3(
 		(float)(inputs[0]>=GLFW_PRESS)-(float)(inputs[2]>=GLFW_PRESS),
@@ -424,11 +446,12 @@ void FreeCam::on_loop(double delta) {
 
 OrthoCam::OrthoCam(Engine* _engine, Vector2 _position, Vector2 _size) :
 	Camera(_engine), position(_position), size(_size) {
+	if(!engine->initialized||engine->ended) { initialized=false;return; }
 	initialized=true;
 	update();
 }
 void OrthoCam::update() {
-	if(!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized) return;
 	projection=ortho(-size.x/2.0f, size.x/2.0f, -size.y/2.0f, size.y/2.0f, 0.01f, 100.0f);
 	view=translate(Vector3(-position, 0));
 }
@@ -459,16 +482,18 @@ int load_texture(unsigned int* texture, string path) {
 	}
 }
 Texture::Texture(Engine* _engine, string _path) :
-	Object(_engine), path(_path) {
+	Object(_engine), path(_path), ID(0) {
+	if(!engine->initialized||engine->ended) { initialized=false;return; }
 	if(!load_texture(&ID, path)) {
 		initialized=false;
 		Log("texture \""+path+"\" failed to lead.");//error
-		(*engine).Delete();
+		engine->Delete();
 		return;
 	}
 }
 void Texture::Bind(Shader* shader, unsigned int location) {
-	(*shader).use();
+	if(!engine->initialized||engine->ended||!initialized||!shader->initialized) return;
+	shader->use();
 	glActiveTexture(GL_TEXTURE0+location);
 	glBindTexture(GL_TEXTURE_2D, ID);
 }
@@ -476,9 +501,12 @@ void Texture::Bind(Shader* shader, unsigned int location) {
 
 #pragma region Renderers
 Renderer::Renderer(Engine* _engine, Shader* _shader) : Object(_engine), shader(_shader), VAO(0), VBO(0), EBO(0) {
+	if(!engine->initialized||engine->ended||!shader->initialized) { initialized=false;return; }
 	sub_delete();
 }
-void Renderer::draw() {}
+void Renderer::draw() {
+	if(!engine->initialized||engine->ended||!initialized||!shader->initialized) return;
+}
 void Renderer::on_delete() {
 	if(!initialized) return;
 	glDeleteVertexArrays(1, &VAO);
@@ -517,7 +545,7 @@ int cubeindices[]={
 };
 CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _rotAxis, float _rotAngle) :
 	Renderer(_engine, _shader), position(_position), rotAxis(_rotAxis), rotAngle(_rotAngle) {
-	if((*engine).ended) { initialized=false;return; }
+	if(!engine->initialized||engine->ended||!shader->initialized) { initialized=false;return; }
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
@@ -535,11 +563,11 @@ CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, 
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
 }
 void CubeRenderer::draw() {
-	if((*engine).ended||!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized||!shader->initialized) return;
 	Mat4x4 model=axisRotMat(rotAxis, deg_to_rad(rotAngle))*translate(position);
-	(*shader).bindTextures();
-	(*shader).use();
-	(*shader).setMat4x4("model", model);
+	shader->bindTextures();
+	shader->use();
+	shader->setMat4x4("model", model);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
@@ -556,7 +584,7 @@ int quadindices[]={
 };
 SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _rotAngle) :
 	Renderer(_engine, _shader), position(_position), rotAngle(_rotAngle) {
-	if((*engine).ended) { initialized=false;return; }
+	if(!engine->initialized||engine->ended||!shader->initialized) { initialized=false;return; }
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
@@ -574,18 +602,18 @@ SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _positi
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
 }
 void SpriteRenderer::draw() {
-	if((*engine).ended||!initialized) return;
+	if(!engine->initialized||engine->ended||!initialized||!shader->initialized) return;
 	Mat4x4 model=axisRotMat(rotAxis, deg_to_rad(rotAngle))*translate(Vector3(position, 0.0f));
-	(*shader).setMat4x4("model", model);
+	shader->setMat4x4("model", model);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 struct Character {
-	unsigned int TextureID;  // ID handle of the glyph texture
+	unsigned int TextureID=0;  // ID handle of the glyph texture
 	Vector2   Size;		     // Size of glyph
 	Vector2   Bearing;       // Offset from baseline to left/top of glyph
-	unsigned int Advance;    // Offset to advance to next glyph
+	unsigned int Advance=0;    // Offset to advance to next glyph
 };
 std::map<char, Character> Characters;
 bool characterMapInitialized=false;
@@ -629,16 +657,17 @@ int initCharacterMap() {
 	glBindTexture(GL_TEXTURE_2D, 0);
 	FT_Done_Face(face);
 	FT_Done_FreeType(ft);
+	characterMapInitialized=true;
 	return 1;
 }
 TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector2 _position, float _scale, Vector3 _color) :
 	Renderer(_engine, _shader), text(_text), position(_position), scale(_scale), color(_color) {
-	if((*engine).ended) { initialized=false;return; }
+	if(!engine->initialized||engine->ended||!shader->initialized) { initialized=false;return; }
 	if(!characterMapInitialized) {
 		if(!initCharacterMap()) {
 			initialized=false;
 			Log("Error initializing font \"Fonts/MonocraftBetterBrackets.ttf\"");//error
-			(*engine).Delete();
+			engine->Delete();
 			return;
 		}
 	}
@@ -661,8 +690,8 @@ TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 void TextRenderer::draw() {
-	if((*engine).ended||!initialized) return;
-	(*shader).setFloat3("textColor", color);
+	if(!engine->initialized||engine->ended||!initialized||!shader->initialized) return;
+	shader->setFloat3("textColor", color);
 	glActiveTexture(GL_TEXTURE0);
 	glBindVertexArray(VAO);
 

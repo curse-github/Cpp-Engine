@@ -75,6 +75,10 @@ vector<TextRenderer*> debugText;
 int main(int argc, char** argv) {
 	// setup engine
 	engine=Engine(Vector2(1920, 1080), "Game!", false);
+	if(!engine.initialized||engine.ended) {
+		Log("Engine failed to init");
+		return 0;
+	}
 	glfwSetWindowUserPointer(engine.window, &engine);
 	// setup fps tracker
 	tracker=FpsTracker(&engine);
@@ -90,21 +94,35 @@ int main(int argc, char** argv) {
 	shader2.setTexture("_texture", tex, 0);
 	shader3=Shader(&engine, "Shaders/vs.glsl", "Shaders/colorFrag.glsl");
 	shader3.setFloat4("color", Vector4(0.5f, 0.0f, 1.0f, 1.0f));
-	if(!engine.initialized||!shader.initialized||!shader2.initialized||!shader3.initialized||engine.ended) return 0;
+	textShader=Shader(&engine, "Shaders/textVs.glsl", "Shaders/textFrag.glsl");
+	textShader.setFloat("text", 0);
+	if(!engine.initialized||engine.ended||!shader.initialized||!shader2.initialized||!shader3.initialized||!textShader.initialized) {
+		Log("Shaders failed to init");
+		engine.Delete();
+		return 0;
+	}
 	// setup cameras
 	cam=FreeCam(&engine, engine.screenSize.x/engine.screenSize.y, Vector3(0, 0, 3), Vector3(0, 0, -1), Vector3(0, 1, 0));
+	uiCam=OrthoCam(&engine, Vector2(400.0f, 300.0f), Vector2(800.0f, 600.0f)); uiCam.set(&textShader);
+	if(!engine.initialized||engine.ended||!cam.initialized||!uiCam.initialized) {
+		Log("Cameras failed to init");
+		engine.Delete();
+		return 0;
+	}
 	// create cubes at "cubePositions"
 	for(int i=0; i<10; i++) {
 		if(i%3==0) transparentObjects.push_back(new CubeRenderer(&engine, &shader, cubePositions[i], Vector3(1.0f, 0.3f, 0.5f), i*20.0f));
 		else if(i%3==1) transparentObjects.push_back(new CubeRenderer(&engine, &shader2, cubePositions[i], Vector3(1.0f, 0.3f, 0.5f), i*20.0f));
 		else sceneRenderers.push_back(new CubeRenderer(&engine, &shader3, cubePositions[i], Vector3(1.0f, 0.3f, 0.5f), i*20.0f));
 	}
-	// setup text renderer
-	textShader=Shader(&engine, "Shaders/textVs.glsl", "Shaders/textFrag.glsl");
-	textShader.setFloat("text", 0);
-	uiCam=OrthoCam(&engine, Vector2(400.0f, 300.0f), Vector2(800.0f, 600.0f)); uiCam.set(&textShader);
+	// setup text renderers
 	debugText.push_back(new TextRenderer(&engine, &textShader, "ms: ",Vector2(1.0f,1.0f),0.5f,Vector3(1.0f,1.0f,1.0f)));
 	debugText.push_back(new TextRenderer(&engine, &textShader, "Fps Avg: ",Vector2(1.0f,16.0f),0.5f,Vector3(1.0f,1.0f,1.0f)));
+	if(!engine.initialized||engine.ended){//||!characterMapInitialized) {
+		Log("Fonts failed to init");
+		engine.Delete();
+		return 0;
+	}
 	// run main loop
 	engine.onLoop.push_back(Loop);
 	engine.onDelete.push_back(on_delete);
@@ -114,8 +132,8 @@ int main(int argc, char** argv) {
 }
 void Loop(double delta) {
 	// set debug text
-	(*debugText[1]).text="Fps Avg: "+to_string(tracker.getAvgFps())+", high: "+to_string(tracker.getHighFps())+", low: "+to_string(tracker.getLowFps());
-	(*debugText[0]).text="ms: "+to_string(tracker.getFrameTime());
+	debugText[1]->text="Fps Avg: "+to_string(tracker.getAvgFps())+", high: "+to_string(tracker.getHighFps())+", low: "+to_string(tracker.getLowFps());
+	debugText[0]->text="ms: "+to_string(tracker.getFrameTime());
 	// set matricies on shaders
 	cam.set(&shader);
 	cam.set(&shader2);
