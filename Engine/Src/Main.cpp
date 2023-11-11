@@ -108,6 +108,7 @@ int main(int argc, char** argv) {
 	// run main loop
 	engine.onLoop.push_back(Loop);
 	engine.onDelete.push_back(on_delete);
+	Log("Engine initialized successfully");
 	engine.Loop();
 	return 1;
 }

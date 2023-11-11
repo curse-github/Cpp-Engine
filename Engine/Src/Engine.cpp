@@ -11,7 +11,7 @@ Engine::Engine(Vector2 size, const char* title, bool vsync) {
 	initialized=true;
 	if(!glfwInit()) {
 		ended=true;
-		//Log("");//error
+		Log("GLFW failed to init.");//error
 		return;
 	}
 
@@ -19,7 +19,7 @@ Engine::Engine(Vector2 size, const char* title, bool vsync) {
 	if(!window) {
 		glfwTerminate();
 		ended=true;
-		//Log("");//error
+		Log("Window failed to create.");//error
 		return;
 	}
 	glfwMakeContextCurrent(window);
@@ -28,7 +28,7 @@ Engine::Engine(Vector2 size, const char* title, bool vsync) {
 		ended=true;
 		glfwDestroyWindow(window);
 		glfwTerminate();
-		//Log("");//error
+		Log("GLAD failed to init.");//error
 		return;
 	}
 	glViewport(0, 0, (int)size.x, (int)size.y);
@@ -207,8 +207,7 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 	string vertexShaderSourceStr;
 	FsReadDiskFile(&vertexShaderSourceStr, vertexPath);
 	if(sizeof(vertexShaderSourceStr)==0) {
-		Log("Error reading "+vertexPath+".");
-		//Log("");//error
+		Log("File failed to read \""+vertexPath+"\".");//error
 		(*engine).Delete();
 		return;
 	}
@@ -223,9 +222,8 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 	//char vertexInfoLog[512];
 	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vertexSuccess);
 	if(!vertexSuccess) {// glGetShaderInfoLog(vertexShader, 512, NULL, vertexInfoLog);
-		Log("Error initializing vertex shader.");
 		glDeleteShader(vertexShader);
-		//Log("");//error
+		Log("Vertex shader \""+vertexPath+"\" failed to init.");//error
 		(*engine).Delete();
 		return;
 
@@ -234,8 +232,8 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 	string fragmentShaderSourceStr;
 	FsReadDiskFile(&fragmentShaderSourceStr, fragmentPath);
 	if(sizeof(fragmentShaderSourceStr)==0) {
-		Log("Error reading "+fragmentPath+".");
-		//Log("");//error
+		glDeleteShader(vertexShader);
+		Log("File failed to read \""+fragmentPath+"\".");//error
 		(*engine).Delete();
 		return;
 
@@ -251,10 +249,9 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 	//char fragmentInfoLog[512];
 	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fragmentSuccess);
 	if(!fragmentSuccess) {// glGetShaderInfoLog(fragmentSuccess, 512, NULL, fragmentInfoLog);
-		Log("Error initializing fragment shader.");
 		glDeleteShader(vertexShader);
 		glDeleteShader(fragmentShader);
-		//Log("");//error
+		Log("Fragment shader \""+fragmentPath+"\" failed to init.");//error
 		(*engine).Delete();
 		return;
 
@@ -271,9 +268,8 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 	//char programInfoLog[512];
 	glGetProgramiv(program, GL_LINK_STATUS, &programSuccess);
 	if(!programSuccess) {// glGetProgramInfoLog(shaderProgram, 512, NULL, programInfoLog);
-		Log("Error initializing shader program.");
 		on_delete();
-		//Log("");//error
+		Log("Shader program failed to create.");//error
 		(*engine).Delete();
 		return;
 
@@ -465,9 +461,8 @@ int load_texture(unsigned int* texture, string path) {
 Texture::Texture(Engine* _engine, string _path) :
 	Object(_engine), path(_path) {
 	if(!load_texture(&ID, path)) {
-		Log("Error initializing texture \""+path+"\".");
 		initialized=false;
-		//Log("");//error
+		Log("texture \""+path+"\" failed to lead.");//error
 		(*engine).Delete();
 		return;
 	}
@@ -642,7 +637,7 @@ TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, 
 	if(!characterMapInitialized) {
 		if(!initCharacterMap()) {
 			initialized=false;
-			//Log("");//error
+			Log("Error initializing font \"Fonts/MonocraftBetterBrackets.ttf\"");//error
 			(*engine).Delete();
 			return;
 		}
