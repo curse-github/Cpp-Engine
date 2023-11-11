@@ -30,6 +30,7 @@ class Engine {
 	void Loop();
 	void Close();
 	void Delete();
+	void SetCursor(int mode);
 
 	std::vector<onresizefun> onResize;
 	std::vector<onkeyfun> onKey;

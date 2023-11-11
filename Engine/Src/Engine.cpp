@@ -81,6 +81,11 @@ void Engine::Delete() {
 	glfwTerminate();
 }
 
+void Engine::SetCursor(int mode) {
+	glfwSetInputMode(window, GLFW_CURSOR, mode);
+	lastMouse=Vector2(-1.0f, -1.0f);
+}
+
 void engine_on_error(int error, const char* description) {
 	Log("GLDW error: "+string(description));
 #ifdef _DEBUG
@@ -401,7 +406,7 @@ void FreeCam::on_key(GLFWwindow* window, int key, int scancode, int action, int 
 	if(!engine->initialized||engine->ended||!initialized) return;
 	if(key==GLFW_KEY_ESCAPE&&action==GLFW_PRESS) {
 		paused=!paused;
-		glfwSetInputMode(window, GLFW_CURSOR, paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+		engine->SetCursor(paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 		return;
 	}
 	if(paused) return;
