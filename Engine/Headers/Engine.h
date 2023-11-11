@@ -82,7 +82,7 @@ class Texture;
 class Shader : public Object {
 	protected:
 	unsigned int program=0;
-	void on_delete();
+	void on_delete() override;
 	std::vector<Texture> textures;
 	std::vector<unsigned int> textureLocations;
 	public:
@@ -136,11 +136,11 @@ class FreeCam : public Camera {
 	FreeCam() : Camera(), aspect(0.0f), position(Vector3()), forward(Vector3()), up(Vector3()) {}
 	FreeCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _forward, Vector3 _up);
 	void update();
-	void on_loop(double delta);
+	void on_loop(double delta) override;
 	int inputs[6]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
-	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods);
-	void on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY);
-	void on_scroll(GLFWwindow* window, double xoffset, double yoffset);
+	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods) override;
+	void on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY) override;
+	void on_scroll(GLFWwindow* window, double xoffset, double yoffset) override;
 };
 class OrthoCam : public Camera {
 	public:
@@ -159,45 +159,44 @@ class Texture : public Object {
 	Texture(Engine* _engine, string _path);
 	void Bind(Shader* shader, unsigned int location);
 };
-class CubeRenderer : public Object {
-	protected:
-	Shader* shader;
-	unsigned int VAO;
-	unsigned int VBO;
-	//unsigned int EBO;
-	void on_delete();
-	public:
-	Vector3 position;
-	Vector3 rotAxis;
-	float rotAngle;
-	CubeRenderer() : Object(), shader(nullptr), position(Vector3()), rotAxis(Vector3()), rotAngle(0.0f), VAO(0), VBO(0) {}
-	CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _rotAxis, float _rotAngle);
-	void draw();
-};
-class SpriteRenderer : public Object {
+class Renderer : public Object {
 	protected:
 	Shader* shader;
 	unsigned int VAO;
 	unsigned int VBO;
 	unsigned int EBO;
-	void on_delete();
+	void on_delete() override;
+	public:
+	Renderer() : Object(), shader(nullptr), VAO(0), VBO(0), EBO(0) {}
+	Renderer(Engine* _engine, Shader* _shader);
+	virtual void draw();
+};
+class CubeRenderer : public Renderer {
+	public:
+	Vector3 position;
+	Vector3 rotAxis;
+	float rotAngle;
+	CubeRenderer() : Renderer(), position(Vector3()), rotAxis(Vector3()), rotAngle(0.0f) {}
+	CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _rotAxis, float _rotAngle);
+	void draw() override;
+};
+class SpriteRenderer : public Renderer {
 	public:
 	Vector2 position;
 	Vector3 rotAxis=Vector3(0.0f, 0.0f, 1.0f);
 	float rotAngle;
-	SpriteRenderer() : Object(), shader(nullptr), position(Vector2()), rotAngle(0.0f), VAO(0), VBO(0), EBO(0) {}
+	SpriteRenderer() : Renderer(), position(Vector2()), rotAngle(0.0f) {}
 	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _rotAngle);
-	void draw();
+	void draw() override;
 };
-class TextRenderer : public Object {
-	protected:
-	Shader* shader;
-	unsigned int VAO;
-	unsigned int VBO;
-	void on_delete();
+class TextRenderer : public Renderer {
 	public:
-	TextRenderer() : Object(), shader(nullptr), VAO(0), VBO(0) {}
-	TextRenderer(Engine* _engine, Shader* _shader, const string& filePath);
-	void draw(std::string text, float x, float y, float scale, Vector3 color);
+	std::string text;
+	Vector2 position;
+	float scale;
+	Vector3 color;
+	TextRenderer() : Renderer(), text(""), position(Vector2()), scale(0), color(Vector3()) {}
+	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector2 _position, float _scale, Vector3 _color);
+	void draw() override;
 };
 #endif

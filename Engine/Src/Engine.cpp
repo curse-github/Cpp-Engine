@@ -135,48 +135,48 @@ void Engine::on_mouse_enter(GLFWwindow* window, int entered) {
 #pragma region Object
 Object::Object(Engine* _engine) : engine(_engine) { initialized=true; }
 void Object::sub_resize() {
-	(*engine).onResize.push_back([=](GLFWwindow* window, int width, int height) {
-		(*this).on_resize(window, width, height);
+	engine->onResize.push_back([=](GLFWwindow* window, int width, int height) {
+		this->on_resize(window, width, height);
 	});
 }
 void Object::sub_key() {
-	(*engine).onKey.push_back([=](GLFWwindow* window, int key, int scancode, int action, int mods) {
-		(*this).on_key(window, key, scancode, action, mods);
+	engine->onKey.push_back([=](GLFWwindow* window, int key, int scancode, int action, int mods) {
+		this->on_key(window, key, scancode, action, mods);
 	});
 }
 void Object::sub_scroll() {
-	(*engine).onScroll.push_back([=](GLFWwindow* window, double xoffset, double yoffset) {
-		(*this).on_scroll(window, xoffset, yoffset);
+	engine->onScroll.push_back([=](GLFWwindow* window, double xoffset, double yoffset) {
+		this->on_scroll(window, xoffset, yoffset);
 	});
 }
 void Object::sub_mouse() {
-	(*engine).onMouse.push_back([=](GLFWwindow* window, double mouseX, double mouseY) {
-		(*this).on_mouse(window, mouseX, mouseY);
+	engine->onMouse.push_back([=](GLFWwindow* window, double mouseX, double mouseY) {
+		this->on_mouse(window, mouseX, mouseY);
 	});
 }
 void Object::sub_mouse_delta() {
-	(*engine).onMouseDelta.push_back([=](GLFWwindow* window, float deltaX, float deltaY) {
-		(*this).on_mouse_delta(window, deltaX, deltaY);
+	engine->onMouseDelta.push_back([=](GLFWwindow* window, float deltaX, float deltaY) {
+		this->on_mouse_delta(window, deltaX, deltaY);
 	});
 }
 void Object::sub_mouse_button() {
-	(*engine).onMouseButton.push_back([=](GLFWwindow* window, int button, int action, int mods) {
-		(*this).on_mouse_button(window, button, action, mods);
+	engine->onMouseButton.push_back([=](GLFWwindow* window, int button, int action, int mods) {
+		this->on_mouse_button(window, button, action, mods);
 	});
 }
 void Object::sub_mouse_enter() {
-	(*engine).onMouseEnter.push_back([=](GLFWwindow* window, int entered) {
-		(*this).on_mouse_enter(window, entered);
+	engine->onMouseEnter.push_back([=](GLFWwindow* window, int entered) {
+		this->on_mouse_enter(window, entered);
 	});
 }
 void Object::sub_delete() {
-	(*engine).onDelete.push_back([=]() {
-		(*this).on_delete();
+	engine->onDelete.push_back([=]() {
+		this->on_delete();
 	});
 }
 void Object::sub_loop() {
-	(*engine).onLoop.push_back([=](double delta) {
-		(*this).on_loop(delta);
+	engine->onLoop.push_back([=](double delta) {
+		this->on_loop(delta);
 	});
 }
 
@@ -480,6 +480,16 @@ void Texture::Bind(Shader* shader, unsigned int location) {
 #pragma endregion// Texture
 
 #pragma region Renderers
+Renderer::Renderer(Engine* _engine, Shader* _shader) : Object(_engine), shader(_shader), VAO(0), VBO(0), EBO(0) {
+	sub_delete();
+}
+void Renderer::draw() {}
+void Renderer::on_delete() {
+	if(!initialized) return;
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO);
+	glDeleteBuffers(1, &EBO);
+}
 float cubevertices[]={
 	0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
 	-0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
@@ -519,11 +529,11 @@ float cubevertices[]={
 	-0.5f, 0.5f, 0.5f, 0.0f, 0.0f
 };
 CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _rotAxis, float _rotAngle) :
-	Object(_engine), shader(_shader), position(_position), rotAxis(_rotAxis), rotAngle(_rotAngle), VAO(0), VBO(0) {
+	Renderer(_engine, _shader), position(_position), rotAxis(_rotAxis), rotAngle(_rotAngle) {
 	if((*engine).ended) { initialized=false;return; }
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	//glGenBuffers(1, &EBO);
+	glGenBuffers(1, &EBO);
 
 	glBindVertexArray(VAO);
 
@@ -536,7 +546,6 @@ CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, 
 	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));// get vertex uv data
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
-	sub_delete();
 }
 void CubeRenderer::draw() {
 	if((*engine).ended||!initialized) return;
@@ -546,12 +555,6 @@ void CubeRenderer::draw() {
 	(*shader).setMat4x4("model", model);
 	glBindVertexArray(VAO);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
-}
-void CubeRenderer::on_delete() {
-	if(!initialized) return;
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
-	//glDeleteBuffers(1, &EBO);
 }
 
 float quadvertices[]={
@@ -565,7 +568,7 @@ int quadindices[]={
 	1, 2, 3
 };
 SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _rotAngle) :
-	Object(_engine), shader(_shader), position(_position), rotAngle(_rotAngle), VAO(0), VBO(0), EBO(0) {
+	Renderer(_engine, _shader), position(_position), rotAngle(_rotAngle) {
 	if((*engine).ended) { initialized=false;return; }
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -582,7 +585,6 @@ SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _positi
 	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));// get vertex uv data
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
-	sub_delete();
 }
 void SpriteRenderer::draw() {
 	if((*engine).ended||!initialized) return;
@@ -590,12 +592,6 @@ void SpriteRenderer::draw() {
 	(*shader).setMat4x4("model", model);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-}
-void SpriteRenderer::on_delete() {
-	if(!initialized) return;
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
-	glDeleteBuffers(1, &EBO);
 }
 
 struct Character {
@@ -605,31 +601,17 @@ struct Character {
 	unsigned int Advance;    // Offset to advance to next glyph
 };
 std::map<char, Character> Characters;
-TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, const string& filePath) :
-	Object(_engine), shader(_shader), VAO(0), VBO(0) {
-	if((*engine).ended) { initialized=false;return; }
+bool characterMapInitialized=false;
+int initCharacterMap() {
 	FT_Library ft;
-	if(FT_Init_FreeType(&ft)) {
-		initialized=false;
-		//Log("");//error
-		(*engine).Delete();
-		return;
-	}
+	if(FT_Init_FreeType(&ft)) return 0;
 	FT_Face face;
-	if(FT_New_Face(ft, "Fonts/MonocraftBetterBrackets.ttf", 0, &face)) {
-		//Log("");//error
-		(*engine).Delete();
-		return;
-	}
+	if(FT_New_Face(ft, "Fonts/MonocraftBetterBrackets.ttf", 0, &face)) return 0;
 	FT_Set_Pixel_Sizes(face, 0, 30);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // disable byte-alignment restriction
 	for(unsigned char c=0; c<128; c++) {
 		// load character glyph
-		if(FT_Load_Char(face, c, FT_LOAD_RENDER)) {
-			//Log("");//error
-			(*engine).Delete();
-			return;
-		}
+		if(FT_Load_Char(face, c, FT_LOAD_RENDER)) return 0;
 		// generate texture
 		unsigned int texture;
 		glGenTextures(1, &texture);
@@ -660,46 +642,58 @@ TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, const string& fileP
 	glBindTexture(GL_TEXTURE_2D, 0);
 	FT_Done_Face(face);
 	FT_Done_FreeType(ft);
+	return 1;
+}
+TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector2 _position, float _scale, Vector3 _color) :
+	Renderer(_engine, _shader), text(_text), position(_position), scale(_scale), color(_color) {
+	if((*engine).ended) { initialized=false;return; }
+	if(!characterMapInitialized) {
+		if(!initCharacterMap()) {
+			initialized=false;
+			//Log("");//error
+			(*engine).Delete();
+			return;
+		}
+	}
 	//setup buffers
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+
 	glBindVertexArray(VAO);
+
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*6*5, NULL, GL_DYNAMIC_DRAW);
-	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*4*5, NULL, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);// bind buffer so that following code will assign the EBO buffer
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadindices), quadindices, GL_STATIC_DRAW);// fill EBO buffer with index data
+
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
-	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
+	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));// get vertex uv data
+	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	sub_delete();
 }
-void TextRenderer::draw(std::string text, float x, float y, float scale, Vector3 color) {
+void TextRenderer::draw() {
 	if((*engine).ended||!initialized) return;
 	(*shader).setFloat3("textColor", color);
 	glActiveTexture(GL_TEXTURE0);
 	glBindVertexArray(VAO);
 
 	// iterate through all characters
+	float x=position.x;
 	std::string::const_iterator c;
-	float xpos=0;
-	float ypos=0;
-	float w=0;
-	float h=0;
 	for(c=text.begin(); c!=text.end(); c++) {
 		Character ch=Characters[*c];
-		xpos=x+ch.Bearing.x*scale;
-		ypos=y-(ch.Size.y-ch.Bearing.y)*scale;
-		w=ch.Size.x*scale;
-		h=ch.Size.y*scale;
+		float xpos=x+ch.Bearing.x*scale;
+		float ypos=position.y-(ch.Size.y-ch.Bearing.y)*scale;
+		float w=ch.Size.x*scale;
+		float h=ch.Size.y*scale;
 		// update VBO for each character
-		float vertices[6][5]={
+		float vertices[4][5]={
+			{ xpos+w, ypos+h, -1.0f, 1.0f, 0.0f },
 			{ xpos, ypos+h, -1.0f, 0.0f, 0.0f },
 			{ xpos, ypos, -1.0f, 0.0f, 1.0f },
-			{ xpos+w, ypos, -1.0f, 1.0f, 1.0f },
-
-			{ xpos, ypos+h, -1.0f, 0.0f, 0.0f },
-			{ xpos+w, ypos, -1.0f, 1.0f, 1.0f },
-			{ xpos+w, ypos+h, -1.0f, 1.0f, 0.0f }
+			{ xpos+w, ypos, -1.0f, 1.0f, 1.0f }
 		};
 		// render glyph texture over quad
 		glBindTexture(GL_TEXTURE_2D, ch.TextureID);
@@ -708,16 +702,11 @@ void TextRenderer::draw(std::string text, float x, float y, float scale, Vector3
 		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		// render quad
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		// now advance cursors for next glyph (note that advance is number of 1/64 pixels)
 		x+=(ch.Advance>>6)*scale; // bitshift by 6 to get value in pixels (2^6 = 64)
 	}
 	glBindVertexArray(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
-}
-void TextRenderer::on_delete() {
-	if(!initialized) return;
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
 }
 #pragma endregion// Renderers

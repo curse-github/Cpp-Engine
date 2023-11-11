@@ -17,18 +17,18 @@ class FpsTracker : Object {
 	FpsTracker() : Object() {}
 	FpsTracker(Engine* _engine) : Object(_engine) { sub_loop(); self=this; }
 	void on_loop(double delta) {
-		for(int i=1; i<1000; i++) { lastFrames[i-1]=lastFrames[i]; }// move values back
+		for(unsigned int i=1; i<1000; i++) { lastFrames[i-1]=lastFrames[i]; }// move values back
 		lastFrames[999]=delta;// put delta at the end
 		double sum=0.0f;
-		for(int i=0; i<1000; i++) { sum+=lastFrames[i]; }// sum values
+		for(unsigned int i=0; i<1000; i++) { sum+=lastFrames[i]; }// sum values
 		avgFps=(int)(1000.0f/sum+0.5);
-		frameTime=sum;//1000.0f*1000.0f;
+		frameTime=(float)sum;//1000.0f*1000.0f;
 
 		highFps=0;
 		lowFps=100000;
-		for(int i=0; i<1000; i++) {
-			if((1/lastFrames[i])>highFps) highFps=((int)(1/lastFrames[i])+0.5);
-			if((1/lastFrames[i])<lowFps) lowFps=((int)(1/lastFrames[i])+0.5);
+		for(unsigned int i=0; i<1000; i++) {
+			if((1/lastFrames[i])>highFps) highFps=(int)((1/lastFrames[i])+0.5);
+			if((1/lastFrames[i])<lowFps) lowFps=(int)((1/lastFrames[i])+0.5);
 		}
 	}
 	int getAvgFps() {
@@ -46,6 +46,8 @@ class FpsTracker : Object {
 };
 
 void Loop(double delta);
+void on_delete();
+
 Vector3 cubePositions[10]={
 	Vector3(0.0f, 0.0f, 0.0f),
 	Vector3(2.0f, 5.0f, -15.0f),
@@ -60,15 +62,16 @@ Vector3 cubePositions[10]={
 };
 
 Engine engine;
+FpsTracker tracker;
 Shader shader;
 Shader shader2;
 Shader shader3;
 Shader textShader;
 FreeCam cam;
-OrthoCam cam2;
-vector<CubeRenderer> cubes;
-TextRenderer textRend;
-FpsTracker tracker;
+OrthoCam uiCam;
+vector<Renderer*> sceneRenderers;
+vector<Renderer*> transparentObjects;
+vector<TextRenderer*> debugText;
 int main(int argc, char** argv) {
 	// setup engine
 	engine=Engine(Vector2(1920, 1080), "Game!", false);
@@ -92,31 +95,38 @@ int main(int argc, char** argv) {
 	cam=FreeCam(&engine, engine.screenSize.x/engine.screenSize.y, Vector3(0, 0, 3), Vector3(0, 0, -1), Vector3(0, 1, 0));
 	// create cubes at "cubePositions"
 	for(int i=0; i<10; i++) {
-		if(i%3==0) cubes.push_back(CubeRenderer(&engine, &shader, cubePositions[i], Vector3(1.0f, 0.3f, 0.5f), i*20.0f));
-		else if(i%3==1) cubes.push_back(CubeRenderer(&engine, &shader2, cubePositions[i], Vector3(1.0f, 0.3f, 0.5f), i*20.0f));
-		else cubes.push_back(CubeRenderer(&engine, &shader3, cubePositions[i], Vector3(1.0f, 0.3f, 0.5f), i*20.0f));
+		if(i%3==0) transparentObjects.push_back(new CubeRenderer(&engine, &shader, cubePositions[i], Vector3(1.0f, 0.3f, 0.5f), i*20.0f));
+		else if(i%3==1) transparentObjects.push_back(new CubeRenderer(&engine, &shader2, cubePositions[i], Vector3(1.0f, 0.3f, 0.5f), i*20.0f));
+		else sceneRenderers.push_back(new CubeRenderer(&engine, &shader3, cubePositions[i], Vector3(1.0f, 0.3f, 0.5f), i*20.0f));
 	}
-	//setup text renderer
+	// setup text renderer
 	textShader=Shader(&engine, "Shaders/textVs.glsl", "Shaders/textFrag.glsl");
 	textShader.setFloat("text", 0);
-	cam2=OrthoCam(&engine, Vector2(400.0f, 300.0f), Vector2(800.0f, 600.0f));
-	cam2.set(&textShader);
-	textRend=TextRenderer(&engine, &textShader, "");
+	uiCam=OrthoCam(&engine, Vector2(400.0f, 300.0f), Vector2(800.0f, 600.0f)); uiCam.set(&textShader);
+	debugText.push_back(new TextRenderer(&engine, &textShader, "ms: ",Vector2(1.0f,1.0f),0.5f,Vector3(1.0f,1.0f,1.0f)));
+	debugText.push_back(new TextRenderer(&engine, &textShader, "Fps Avg: ",Vector2(1.0f,16.0f),0.5f,Vector3(1.0f,1.0f,1.0f)));
 	// run main loop
 	engine.onLoop.push_back(Loop);
+	engine.onDelete.push_back(on_delete);
 	engine.Loop();
 	return 1;
 }
 void Loop(double delta) {
-	//set matricies on shaders
+	// set debug text
+	(*debugText[1]).text="Fps Avg: "+to_string(tracker.getAvgFps())+", high: "+to_string(tracker.getHighFps())+", low: "+to_string(tracker.getLowFps());
+	(*debugText[0]).text="ms: "+to_string(tracker.getFrameTime());
+	// set matricies on shaders
 	cam.set(&shader);
 	cam.set(&shader2);
 	cam.set(&shader3);
-	//draw cubes
-	for(int i=0; i<cubes.size(); i++) {
-		cubes[i].draw();
-	}
+	//draw scene
+	for(Renderer* rend : sceneRenderers) rend->draw();
+	for(Renderer* rend : transparentObjects) rend->draw();
+	// draw ui
 	glClear(GL_DEPTH_BUFFER_BIT);
-	textRend.draw("Fps Avg: "+to_string(tracker.getAvgFps())+", high: "+to_string(tracker.getHighFps())+", low: "+to_string(tracker.getLowFps()), 1.0f, 16.0f, 0.5f, Vector3(1.0f, 1.0f, 1.0f));
-	textRend.draw("ms: "+to_string(tracker.getFrameTime()), 1.0f, 1.0f, 0.5f, Vector3(1.0f, 1.0f, 1.0f));
+	for(TextRenderer* rend : debugText) rend->draw();
+}
+void on_delete() {
+	for(unsigned int i=0; i<sceneRenderers.size(); i++) delete sceneRenderers[i];
+	for(unsigned int i=0; i<debugText.size(); i++) delete debugText[i];
 }
