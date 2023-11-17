@@ -214,4 +214,6 @@ void onDelete() {
 	for(unsigned int i=0; i < sceneRenderers.size(); i++) { delete sceneRenderers[i]; }
 	for(unsigned int i=0; i < uiRenderers.size(); i++) { delete uiRenderers[i]; }
 	for(unsigned int i=0; i < debugText.size(); i++) { delete debugText[i]; }
+	delete cam;
+	delete uiCam;
 }

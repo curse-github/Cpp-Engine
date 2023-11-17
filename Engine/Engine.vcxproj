@@ -126,7 +126,7 @@
       <AdditionalIncludeDirectories>dependencies/include;Headers</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>dependencies\glfw-3.3.8.bin.WIN32\lib-vc2019;dependencies</AdditionalLibraryDirectories>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
