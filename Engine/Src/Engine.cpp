@@ -388,14 +388,12 @@ Camera::Camera(Engine* _engine) : Object(_engine), projection(Mat4x4()), view(Ma
 void Camera::update() {}
 void Camera::bindShader(Shader* shader) {
 	if(engine->ended || !initialized || !shader->initialized) return;
-	shaders.push_back(shader);
-	shader->setMat4x4("projection", self->projection);
-	shader->setMat4x4("view", self->view);
+	self->shaders.push_back(shader);
 }
 void Camera::use() {
 	if(engine->ended || !initialized) return;
-	for(unsigned int i=0; i < shaders.size(); i++) {
-		Shader* ptr=shaders[i];
+	for(unsigned int i=0; i < self->shaders.size(); i++) {
+		Shader* ptr=(self->shaders)[i];
 		if(!ptr->initialized) continue;
 		ptr->setMat4x4("projection", self->projection);
 		ptr->setMat4x4("view", self->view);
@@ -500,7 +498,7 @@ int load_texture(unsigned int* texture, string path, int* width, int* height) {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		// texture filtering
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		// turn byte data into texture
 		unsigned int channelsEnum=((nrChannels == 3)?GL_RGB:GL_RGBA);
 		glTexImage2D(GL_TEXTURE_2D, 0, channelsEnum, *width, *height, 0, channelsEnum, GL_UNSIGNED_BYTE, data);

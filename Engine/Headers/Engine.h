@@ -41,7 +41,6 @@ public:
 	std::vector<std::function<void(GLFWwindow*, int)>> onMouseEnter;
 	std::vector<std::function<void()>> onDelete;
 	std::vector<std::function<void(double)>> onLoop;
-	std::vector<string> onLoopNames;
 protected:
 	void on_resize(GLFWwindow* window, int width, int height);
 	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods);

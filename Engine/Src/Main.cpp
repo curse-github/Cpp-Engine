@@ -5,6 +5,14 @@
 #include "Lib.h"
 #include "Engine.h"
 
+float mapScale=35.0f;
+float spacing=0.05f;
+Vector2 offset=Vector2(-26.5f, -4.0f);
+float broken_percent=2.5f;
+Vector2 map_size=Vector2(49.0f, 34.0f);
+
+float playerSpeed=5.0f;
+
 class FpsTracker : Object {
 protected:
 	double lastFrames[60]={};
@@ -15,8 +23,13 @@ public:
 	int lowFps=0;
 	float frameTime=0;
 	FpsTracker() : Object() {}
-	FpsTracker(Engine* _engine) : Object(_engine) { sub_loop(); self=this; }
-	void on_loop(double delta) {
+	FpsTracker(Engine* _engine) : Object(_engine) {
+		self=this;
+		if(!initialized) return;
+		sub_loop();
+	}
+	void on_loop(double delta) override {
+		if(engine->ended || !initialized) return;
 		for(unsigned int i=1; i < 60; i++) { lastFrames[i - 1]=lastFrames[i]; }// move values back
 		lastFrames[59]=delta;// put delta at the end
 		double sum=0.0f;
@@ -32,27 +45,68 @@ public:
 		}
 	}
 	int getAvgFps() {
+		if(engine->ended || !initialized) return 0;
 		return self->avgFps;
 	}
 	int getHighFps() {
+		if(engine->ended || !initialized) return 0;
 		return self->highFps;
 	}
 	int getLowFps() {
+		if(engine->ended || !initialized) return 0;
 		return self->lowFps;
 	}
 	float getFrameTime() {
+		if(engine->ended || !initialized) return 0;
 		return self->frameTime;
+	}
+};
+class PlayerController : public Object {
+protected:
+	PlayerController* self=nullptr;
+	SpriteRenderer* playerRenderer;
+	OrthoCam* sceneCam;
+public:
+	PlayerController() : Object(), playerRenderer(nullptr), sceneCam(nullptr) {}
+	PlayerController(Engine* _engine, SpriteRenderer* _playerRenderer, OrthoCam* _sceneCam)
+		: Object(_engine), playerRenderer(_playerRenderer), sceneCam(_sceneCam) {
+		self=this;
+		if(!initialized) return;
+		sub_key();
+		sub_loop();
+		sceneCam->position=playerRenderer->position;
+	}
+	bool paused=false;
+	int inputs[4]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
+	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods) {
+		if(engine->ended || !initialized) return;
+		if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+			paused=!paused;
+			engine->SetCursor(paused?GLFW_CURSOR_NORMAL:GLFW_CURSOR_DISABLED);
+			return;
+		}
+		if(paused) return;
+		if(key == GLFW_KEY_W) inputs[0]=action;
+		else if(key == GLFW_KEY_A) inputs[1]=action;
+		else if(key == GLFW_KEY_S) inputs[2]=action;
+		else if(key == GLFW_KEY_D) inputs[3]=action;
+	}
+	void on_loop(double delta) {
+		if(engine->ended || !initialized) return;
+		Vector2 inputVec=Vector2(
+			(float)(inputs[3] >= GLFW_PRESS) - (float)(inputs[1] >= GLFW_PRESS),
+			(float)(inputs[0] >= GLFW_PRESS) - (float)(inputs[2] >= GLFW_PRESS)
+		) * ((float)delta) * mapScale * playerSpeed;
+		if(inputVec.x == 0 && inputVec.y == 0) return;
+		playerRenderer->position+=inputVec;
+		sceneCam->position=playerRenderer->position;
+		sceneCam->update();
+		sceneCam->use();
 	}
 };
 
 void Loop(double delta);
 void onDelete();
-
-float mapScale=15.0f;
-float spacing=0.05f;
-Vector2 offset=Vector2(-26.5f, -4.0f);
-float broken_percent=2.5f;
-Vector2 map_size=Vector2(49.0f, 34.0f);
 
 Engine engine;
 FpsTracker tracker;
@@ -60,13 +114,12 @@ Shader textShader;
 Shader backgroundShader;
 Shader playerShader;
 Shader minimapShader;
-OrthoCam cam;
-OrthoCam uiCam;
+OrthoCam* cam;
+OrthoCam* uiCam;
 vector<Renderer*> sceneRenderers;
 vector<Renderer*> uiRenderers;
 vector<TextRenderer*> debugText;
 SpriteRenderer playerRenderer;
-SpriteRenderer bgRenderer;
 int main(int argc, char** argv) {
 	// setup engine
 	engine=Engine(Vector2(1920, 1080), "Game!", true);
@@ -78,9 +131,9 @@ int main(int argc, char** argv) {
 	// setup fps tracker
 	tracker=FpsTracker(&engine);
 	// setup cameras
-	cam=OrthoCam(&engine, Vector2(0.0f, 0.0f), Vector2(480.0f, 270.0f));
-	uiCam=OrthoCam(&engine, Vector2(480.0f, 270.0f), Vector2(960.0f, 540.0f));
-	if(engine.ended || !cam.initialized || !uiCam.initialized) {
+	cam=new OrthoCam(&engine, Vector2(0.0f, 0.0f), Vector2(480.0f, 270.0f));
+	uiCam=new OrthoCam(&engine, Vector2(480.0f, 270.0f), Vector2(960.0f, 540.0f));
+	if(engine.ended || !cam->initialized || !uiCam->initialized) {
 		Log("Cameras failed to init");
 		engine.Delete();
 		return 0;
@@ -111,21 +164,25 @@ int main(int argc, char** argv) {
 	}
 	backgroundShader.setTexture("_texture", &backgroundTex, 0);
 	playerShader.setTexture("_texture", &playerTex, 0);
-	playerShader.setFloat3("color",Vector3(0.35,0.0,0.7));
+	playerShader.setFloat3("color", Vector3(0.35, 0.0, 0.7));// purple
 	minimapShader.setTexture("_texture", &minimapTex, 0);
-	cam.bindShader(&backgroundShader);
-	cam.bindShader(&playerShader);
-	uiCam.bindShader(&minimapShader);
-	uiCam.bindShader(&textShader);
-	cam.use();
-	uiCam.use();
+	cam->bindShader(&backgroundShader);
+	cam->bindShader(&playerShader);
+	uiCam->bindShader(&minimapShader);
+	uiCam->bindShader(&textShader);
+	cam->use();
+	uiCam->use();
 	// setup game stuff
 	Vector2 fullMapSize=map_size * (1 + spacing) * mapScale;
-	bgRenderer=SpriteRenderer(&engine, &backgroundShader, fullMapSize / 2.0f + (offset * (1 + spacing) * mapScale), fullMapSize, 0.0f);
+	SpriteRenderer bgRenderer=SpriteRenderer(&engine, &backgroundShader, fullMapSize / 2.0f + (offset * (1 + spacing) * mapScale), fullMapSize, 0.0f);
 	bgRenderer.zIndex=1;
-	uiRenderers.push_back(&bgRenderer);
-	playerRenderer=SpriteRenderer(&engine, &playerShader, Vector2(0, 0), Vector2(mapScale, mapScale), 0.0f);
-	uiRenderers.push_back(&playerRenderer);
+	sceneRenderers.push_back(&bgRenderer);
+
+	playerRenderer=SpriteRenderer(&engine, &playerShader, Vector2(0, 0), Vector2(0.5f, 0.5f) * mapScale, 0.0f);
+	PlayerController controller=PlayerController(&engine, &playerRenderer, cam);
+	sceneRenderers.push_back(&playerRenderer);
+	// setup UI
+	uiRenderers.push_back(new SpriteRenderer(&engine, &minimapShader, Vector2(minimapSize.x / 2, 540.0f - minimapSize.y / 2), minimapSize, 0.0f));// minimap
 	// setup text renderers
 	debugText.push_back(new TextRenderer(&engine, &textShader, "Time: ", Vector2(1.0f, 1.0f), 2.0f, Vector3(1.0f, 1.0f, 1.0f)));
 	debugText.push_back(new TextRenderer(&engine, &textShader, "Fps Avg: ", Vector2(1.0f, 17.0f), 2.0f, Vector3(1.0f, 1.0f, 1.0f)));
@@ -135,11 +192,8 @@ int main(int argc, char** argv) {
 		engine.Delete();
 		return 0;
 	}
-	// setup UI
-	uiRenderers.push_back(new SpriteRenderer(&engine, &minimapShader, Vector2(minimapSize.x / 2, 540.0f - minimapSize.y / 2), minimapSize, 0.0f));// minimap
 	// run main loop
 	engine.onLoop.push_back(Loop);
-	engine.onLoopNames.push_back("Main");
 	Log("Engine initialized successfully");
 	engine.Loop();
 	return 1;
