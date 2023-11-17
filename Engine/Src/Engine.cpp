@@ -265,6 +265,7 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 		Log("File \"" + fragmentPath + "\" failed to read.");//error
 		if(fragmentPath == "Shaders/colorFrag.glsl") fragmentShaderSourceStr=colorFragShader;
 		if(fragmentPath == "Shaders/texFrag.glsl") fragmentShaderSourceStr=texFragShader;
+		if(fragmentPath == "Shaders/modulateTexFrag.glsl") fragmentShaderSourceStr=modulateTexFrag;
 		if(fragmentPath == "Shaders/textFrag.glsl") fragmentShaderSourceStr=textFragShader;
 		if(fragmentShaderSourceStr.size() == 0) {
 			glDeleteShader(vertexShader);
@@ -632,7 +633,7 @@ SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _positi
 }
 void SpriteRenderer::draw() {
 	if(engine->ended || !initialized) return;
-	Mat4x4 model=scaleMat(Vector3(scale, 1.0f)) * axisRotMat(rotAxis, deg_to_rad(rotAngle)) * translate(Vector3(position, 0.0f));
+	Mat4x4 model=scaleMat(Vector3(scale, 1.0f)) * axisRotMat(rotAxis, deg_to_rad(rotAngle)) * translate(Vector3(position, -zIndex));
 	shader->bindTextures();
 	shader->setMat4x4("model", model);
 	glBindVertexArray(VAO);

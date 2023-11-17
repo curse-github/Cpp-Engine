@@ -55,16 +55,8 @@
     <None Include="Shaders\textVs.glsl">
       <Filter>Shaders</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="Resources\awesomeface.png">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="Resources\container.jpg">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="Resources\grass.png">
-      <Filter>Resource Files</Filter>
-    </Image>
+    <None Include="Shaders\modulateTexFrag.glsl">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -48,18 +48,11 @@ public:
 void Loop(double delta);
 void onDelete();
 
-Vector3 cubePositions[10]={
-	Vector3(0.0f, 0.0f, 0.0f),
-	Vector3(2.0f, 5.0f, -15.0f),
-	Vector3(-1.5f, -2.2f, -2.5f),
-	Vector3(-3.8f, -2.0f, -12.3f),
-	Vector3(2.4f, -0.4f, -3.5f),
-	Vector3(-1.7f, 3.0f, -7.5f),
-	Vector3(1.3f, -2.0f, -2.5f),
-	Vector3(1.5f, 2.0f, -2.5f),
-	Vector3(1.5f, 0.2f, -1.5f),
-	Vector3(-1.3f, 1.0f, -1.5f)
-};
+float mapScale=15.0f;
+float spacing=0.05f;
+Vector2 offset=Vector2(-26.5f, -4.0f);
+float broken_percent=2.5f;
+Vector2 map_size=Vector2(49.0f, 34.0f);
 
 Engine engine;
 FpsTracker tracker;
@@ -73,6 +66,7 @@ vector<Renderer*> sceneRenderers;
 vector<Renderer*> uiRenderers;
 vector<TextRenderer*> debugText;
 SpriteRenderer playerRenderer;
+SpriteRenderer bgRenderer;
 int main(int argc, char** argv) {
 	// setup engine
 	engine=Engine(Vector2(1920, 1080), "Game!", true);
@@ -100,11 +94,11 @@ int main(int argc, char** argv) {
 		engine.Delete();
 		return 0;
 	}
-	float minimapScale=0.15f;
+	const float minimapScale=0.15f;
 	Vector2 minimapSize=Vector2((float)minimapTex.width, (float)minimapTex.height) * minimapScale;
 	// setup shaders
 	backgroundShader=Shader(&engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
-	playerShader=Shader(&engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
+	playerShader=Shader(&engine, "Shaders/vs.glsl", "Shaders/modulateTexFrag.glsl");
 	minimapShader=Shader(&engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
 	textShader=Shader(&engine, "Shaders/textVs.glsl", "Shaders/textFrag.glsl");
 	if(engine.ended ||
@@ -117,6 +111,7 @@ int main(int argc, char** argv) {
 	}
 	backgroundShader.setTexture("_texture", &backgroundTex, 0);
 	playerShader.setTexture("_texture", &playerTex, 0);
+	playerShader.setFloat3("color",Vector3(0.35,0.0,0.7));
 	minimapShader.setTexture("_texture", &minimapTex, 0);
 	cam.bindShader(&backgroundShader);
 	cam.bindShader(&playerShader);
@@ -124,8 +119,12 @@ int main(int argc, char** argv) {
 	uiCam.bindShader(&textShader);
 	cam.use();
 	uiCam.use();
-	// setup player stuff
-	playerRenderer=SpriteRenderer(&engine, &playerShader, Vector2(0,0),Vector2(15.0f,15.0f),0.0f);
+	// setup game stuff
+	Vector2 fullMapSize=map_size * (1 + spacing) * mapScale;
+	bgRenderer=SpriteRenderer(&engine, &backgroundShader, fullMapSize / 2.0f + (offset * (1 + spacing) * mapScale), fullMapSize, 0.0f);
+	bgRenderer.zIndex=1;
+	uiRenderers.push_back(&bgRenderer);
+	playerRenderer=SpriteRenderer(&engine, &playerShader, Vector2(0, 0), Vector2(mapScale, mapScale), 0.0f);
 	uiRenderers.push_back(&playerRenderer);
 	// setup text renderers
 	debugText.push_back(new TextRenderer(&engine, &textShader, "Time: ", Vector2(1.0f, 1.0f), 2.0f, Vector3(1.0f, 1.0f, 1.0f)));
@@ -137,7 +136,7 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 	// setup UI
-	uiRenderers.push_back(new SpriteRenderer(&engine, &minimapShader, Vector2(minimapSize.x/2, 540.0f - minimapSize.y/2), minimapSize, 0.0f));// minimap
+	uiRenderers.push_back(new SpriteRenderer(&engine, &minimapShader, Vector2(minimapSize.x / 2, 540.0f - minimapSize.y / 2), minimapSize, 0.0f));// minimap
 	// run main loop
 	engine.onLoop.push_back(Loop);
 	engine.onLoopNames.push_back("Main");

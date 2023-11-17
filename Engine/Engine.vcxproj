@@ -33,12 +33,8 @@
     <None Include="Shaders\textVs.glsl" />
     <None Include="Shaders\texFrag.glsl" />
     <None Include="Shaders\textFrag.glsl" />
+    <None Include="Shaders\modulateTexFrag.glsl" />
     <None Include="Shaders\vs.glsl" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="Resources\awesomeface.png" />
-    <Image Include="Resources\container.jpg" />
-    <Image Include="Resources\grass.png" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

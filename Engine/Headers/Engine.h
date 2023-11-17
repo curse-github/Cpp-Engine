@@ -25,7 +25,7 @@ public:
 	Vector2 screenSize;
 	bool initialized=false;
 	bool ended=false;
-	Engine() : window (nullptr), screenSize(Vector2(0.0f,0.0f)) {}
+	Engine() : window(nullptr), screenSize(Vector2(0.0f, 0.0f)) {}
 	Engine(Vector2 size, const char* title, bool vsync);
 	void Loop();
 	void Close();
@@ -191,6 +191,7 @@ public:
 	Vector2 position;
 	Vector2 scale;
 	Vector3 rotAxis=Vector3(0.0f, 0.0f, 1.0f);
+	float zIndex=0;
 	float rotAngle;
 	SpriteRenderer() : Renderer(), position(Vector2()), scale(Vector2()), rotAngle(0.0f) {}
 	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _rotAngle);
@@ -232,8 +233,18 @@ in vec2 uv;\n\
 uniform sampler2D _texture;\n\
 void main() {\n\
 	vec4 vertcolor = texture(_texture,uv);\n\
-	if (vertcolor.a<0.01) discard;\n\
+	if (vertcolor.a<=0.01) discard;\n\
 	FragColor = vertcolor;\n\
+}\0"
+#define modulateTexFrag "#version 330 core\n\
+out vec4 FragColor;\n\
+in vec2 uv;\n\
+uniform sampler2D _texture;\n\
+uniform vec3 color;\n\
+void main() {\n\
+	vec4 vertcolor=texture(_texture, uv);\n\
+	if(vertcolor.a <= 0.01) discard;\n\
+	FragColor=vec4(vertcolor.rgb * color, vertcolor.a);\n\
 }\0"
 #define textVsShader "#version 330 core \n\
 layout (location = 0) in vec3 vecPos; \n\
