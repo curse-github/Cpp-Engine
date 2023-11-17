@@ -126,6 +126,15 @@ Mat4x4 translate(Vector3 value) {
 	};
 	return Mat4x4(ary);
 }
+Mat4x4 scaleMat(Vector3 value) {
+	float ary[16]={
+		value.x, 0.0f, 0.0f, 0.0f,
+		0.0f, value.y, 0.0f, 0.0f,
+		0.0f, 0.0f, value.z, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
+	return Mat4x4(ary);
+}
 Mat4x4 axisRotMat(Vector3 axis, float angle) {
 	float c=cos(angle);
 	float s=sin(angle);

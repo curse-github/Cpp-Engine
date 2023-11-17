@@ -20,28 +20,29 @@ typedef std::function<void(double)>                          onloopfun;
 
 void engine_on_error(int error, const char* description);
 class Engine {
-	public:
+public:
 	GLFWwindow* window=nullptr;
 	Vector2 screenSize;
 	bool initialized=false;
 	bool ended=false;
-	Engine() {}
+	Engine() : window (nullptr), screenSize(Vector2(0.0f,0.0f)) {}
 	Engine(Vector2 size, const char* title, bool vsync);
 	void Loop();
 	void Close();
 	void Delete();
 	void SetCursor(int mode);
 
-	std::vector<onresizefun> onResize;
-	std::vector<onkeyfun> onKey;
-	std::vector<onscrollfun> onScroll;
-	std::vector<onmousefun> onMouse;
-	std::vector<onmousedeltafun> onMouseDelta;
-	std::vector<onmousebuttonfun> onMouseButton;
-	std::vector<onmouseenterfun> onMouseEnter;
-	std::vector<ondeletefun> onDelete;
-	std::vector<onloopfun> onLoop;
-	protected:
+	std::vector<std::function<void(GLFWwindow*, int, int)>> onResize;
+	std::vector<std::function<void(GLFWwindow*, int, int, int, int)>> onKey;
+	std::vector<std::function<void(GLFWwindow*, double, double)>> onScroll;
+	std::vector<std::function<void(GLFWwindow*, double, double)>> onMouse;
+	std::vector<std::function<void(GLFWwindow*, float, float)>> onMouseDelta;
+	std::vector<std::function<void(GLFWwindow*, int, int, int)>> onMouseButton;
+	std::vector<std::function<void(GLFWwindow*, int)>> onMouseEnter;
+	std::vector<std::function<void()>> onDelete;
+	std::vector<std::function<void(double)>> onLoop;
+	std::vector<string> onLoopNames;
+protected:
 	void on_resize(GLFWwindow* window, int width, int height);
 	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods);
 	void on_scroll(GLFWwindow* window, double xoffset, double yoffset);
@@ -52,9 +53,9 @@ class Engine {
 	void on_mouse_enter(GLFWwindow* window, int entered);
 };
 class Object {
-	public:
+public:
 	bool initialized=false;
-	protected:
+protected:
 	Engine* engine;
 	Object() : engine(nullptr) {}
 	Object(Engine* _engine);
@@ -81,12 +82,12 @@ class Object {
 };
 class Texture;
 class Shader : public Object {
-	protected:
+protected:
 	unsigned int program=0;
 	void on_delete() override;
-	std::vector<Texture> textures;
-	std::vector<unsigned int> textureLocations;
-	public:
+	std::vector<Texture*> textures;
+	std::vector<int> textureIndexes;
+public:
 	Shader() : Object() {}
 	Shader(Engine* _engine, string vertexPath, string fragmentPath);
 	void use();
@@ -97,22 +98,24 @@ class Shader : public Object {
 	void setFloat3(const std::string& name, Vector3 value);
 	void setFloat4(const std::string& name, Vector4 value);
 	void setMat4x4(const std::string& name, Mat4x4 value);
-	void setTexture(const std::string& name, Texture tex, unsigned int location);
+	void setTexture(const std::string& name, Texture* tex, unsigned int location);
 	void bindTextures();
 };
 class Camera : public Object {
-	protected:
+protected:
 	Camera* self;
-	public:
+	std::vector<Shader*> shaders;
+public:
 	Mat4x4 projection;
 	Mat4x4 view;
 	Camera() : Object(), self(nullptr), projection(Mat4x4()), view(Mat4x4()) {}
 	Camera(Engine* _engine);
 	virtual void update();
-	void set(Shader* shader);
+	void bindShader(Shader* shader);
+	void use();
 };
 class LookAtCam : public Camera {
-	public:
+public:
 	float fov=45;
 	float aspect;
 	Vector3 position;
@@ -122,7 +125,7 @@ class LookAtCam : public Camera {
 	void update();
 };
 class FreeCam : public Camera {
-	protected:
+protected:
 	float aspect;
 	Vector3 position;
 	Vector3 forward;
@@ -130,7 +133,7 @@ class FreeCam : public Camera {
 	float SPEED=2.5f;
 	float pitch=0.0f;
 	float yaw=-90.0f;
-	public:
+public:
 	float fov=45;
 	float SENSITIVITY=0.1f;
 	bool paused=false;
@@ -144,7 +147,7 @@ class FreeCam : public Camera {
 	void on_scroll(GLFWwindow* window, double xoffset, double yoffset) override;
 };
 class OrthoCam : public Camera {
-	public:
+public:
 	Vector2 position;
 	Vector2 size;
 	OrthoCam() : Camera(), position(Vector2()), size(Vector2()) {}
@@ -152,28 +155,30 @@ class OrthoCam : public Camera {
 	void update();
 };
 class Texture : public Object {
-	public:
+public:
 	unsigned int ID;
-	public:
+public:
 	string path;
-	Texture();
+	int width;
+	int height;
+	Texture() : Object(), ID(0), path(""), width(0), height(0) {}
 	Texture(Engine* _engine, string _path);
 	void Bind(Shader* shader, unsigned int location);
 };
 class Renderer : public Object {
-	protected:
+protected:
 	Shader* shader;
 	unsigned int VAO;
 	unsigned int VBO;
 	unsigned int EBO;
 	void on_delete() override;
-	public:
+public:
 	Renderer() : Object(), shader(nullptr), VAO(0), VBO(0), EBO(0) {}
 	Renderer(Engine* _engine, Shader* _shader);
 	virtual void draw();
 };
 class CubeRenderer : public Renderer {
-	public:
+public:
 	Vector3 position;
 	Vector3 rotAxis;
 	float rotAngle;
@@ -182,17 +187,18 @@ class CubeRenderer : public Renderer {
 	void draw() override;
 };
 class SpriteRenderer : public Renderer {
-	public:
+public:
 	Vector2 position;
+	Vector2 scale;
 	Vector3 rotAxis=Vector3(0.0f, 0.0f, 1.0f);
 	float rotAngle;
-	SpriteRenderer() : Renderer(), position(Vector2()), rotAngle(0.0f) {}
-	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _rotAngle);
+	SpriteRenderer() : Renderer(), position(Vector2()), scale(Vector2()), rotAngle(0.0f) {}
+	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _rotAngle);
 	void draw() override;
 };
 extern bool characterMapInitialized;
 class TextRenderer : public Renderer {
-	public:
+public:
 	std::string text;
 	Vector2 position;
 	float scale;
@@ -228,17 +234,6 @@ void main() {\n\
 	vec4 vertcolor = texture(_texture,uv);\n\
 	if (vertcolor.a<0.01) discard;\n\
 	FragColor = vertcolor;\n\
-}\0"
-#define mixTexFragShader "#version 330 core \n\
-out vec4 FragColor; \n\
-in vec2 uv; \n\
-uniform sampler2D texture1; \n\
-uniform sampler2D texture2; \n\
-uniform float mixVal; \n\
-void main() { \n\
-	vec4 vertcolor = mix(texture(texture1,uv), texture(texture2,uv), mixVal); \n\
-	if (vertcolor.a<0.01) discard; \n\
-	FragColor = vertcolor; \n\
 }\0"
 #define textVsShader "#version 330 core \n\
 layout (location = 0) in vec3 vecPos; \n\

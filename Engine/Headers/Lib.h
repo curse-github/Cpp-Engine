@@ -103,6 +103,7 @@ class Mat4x4 {
 float deg_to_rad(float deg);
 float rad_to_deg(float deg);
 Mat4x4 translate(Vector3 value);
+Mat4x4 scaleMat(Vector3 value);
 Mat4x4 axisRotMat(Vector3 axis, float angle);
 Mat4x4 ortho(float left, float right, float bottom, float top, float near, float far);
 Mat4x4 perspective(float fov, float aspect, float near, float far);
