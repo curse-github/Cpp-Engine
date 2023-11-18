@@ -13,14 +13,14 @@ void Log(int out);
 void Log(unsigned int out);
 void Log(float out);
 void Log(double out);
-class Vector2;class Vector3;
+class Vector2; class Vector3;
 void Log(Vector2 out);
 void Log(Vector3 out);
 class Mat4x4;
 void Log(Mat4x4 out);
 
 class Vector2 {
-	public:
+public:
 	float x;
 	float y;
 	Vector2();
@@ -38,10 +38,11 @@ class Vector2 {
 	Vector2 operator*(int b);
 	Vector2 operator/(float b);
 	Vector2 operator/(int b);
+	std::string to_string();
 };
 
 class Vector3 {
-	public:
+public:
 	float x;
 	float y;
 	float z;
@@ -62,9 +63,10 @@ class Vector3 {
 	Vector3 operator*(int b);
 	Vector3 operator/(float b);
 	Vector3 operator/(int b);
+	std::string to_string();
 };
 class Vector4 {
-	public:
+public:
 	float x;
 	float y;
 	float z;
@@ -86,9 +88,10 @@ class Vector4 {
 	Vector4 operator*(int b);
 	Vector4 operator/(float b);
 	Vector4 operator/(int b);
+	std::string to_string();
 };
 class Mat4x4 {
-	public:
+public:
 	float values[16];
 	Mat4x4(float _values[16]);
 	Mat4x4();

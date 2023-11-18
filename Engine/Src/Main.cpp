@@ -7,11 +7,14 @@
 
 float mapScale=35.0f;
 float spacing=0.05f;
-Vector2 offset=Vector2(-26.5f, -4.0f);
-float broken_percent=2.5f;
-Vector2 map_size=Vector2(49.0f, 34.0f);
+Vector2 mapSize=Vector2(49.0f, 34.0f);
+Vector2 offset=Vector2(26.5f, 30.0f);
+const float minimapScale=0.15f;
+Vector2 minimapSize;
+Vector2 fullMapSize=mapSize * (1 + spacing) * mapScale;
 
-float playerSpeed=5.0f;
+float playerSize=0.5f;
+float playerSpeed=4.0f;
 
 class FpsTracker : Object {
 protected:
@@ -61,31 +64,38 @@ public:
 		return self->frameTime;
 	}
 };
+Vector2 gridToWorld(Vector2 grid) {
+	return Vector2(grid.x * mapScale * (1 + spacing), (mapSize.y - grid.y) * mapScale * (1 + spacing));
+}
+Vector2 worldToGrid(Vector2 world) {
+	return Vector2(world.x / mapScale / (1 + spacing), mapSize.y - world.y / mapScale / (1 + spacing));
+}
+Vector2 gridToMinimap(Vector2 grid) {
+	return Vector2(grid.x / mapSize.x * minimapSize.x, 540-grid.y / mapSize.y * minimapSize.y);
+}
 class PlayerController : public Object {
 protected:
-	PlayerController* self=nullptr;
+	PlayerController* self;
 	SpriteRenderer* playerRenderer;
+	SpriteRenderer* playerIconRenderer;
 	OrthoCam* sceneCam;
 public:
-	PlayerController() : Object(), playerRenderer(nullptr), sceneCam(nullptr) {}
-	PlayerController(Engine* _engine, SpriteRenderer* _playerRenderer, OrthoCam* _sceneCam)
-		: Object(_engine), playerRenderer(_playerRenderer), sceneCam(_sceneCam) {
-		self=this;
+	Vector2 pos;
+	PlayerController() : Object(), self(nullptr), playerRenderer(nullptr), playerIconRenderer(nullptr), sceneCam(nullptr), pos(Vector2(0)) {}
+	PlayerController(Engine* _engine, SpriteRenderer* _playerRenderer, SpriteRenderer* _playerIconRenderer, OrthoCam* _sceneCam)
+		: Object(_engine), self(this), playerRenderer(_playerRenderer), playerIconRenderer(_playerIconRenderer), sceneCam(_sceneCam), pos(Vector2(0)) {
 		if(!initialized) return;
 		sub_key();
 		sub_loop();
+		pos=worldToGrid(playerRenderer->position);
 		sceneCam->position=playerRenderer->position;
+		playerIconRenderer->position=gridToMinimap(pos);
+		sceneCam->update();
+		sceneCam->use();
 	}
-	bool paused=false;
 	int inputs[4]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
 	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods) {
 		if(engine->ended || !initialized) return;
-		if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-			paused=!paused;
-			engine->SetCursor(paused?GLFW_CURSOR_NORMAL:GLFW_CURSOR_DISABLED);
-			return;
-		}
-		if(paused) return;
 		if(key == GLFW_KEY_W) inputs[0]=action;
 		else if(key == GLFW_KEY_A) inputs[1]=action;
 		else if(key == GLFW_KEY_S) inputs[2]=action;
@@ -95,11 +105,14 @@ public:
 		if(engine->ended || !initialized) return;
 		Vector2 inputVec=Vector2(
 			(float)(inputs[3] >= GLFW_PRESS) - (float)(inputs[1] >= GLFW_PRESS),
-			(float)(inputs[0] >= GLFW_PRESS) - (float)(inputs[2] >= GLFW_PRESS)
-		) * ((float)delta) * mapScale * playerSpeed;
+			(float)(inputs[2] >= GLFW_PRESS) - (float)(inputs[0] >= GLFW_PRESS)
+		).normalized() * ((float)delta) * playerSpeed;
 		if(inputVec.x == 0 && inputVec.y == 0) return;
-		playerRenderer->position+=inputVec;
-		sceneCam->position=playerRenderer->position;
+		pos+=inputVec;
+		Vector2 worldPos=gridToWorld(pos);
+		playerRenderer->position=worldPos;
+		sceneCam->position=worldPos;
+		playerIconRenderer->position=gridToMinimap(pos);
 		sceneCam->update();
 		sceneCam->use();
 	}
@@ -110,16 +123,23 @@ void onDelete();
 
 Engine engine;
 FpsTracker tracker;
-Shader textShader;
-Shader backgroundShader;
-Shader playerShader;
-Shader minimapShader;
 OrthoCam* cam;
 OrthoCam* uiCam;
-vector<Renderer*> sceneRenderers;
-vector<Renderer*> uiRenderers;
-vector<TextRenderer*> debugText;
+
+Shader playerShader;
+Shader playerIconShader;
 SpriteRenderer playerRenderer;
+SpriteRenderer playerIconRenderer;
+
+Shader backgroundShader;
+vector<Renderer*> sceneRenderers;
+Shader minimapShader;
+vector<Renderer*> uiRenderers;
+Shader textShader;
+vector<TextRenderer*> debugText;
+
+PlayerController* playerController;
+
 int main(int argc, char** argv) {
 	// setup engine
 	engine=Engine(Vector2(1920, 1080), "Game!", true);
@@ -147,51 +167,60 @@ int main(int argc, char** argv) {
 		engine.Delete();
 		return 0;
 	}
-	const float minimapScale=0.15f;
-	Vector2 minimapSize=Vector2((float)minimapTex.width, (float)minimapTex.height) * minimapScale;
+	minimapSize=Vector2((float)minimapTex.width, (float)minimapTex.height) * minimapScale;
 	// setup shaders
-	backgroundShader=Shader(&engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
 	playerShader=Shader(&engine, "Shaders/vs.glsl", "Shaders/modulateTexFrag.glsl");
+	playerIconShader=Shader(&engine, "Shaders/vs.glsl", "Shaders/modulateTexFrag.glsl");
+	backgroundShader=Shader(&engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
 	minimapShader=Shader(&engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
 	textShader=Shader(&engine, "Shaders/textVs.glsl", "Shaders/textFrag.glsl");
 	if(engine.ended ||
-		!backgroundShader.initialized || !playerShader.initialized ||
-		!minimapShader.initialized || !textShader.initialized
+		!playerShader.initialized || !playerIconShader.initialized ||
+		!backgroundShader.initialized || !minimapShader.initialized ||
+		!textShader.initialized
 		) {
 		Log("Shaders failed to init");
 		engine.Delete();
 		return 0;
 	}
-	backgroundShader.setTexture("_texture", &backgroundTex, 0);
+	// set shader constants
 	playerShader.setTexture("_texture", &playerTex, 0);
-	playerShader.setFloat3("color", Vector3(0.35, 0.0, 0.7));// purple
+	playerShader.setFloat3("color", Vector3(0.35f, 0.0f, 0.7f));// purple
+	playerIconShader.setTexture("_texture", &playerTex, 0);
+	playerIconShader.setFloat3("color", Vector3(0.35f, 0.0f, 0.7f));// purple
+	backgroundShader.setTexture("_texture", &backgroundTex, 0);
 	minimapShader.setTexture("_texture", &minimapTex, 0);
-	cam->bindShader(&backgroundShader);
 	cam->bindShader(&playerShader);
+	uiCam->bindShader(&playerIconShader);
+	cam->bindShader(&backgroundShader);
 	uiCam->bindShader(&minimapShader);
 	uiCam->bindShader(&textShader);
 	cam->use();
 	uiCam->use();
-	// setup game stuff
-	Vector2 fullMapSize=map_size * (1 + spacing) * mapScale;
-	SpriteRenderer bgRenderer=SpriteRenderer(&engine, &backgroundShader, fullMapSize / 2.0f + (offset * (1 + spacing) * mapScale), fullMapSize, 0.0f);
-	bgRenderer.zIndex=1;
-	sceneRenderers.push_back(&bgRenderer);
-
-	playerRenderer=SpriteRenderer(&engine, &playerShader, Vector2(0, 0), Vector2(0.5f, 0.5f) * mapScale, 0.0f);
-	PlayerController controller=PlayerController(&engine, &playerRenderer, cam);
+	// player
+	playerRenderer=SpriteRenderer(&engine, &playerShader, gridToWorld(offset), playerSize * mapScale, 0.0f);
+	playerRenderer.zIndex=2;
 	sceneRenderers.push_back(&playerRenderer);
-	// setup UI
-	uiRenderers.push_back(new SpriteRenderer(&engine, &minimapShader, Vector2(minimapSize.x / 2, 540.0f - minimapSize.y / 2), minimapSize, 0.0f));// minimap
+	// playerIcon
+	playerIconRenderer=SpriteRenderer(&engine, &playerIconShader, Vector2(minimapSize.x / 2, 540.0f - minimapSize.y / 2), Vector2(minimapSize.x / mapSize.x, minimapSize.y / mapSize.y), 0.0f);
+	playerIconRenderer.zIndex=1;
+	uiRenderers.push_back(&playerIconRenderer);
+	// background
+	SpriteRenderer bgRenderer=SpriteRenderer(&engine, &backgroundShader, fullMapSize / 2.0f, fullMapSize, 0.0f);
+	sceneRenderers.push_back(&bgRenderer);
+	// minimap
+	uiRenderers.push_back(new SpriteRenderer(&engine, &minimapShader, Vector2(minimapSize.x / 2, 540.0f - minimapSize.y / 2), minimapSize, 0.0f));
 	// setup text renderers
 	debugText.push_back(new TextRenderer(&engine, &textShader, "Time: ", Vector2(1.0f, 1.0f), 2.0f, Vector3(1.0f, 1.0f, 1.0f)));
 	debugText.push_back(new TextRenderer(&engine, &textShader, "Fps Avg: ", Vector2(1.0f, 17.0f), 2.0f, Vector3(1.0f, 1.0f, 1.0f)));
-	debugText.push_back(new TextRenderer(&engine, &textShader, "ms: ", Vector2(1.0f, 33.0f), 2.0f, Vector3(1.0f, 1.0f, 1.0f)));
+	debugText.push_back(new TextRenderer(&engine, &textShader, "Pos: ", Vector2(1.0f, 33.0f), 2.0f, Vector3(1.0f, 1.0f, 1.0f)));
 	if(engine.ended || !characterMapInitialized) {
 		Log("Fonts failed to init");
 		engine.Delete();
 		return 0;
 	}
+	// setup other stuff
+	playerController=new PlayerController(&engine, &playerRenderer, &playerIconRenderer, cam);
 	// run main loop
 	engine.onLoop.push_back(Loop);
 	Log("Engine initialized successfully");
@@ -202,8 +231,8 @@ void Loop(double delta) {
 	// set debug text
 	debugText[0]->text="Time: " + to_string(glfwGetTime());
 	debugText[1]->text="Fps Avg: " + to_string(tracker.getAvgFps()) + ", high: " + to_string(tracker.getHighFps()) + ", low: " + to_string(tracker.getLowFps());
-	debugText[2]->text="ms: " + to_string(tracker.getFrameTime());
-	//draw scene
+	debugText[2]->text="Pos: " + playerController->pos.to_string();
+	// draw scene
 	for(Renderer* rend : sceneRenderers) rend->draw();
 	// draw ui
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -214,6 +243,5 @@ void onDelete() {
 	for(unsigned int i=0; i < sceneRenderers.size(); i++) { delete sceneRenderers[i]; }
 	for(unsigned int i=0; i < uiRenderers.size(); i++) { delete uiRenderers[i]; }
 	for(unsigned int i=0; i < debugText.size(); i++) { delete debugText[i]; }
-	delete cam;
-	delete uiCam;
+	delete cam; delete uiCam; delete playerController;
 }

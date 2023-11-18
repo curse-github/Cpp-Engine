@@ -631,7 +631,7 @@ SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _positi
 }
 void SpriteRenderer::draw() {
 	if(engine->ended || !initialized) return;
-	Mat4x4 model=scaleMat(Vector3(scale, 1.0f)) * axisRotMat(rotAxis, deg_to_rad(rotAngle)) * translate(Vector3(position, -zIndex));
+	Mat4x4 model=scaleMat(Vector3(scale, 1.0f)) * axisRotMat(rotAxis, deg_to_rad(rotAngle)) * translate(Vector3(position, zIndex - 98.0f));
 	shader->bindTextures();
 	shader->setMat4x4("model", model);
 	glBindVertexArray(VAO);
