@@ -71,7 +71,7 @@ Vector2 worldToGrid(Vector2 world) {
 	return Vector2(world.x / mapScale / (1 + spacing), mapSize.y - world.y / mapScale / (1 + spacing));
 }
 Vector2 gridToMinimap(Vector2 grid) {
-	return Vector2(grid.x / mapSize.x * minimapSize.x, 540-grid.y / mapSize.y * minimapSize.y);
+	return Vector2(grid.x / mapSize.x * minimapSize.x, 540 - grid.y / mapSize.y * minimapSize.y);
 }
 class PlayerController : public Object {
 protected:
@@ -132,9 +132,9 @@ SpriteRenderer playerRenderer;
 SpriteRenderer playerIconRenderer;
 
 Shader backgroundShader;
-vector<Renderer*> sceneRenderers;
+vector<SpriteRenderer*> sceneRenderers;
 Shader minimapShader;
-vector<Renderer*> uiRenderers;
+vector<SpriteRenderer*> uiRenderers;
 Shader textShader;
 vector<TextRenderer*> debugText;
 
@@ -169,8 +169,8 @@ int main(int argc, char** argv) {
 	}
 	minimapSize=Vector2((float)minimapTex.width, (float)minimapTex.height) * minimapScale;
 	// setup shaders
-	playerShader=Shader(&engine, "Shaders/vs.glsl", "Shaders/modulateTexFrag.glsl");
-	playerIconShader=Shader(&engine, "Shaders/vs.glsl", "Shaders/modulateTexFrag.glsl");
+	playerShader=Shader(&engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
+	playerIconShader=Shader(&engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
 	backgroundShader=Shader(&engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
 	minimapShader=Shader(&engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
 	textShader=Shader(&engine, "Shaders/textVs.glsl", "Shaders/textFrag.glsl");
@@ -185,11 +185,12 @@ int main(int argc, char** argv) {
 	}
 	// set shader constants
 	playerShader.setTexture("_texture", &playerTex, 0);
-	playerShader.setFloat3("color", Vector3(0.35f, 0.0f, 0.7f));// purple
+	playerShader.setFloat4("modulate", Vector4(0.35f, 0.0f, 0.7f, 1.0f));// purple
 	playerIconShader.setTexture("_texture", &playerTex, 0);
-	playerIconShader.setFloat3("color", Vector3(0.35f, 0.0f, 0.7f));// purple
+	playerIconShader.setFloat4("modulate", Vector4(0.35f, 0.0f, 0.7f, 0.75f));// purple
 	backgroundShader.setTexture("_texture", &backgroundTex, 0);
 	minimapShader.setTexture("_texture", &minimapTex, 0);
+	minimapShader.setFloat4("modulate", Vector4(1.0f, 1.0f, 1.0f, 0.75f));// half transparency
 	cam->bindShader(&playerShader);
 	uiCam->bindShader(&playerIconShader);
 	cam->bindShader(&backgroundShader);
@@ -199,7 +200,7 @@ int main(int argc, char** argv) {
 	uiCam->use();
 	// player
 	playerRenderer=SpriteRenderer(&engine, &playerShader, gridToWorld(offset), playerSize * mapScale, 0.0f);
-	playerRenderer.zIndex=2;
+	playerRenderer.zIndex=1;
 	sceneRenderers.push_back(&playerRenderer);
 	// playerIcon
 	playerIconRenderer=SpriteRenderer(&engine, &playerIconShader, Vector2(minimapSize.x / 2, 540.0f - minimapSize.y / 2), Vector2(minimapSize.x / mapSize.x, minimapSize.y / mapSize.y), 0.0f);

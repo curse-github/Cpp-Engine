@@ -55,8 +55,5 @@
     <None Include="Shaders\textVs.glsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\modulateTexFrag.glsl">
-      <Filter>Shaders</Filter>
-    </None>
   </ItemGroup>
 </Project>

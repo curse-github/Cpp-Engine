@@ -43,6 +43,7 @@ Engine::Engine(Vector2 size, const char* title, bool vsync) : window(nullptr), s
 	glfwSetCursorEnterCallback(window, [](GLFWwindow* window, int entered) {static_cast<Engine*>(glfwGetWindowUserPointer(window))->on_mouse_enter(window, entered); });
 
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_CULL_FACE);
@@ -265,7 +266,6 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 		Log("File \"" + fragmentPath + "\" failed to read.");//error
 		if(fragmentPath == "Shaders/colorFrag.glsl") fragmentShaderSourceStr=colorFragShader;
 		if(fragmentPath == "Shaders/texFrag.glsl") fragmentShaderSourceStr=texFragShader;
-		if(fragmentPath == "Shaders/modulateTexFrag.glsl") fragmentShaderSourceStr=modulateTexFrag;
 		if(fragmentPath == "Shaders/textFrag.glsl") fragmentShaderSourceStr=textFragShader;
 		if(fragmentShaderSourceStr.size() == 0) {
 			glDeleteShader(vertexShader);
@@ -480,7 +480,7 @@ OrthoCam::OrthoCam(Engine* _engine, Vector2 _position, Vector2 _size) :
 }
 void OrthoCam::update() {
 	if(engine->ended || !initialized) return;
-	projection=ortho(-size.x / 2.0f, size.x / 2.0f, -size.y / 2.0f, size.y / 2.0f, 0.01f, 100.0f);
+	projection=ortho(-size.x / 2.0f, size.x / 2.0f, -size.y / 2.0f, size.y / 2.0f, 0.0f, 1000.0f);
 	view=translate(Vector3(-position, 0));
 }
 #pragma endregion// Camera
@@ -631,7 +631,7 @@ SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _positi
 }
 void SpriteRenderer::draw() {
 	if(engine->ended || !initialized) return;
-	Mat4x4 model=scaleMat(Vector3(scale, 1.0f)) * axisRotMat(rotAxis, deg_to_rad(rotAngle)) * translate(Vector3(position, zIndex - 98.0f));
+	Mat4x4 model=scaleMat(Vector3(scale, 1.0f)) * axisRotMat(rotAxis, deg_to_rad(rotAngle)) * translate(Vector3(position, zIndex-100));
 	shader->bindTextures();
 	shader->setMat4x4("model", model);
 	glBindVertexArray(VAO);

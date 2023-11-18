@@ -33,7 +33,6 @@
     <None Include="Shaders\textVs.glsl" />
     <None Include="Shaders\texFrag.glsl" />
     <None Include="Shaders\textFrag.glsl" />
-    <None Include="Shaders\modulateTexFrag.glsl" />
     <None Include="Shaders\vs.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
