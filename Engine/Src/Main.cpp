@@ -4,6 +4,7 @@
 #include <stb_image.h>
 #include "Lib.h"
 #include "Engine.h"
+#include "Json.h"
 
 float mapScale=35.0f;
 float spacing=0.05f;
@@ -16,6 +17,15 @@ Vector2 fullMapSize=mapSize * (1 + spacing) * mapScale;
 float playerSize=0.5f;
 float playerSpeed=4.0f;
 
+Vector2 gridToWorld(Vector2 grid) {
+	return Vector2(grid.x * mapScale * (1 + spacing), (mapSize.y - grid.y) * mapScale * (1 + spacing));
+}
+Vector2 worldToGrid(Vector2 world) {
+	return Vector2(world.x / mapScale / (1 + spacing), mapSize.y - world.y / mapScale / (1 + spacing));
+}
+Vector2 gridToMinimap(Vector2 grid) {
+	return Vector2(grid.x / mapSize.x * minimapSize.x, 540 - grid.y / mapSize.y * minimapSize.y);
+}
 class FpsTracker : Object {
 protected:
 	double lastFrames[60]={};
@@ -64,15 +74,6 @@ public:
 		return self->frameTime;
 	}
 };
-Vector2 gridToWorld(Vector2 grid) {
-	return Vector2(grid.x * mapScale * (1 + spacing), (mapSize.y - grid.y) * mapScale * (1 + spacing));
-}
-Vector2 worldToGrid(Vector2 world) {
-	return Vector2(world.x / mapScale / (1 + spacing), mapSize.y - world.y / mapScale / (1 + spacing));
-}
-Vector2 gridToMinimap(Vector2 grid) {
-	return Vector2(grid.x / mapSize.x * minimapSize.x, 540 - grid.y / mapSize.y * minimapSize.y);
-}
 class PlayerController : public Object {
 protected:
 	PlayerController* self;
@@ -117,7 +118,6 @@ public:
 		sceneCam->use();
 	}
 };
-
 void Loop(double delta);
 void onDelete();
 
@@ -132,11 +132,11 @@ SpriteRenderer playerRenderer;
 SpriteRenderer playerIconRenderer;
 
 Shader backgroundShader;
-vector<SpriteRenderer*> sceneRenderers;
+std::vector<SpriteRenderer*> sceneRenderers;
 Shader minimapShader;
-vector<SpriteRenderer*> uiRenderers;
+std::vector<SpriteRenderer*> uiRenderers;
 Shader textShader;
-vector<TextRenderer*> debugText;
+std::vector<TextRenderer*> debugText;
 
 PlayerController* playerController;
 
@@ -158,6 +158,8 @@ int main(int argc, char** argv) {
 		engine.Delete();
 		return 0;
 	}
+	// load map data
+	loadMapData("map");
 	// setup textures
 	Texture backgroundTex(&engine, "Resources/map.png");
 	Texture playerTex(&engine, "Resources/ghost.png");
@@ -230,8 +232,8 @@ int main(int argc, char** argv) {
 }
 void Loop(double delta) {
 	// set debug text
-	debugText[0]->text="Time: " + to_string(glfwGetTime());
-	debugText[1]->text="Fps Avg: " + to_string(tracker.getAvgFps()) + ", high: " + to_string(tracker.getHighFps()) + ", low: " + to_string(tracker.getLowFps());
+	debugText[0]->text="Time: " + std::to_string(glfwGetTime());
+	debugText[1]->text="Fps Avg: " + std::to_string(tracker.getAvgFps()) + ", high: " + std::to_string(tracker.getHighFps()) + ", low: " + std::to_string(tracker.getLowFps());
 	debugText[2]->text="Pos: " + playerController->pos.to_string();
 	// draw scene
 	for(Renderer* rend : sceneRenderers) rend->draw();

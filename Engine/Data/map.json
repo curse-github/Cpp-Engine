@@ -1,0 +1,9 @@
+{
+  "mapScale": 35.0,
+  "spacing": 0.05,
+  "mapSize": "[ 49.0, 34.0 ]",
+  "offset": [ 26.5, 30.0 ],
+  "minimapScale": 0.15,
+  "playerSize": 0.5,
+  "playerSpeed": 4.0
+}

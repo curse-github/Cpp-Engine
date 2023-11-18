@@ -21,14 +21,17 @@
   <ItemGroup>
     <ClCompile Include="glad.c" />
     <ClCompile Include="Src\Engine.cpp" />
+    <ClCompile Include="Src\Json.cpp" />
     <ClCompile Include="Src\Lib.cpp" />
     <ClCompile Include="Src\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Headers\Json.h" />
     <ClInclude Include="Headers\Lib.h" />
     <ClInclude Include="Headers\Engine.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Data\map.json" />
     <None Include="Shaders\colorFrag.glsl" />
     <None Include="Shaders\textVs.glsl" />
     <None Include="Shaders\texFrag.glsl" />

@@ -88,7 +88,7 @@ protected:
 	std::vector<int> textureIndexes;
 public:
 	Shader() : Object() {}
-	Shader(Engine* _engine, string vertexPath, string fragmentPath);
+	Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath);
 	void use();
 	void setBool(const std::string& name, bool value);
 	void setInt(const std::string& name, int value);
@@ -157,11 +157,11 @@ class Texture : public Object {
 public:
 	unsigned int ID;
 public:
-	string path;
+	std::string path;
 	int width;
 	int height;
 	Texture() : Object(), ID(0), path(""), width(0), height(0) {}
-	Texture(Engine* _engine, string _path);
+	Texture(Engine* _engine, std::string _path);
 	void Bind(Shader* shader, unsigned int location);
 };
 class Renderer : public Object {

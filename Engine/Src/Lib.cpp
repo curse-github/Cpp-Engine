@@ -1,18 +1,29 @@
 #include "Lib.h"
-void Log(string out) {
+void Log(std::string out) {
 #ifdef _DEBUG
-	cout << out << endl;
+	std::cout << out << std::endl;
 #endif // _DEBUG
 }
-void Log(const char* out) { Log(string(out)); }
+void Log(const char* out) { Log(std::string(out)); }
 void Log(bool out) { Log(out?"True":"False"); }
-void Log(int out) { Log(to_string(out)); }
-void Log(unsigned int out) { Log(to_string(out)); }
-void Log(float out) { Log(to_string(out)); }
-void Log(double out) { Log(to_string(out)); }
-void Log(Vector2 out) { Log("(" + to_string(out.x) + ", " + to_string(out.y) + ")"); }
-void Log(Vector3 out) { Log("(" + to_string(out.x) + ", " + to_string(out.y) + ", " + to_string(out.z) + ")"); }
+void Log(int out) { Log(std::to_string(out)); }
+void Log(unsigned int out) { Log(std::to_string(out)); }
+void Log(float out) { Log(std::to_string(out)); }
+void Log(double out) { Log(std::to_string(out)); }
+void Log(Vector2 out) { Log(out.to_string()); }
+void Log(Vector3 out) { Log(out.to_string()); }
+void Log(Vector4 out) { Log(out.to_string()); }
 void Log(Mat4x4 out) { Log(out.to_string()); }
+
+void FsReadDiskFile(std::string* content, const std::string& filePath) {
+	std::ifstream fileStream(filePath, std::ios::in);
+	if(!fileStream.is_open()) return;
+	std::string line;
+	while(std::getline(fileStream, line)) {
+		*content+=line + "\n";
+	}
+	fileStream.close();
+}
 
 Vector2::Vector2() { x=0; y=0; }
 Vector2::Vector2(float _x, float _y) { x=_x; y=_y; }

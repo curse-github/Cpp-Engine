@@ -1,10 +1,9 @@
 #include "Engine.h"
 #include <algorithm>
-#include <fstream>
 #include <stb_image.h>
 #include <freetype/freetype.h>
 #include <map>
-#define clamp(a,b,c) max(b,min(a,c))
+#define clamp(a,b,c) std::max(b,std::min(a,c))
 
 #pragma region Engine
 Engine::Engine(Vector2 size, const char* title, bool vsync) : window(nullptr), screenSize(size) {
@@ -88,7 +87,7 @@ void Engine::SetCursor(int mode) {
 }
 
 void engine_on_error(int error, const char* description) {
-	Log("GLDW error: " + string(description));
+	Log("GLDW error: " + std::string(description));
 #ifdef _DEBUG
 	__debugbreak();
 #endif
@@ -217,19 +216,10 @@ void Object::on_loop(double delta) {}
 #pragma endregion// Object
 
 #pragma region Shader
-void FsReadDiskFile(string* content, const string& filePath) {
-	ifstream fileStream(filePath, std::ios::in);
-	if(!fileStream.is_open()) return;
-	string line;
-	while(getline(fileStream, line)) {
-		*content+=line + "\n";
-	}
-	fileStream.close();
-}
-Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object(_engine) {
+Shader::Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath) : Object(_engine) {
 	if(!initialized) return;
 	// read vertex shader from file
-	string vertexShaderSourceStr;
+	std::string vertexShaderSourceStr;
 	FsReadDiskFile(&vertexShaderSourceStr, vertexPath);
 	if(vertexShaderSourceStr.size() == 0) {
 		Log("File \"" + vertexPath + "\" failed to read.");//error
@@ -260,7 +250,7 @@ Shader::Shader(Engine* _engine, string vertexPath, string fragmentPath) : Object
 
 	}
 	// read fragment shader from file
-	string fragmentShaderSourceStr;
+	std::string fragmentShaderSourceStr;
 	FsReadDiskFile(&fragmentShaderSourceStr, fragmentPath);
 	if(fragmentShaderSourceStr.size() == 0) {
 		Log("File \"" + fragmentPath + "\" failed to read.");//error
@@ -372,7 +362,7 @@ void Shader::setTexture(const std::string& name, Texture* tex, unsigned int loca
 }
 void Shader::bindTextures() {
 	if(engine->ended || !initialized) return;
-	for(unsigned int i=0; i < min(textures.size(), textureIndexes.size()); i++) {
+	for(unsigned int i=0; i < std::min(textures.size(), textureIndexes.size()); i++) {
 		textures[i]->Bind(this, textureIndexes[i]);
 	}
 }
@@ -486,7 +476,7 @@ void OrthoCam::update() {
 #pragma endregion// Camera
 
 #pragma region Texture
-int load_texture(unsigned int* texture, string path, int* width, int* height) {
+int load_texture(unsigned int* texture, std::string path, int* width, int* height) {
 	int nrChannels;
 	stbi_set_flip_vertically_on_load(true);
 	unsigned char* data=stbi_load(path.c_str(), width, height, &nrChannels, 0);//read raw image data from file
@@ -509,7 +499,7 @@ int load_texture(unsigned int* texture, string path, int* width, int* height) {
 		return 0;
 	}
 }
-Texture::Texture(Engine* _engine, string _path) :
+Texture::Texture(Engine* _engine, std::string _path) :
 	Object(_engine), ID(0), path(_path), width(0), height(0) {
 	if(!initialized) return;
 	if(!load_texture(&ID, path, &width, &height)) {

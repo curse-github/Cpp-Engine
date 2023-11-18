@@ -4,20 +4,23 @@
 
 #include <iostream>
 #include <string>
-using namespace std;
+#include <fstream>
 
-void Log(string out);
+void Log(std::string out);
 void Log(const char* out);
 void Log(bool out);
 void Log(int out);
 void Log(unsigned int out);
 void Log(float out);
 void Log(double out);
-class Vector2; class Vector3;
+class Vector2; class Vector3; class Vector4;
 void Log(Vector2 out);
 void Log(Vector3 out);
+void Log(Vector4 out);
 class Mat4x4;
 void Log(Mat4x4 out);
+
+void FsReadDiskFile(std::string* content, const std::string& filePath);
 
 class Vector2 {
 public:

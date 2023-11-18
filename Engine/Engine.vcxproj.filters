@@ -30,12 +30,18 @@
     <ClCompile Include="Src\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Json.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Headers\Lib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Headers\Engine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Headers\Json.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -54,6 +60,9 @@
     </None>
     <None Include="Shaders\textVs.glsl">
       <Filter>Shaders</Filter>
+    </None>
+    <None Include="Data\map.json">
+      <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
 </Project>
