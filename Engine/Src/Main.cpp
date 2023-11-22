@@ -6,16 +6,8 @@
 #include "Engine.h"
 #include "Json.h"
 
-float mapScale=35.0f;
-float spacing=0.05f;
-Vector2 mapSize=Vector2(49.0f, 34.0f);
-Vector2 offset=Vector2(26.5f, 30.0f);
 const float minimapScale=0.15f;
 Vector2 minimapSize;
-Vector2 fullMapSize=mapSize * (1 + spacing) * mapScale;
-
-float playerSize=0.5f;
-float playerSpeed=4.0f;
 
 Vector2 gridToWorld(Vector2 grid) {
 	return Vector2(grid.x * mapScale * (1 + spacing), (mapSize.y - grid.y) * mapScale * (1 + spacing));
@@ -94,20 +86,21 @@ public:
 		sceneCam->update();
 		sceneCam->use();
 	}
-	int inputs[4]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
+	int inputs[5]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
 	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods) {
 		if(engine->ended || !initialized) return;
 		if(key == GLFW_KEY_W) inputs[0]=action;
 		else if(key == GLFW_KEY_A) inputs[1]=action;
 		else if(key == GLFW_KEY_S) inputs[2]=action;
 		else if(key == GLFW_KEY_D) inputs[3]=action;
+		else if(key == GLFW_KEY_LEFT_SHIFT) inputs[4]=action;
 	}
 	void on_loop(double delta) {
 		if(engine->ended || !initialized) return;
 		Vector2 inputVec=Vector2(
 			(float)(inputs[3] >= GLFW_PRESS) - (float)(inputs[1] >= GLFW_PRESS),
 			(float)(inputs[2] >= GLFW_PRESS) - (float)(inputs[0] >= GLFW_PRESS)
-		).normalized() * ((float)delta) * playerSpeed;
+		).normalized() * ((float)delta) * ((inputs[4]>= GLFW_PRESS)?playerSprintSpeed:playerSpeed);
 		if(inputVec.x == 0 && inputVec.y == 0) return;
 		pos+=inputVec;
 		Vector2 worldPos=gridToWorld(pos);
@@ -142,7 +135,7 @@ PlayerController* playerController;
 
 int main(int argc, char** argv) {
 	// setup engine
-	engine=Engine(Vector2(1920, 1080), "Game!", true);
+	engine=Engine(Vector2(1920, 1080), "Ghost Game", true);
 	if(!engine.initialized || engine.ended) {
 		Log("Engine failed to init");
 		return 0;
@@ -160,10 +153,15 @@ int main(int argc, char** argv) {
 	}
 	// load map data
 	loadMapData("map");
+	if(!parsedMap) {
+		Log("Map data failed to load");
+		engine.Delete();
+		return 0;
+	}
 	// setup textures
-	Texture backgroundTex(&engine, "Resources/map.png");
-	Texture playerTex(&engine, "Resources/ghost.png");
-	Texture minimapTex(&engine, "Resources/miniMap.png");
+	Texture backgroundTex(&engine, mapTexPath);
+	Texture playerTex(&engine, playerTexPath);
+	Texture minimapTex(&engine, minimapTexPath);
 	if(engine.ended || !backgroundTex.initialized || !playerTex.initialized || !minimapTex.initialized) {
 		Log("Textures failed to init");
 		engine.Delete();
@@ -187,12 +185,12 @@ int main(int argc, char** argv) {
 	}
 	// set shader constants
 	playerShader.setTexture("_texture", &playerTex, 0);
-	playerShader.setFloat4("modulate", Vector4(0.35f, 0.0f, 0.7f, 1.0f));// purple
+	playerShader.setFloat4("modulate", playerModulate);
 	playerIconShader.setTexture("_texture", &playerTex, 0);
-	playerIconShader.setFloat4("modulate", Vector4(0.35f, 0.0f, 0.7f, 0.75f));// purple
+	playerIconShader.setFloat4("modulate", Vector4(playerModulate.toXYZ(), 0.75f));
 	backgroundShader.setTexture("_texture", &backgroundTex, 0);
 	minimapShader.setTexture("_texture", &minimapTex, 0);
-	minimapShader.setFloat4("modulate", Vector4(1.0f, 1.0f, 1.0f, 0.75f));// half transparency
+	minimapShader.setFloat4("modulate", Vector4(1.0f, 1.0f, 1.0f, 0.75f));
 	cam->bindShader(&playerShader);
 	uiCam->bindShader(&playerIconShader);
 	cam->bindShader(&backgroundShader);
@@ -201,7 +199,7 @@ int main(int argc, char** argv) {
 	cam->use();
 	uiCam->use();
 	// player
-	playerRenderer=SpriteRenderer(&engine, &playerShader, gridToWorld(offset), playerSize * mapScale, 0.0f);
+	playerRenderer=SpriteRenderer(&engine, &playerShader, gridToWorld(playerOffset), playerSize * mapScale, 0.0f);
 	playerRenderer.zIndex=1;
 	sceneRenderers.push_back(&playerRenderer);
 	// playerIcon
@@ -214,9 +212,9 @@ int main(int argc, char** argv) {
 	// minimap
 	uiRenderers.push_back(new SpriteRenderer(&engine, &minimapShader, Vector2(minimapSize.x / 2, 540.0f - minimapSize.y / 2), minimapSize, 0.0f));
 	// setup text renderers
-	debugText.push_back(new TextRenderer(&engine, &textShader, "Time: ", Vector2(1.0f, 1.0f), 2.0f, Vector3(1.0f, 1.0f, 1.0f)));
-	debugText.push_back(new TextRenderer(&engine, &textShader, "Fps Avg: ", Vector2(1.0f, 17.0f), 2.0f, Vector3(1.0f, 1.0f, 1.0f)));
-	debugText.push_back(new TextRenderer(&engine, &textShader, "Pos: ", Vector2(1.0f, 33.0f), 2.0f, Vector3(1.0f, 1.0f, 1.0f)));
+	debugText.push_back(new TextRenderer(&engine, &textShader, "Time: ", Vector2(1.0f, 1.0f), 2.0f, Vector3(0.5f, 0.5f, 0.5f)));
+	debugText.push_back(new TextRenderer(&engine, &textShader, "Fps Avg: ", Vector2(1.0f, 17.0f), 2.0f, Vector3(0.5f, 0.5f, 0.5f)));
+	debugText.push_back(new TextRenderer(&engine, &textShader, "Pos: ", Vector2(1.0f, 33.0f), 2.0f, Vector3(0.5f, 0.5f, 0.5f)));
 	if(engine.ended || !characterMapInitialized) {
 		Log("Fonts failed to init");
 		engine.Delete();

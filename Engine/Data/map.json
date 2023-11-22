@@ -1,9 +1,15 @@
 {
+  //map vars
+  "mapSize": [ 49.0 /*x*/, 34.0 /*y*/ ],
   "mapScale": 35.0,
   "spacing": 0.05,
-  "mapSize": "[ 49.0, 34.0 ]",
-  "offset": [ 26.5, 30.0 ],
-  "minimapScale": 0.15,
+  "mapTex": "Resources/map.png",
+  "minimapTex": "Resources/miniMap.png",
+  //player vars
+  "playerOffset": [ 26.5, 30.0 ],
   "playerSize": 0.5,
-  "playerSpeed": 4.0
+  "playerSpeed": 4.0,
+  "playerSprintSpeed": 6.0,
+  "playerTex": "Resources/ghost.png",
+  "playerModulate": [ 0.35 /*r*/, 0.0 /*g*/, 0.7 /*b*/, 0.75 /*a*/ ]
 }
