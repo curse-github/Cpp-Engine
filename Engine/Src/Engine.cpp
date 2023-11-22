@@ -73,11 +73,11 @@ void Engine::Delete() {
 	if(ended || !initialized) return;
 	glfwSetWindowShouldClose(window, GLFW_TRUE);
 	ended=true;
+	glfwDestroyWindow(window);
+	glfwTerminate();
 	for_each(onDelete.begin(), onDelete.end(), [](ondeletefun callback) {
 		callback();
 		});
-	glfwDestroyWindow(window);
-	glfwTerminate();
 }
 
 void Engine::SetCursor(int mode) {
@@ -86,6 +86,7 @@ void Engine::SetCursor(int mode) {
 	lastMouse=Vector2(-1.0f, -1.0f);
 }
 
+#pragma region callbacks
 void engine_on_error(int error, const char* description) {
 	Log("GLDW error: " + std::string(description));
 #ifdef _DEBUG
@@ -142,66 +143,70 @@ void Engine::on_mouse_enter(GLFWwindow* window, int entered) {
 		callback(window, entered);
 		});
 }
+#pragma endregion// callbacks
+
+#pragma region subFuncs
+void Engine::sub_resize(Object* obj) {
+	if(!initialized || ended || !obj->initialized) return;
+	onResize.push_back([=](GLFWwindow* window, int width, int height) {
+		obj->on_resize(window, width, height);
+		});
+}
+void Engine::sub_key(Object* obj) {
+	if(!initialized || ended || !obj->initialized) return;
+	onKey.push_back([=](GLFWwindow* window, int key, int scancode, int action, int mods) {
+		obj->on_key(window, key, scancode, action, mods);
+		});
+}
+void Engine::sub_scroll(Object* obj) {
+	if(!initialized || ended || !obj->initialized) return;
+	onScroll.push_back([=](GLFWwindow* window, double xoffset, double yoffset) {
+		obj->on_scroll(window, xoffset, yoffset);
+		});
+}
+void Engine::sub_mouse(Object* obj) {
+	if(!initialized || ended || !obj->initialized) return;
+	onMouse.push_back([=](GLFWwindow* window, double mouseX, double mouseY) {
+		obj->on_mouse(window, mouseX, mouseY);
+		});
+}
+void Engine::sub_mouse_delta(Object* obj) {
+	if(!initialized || ended || !obj->initialized) return;
+	onMouseDelta.push_back([=](GLFWwindow* window, float deltaX, float deltaY) {
+		obj->on_mouse_delta(window, deltaX, deltaY);
+		});
+}
+void Engine::sub_mouse_button(Object* obj) {
+	if(!initialized || ended || !obj->initialized) return;
+	onMouseButton.push_back([=](GLFWwindow* window, int button, int action, int mods) {
+		obj->on_mouse_button(window, button, action, mods);
+		});
+}
+void Engine::sub_mouse_enter(Object* obj) {
+	if(!initialized || ended || !obj->initialized) return;
+	onMouseEnter.push_back([=](GLFWwindow* window, int entered) {
+		obj->on_mouse_enter(window, entered);
+		});
+}
+void Engine::sub_delete(Object* obj) {
+	if(!initialized || ended || !obj->initialized) return;
+	onDelete.push_back([=]() {
+		obj->on_delete();
+		});
+}
+void Engine::sub_loop(Object* obj) {
+	if(!initialized || ended || !obj->initialized) return;
+	onLoop.push_back([=](double delta) {
+		obj->on_loop(delta);
+		});
+}
+#pragma endregion// subFuncs
 #pragma endregion// Engine
 
 #pragma region Object
 Object::Object(Engine* _engine) : engine(_engine) {
 	if(!engine->initialized || engine->ended) { initialized=false; return; }
 	initialized=true;
-}
-void Object::sub_resize() {
-	if(!engine->initialized || engine->ended || !initialized) return;
-	engine->onResize.push_back([=](GLFWwindow* window, int width, int height) {
-		this->on_resize(window, width, height);
-		});
-}
-void Object::sub_key() {
-	if(!engine->initialized || engine->ended || !initialized) return;
-	engine->onKey.push_back([=](GLFWwindow* window, int key, int scancode, int action, int mods) {
-		this->on_key(window, key, scancode, action, mods);
-		});
-}
-void Object::sub_scroll() {
-	if(!engine->initialized || engine->ended || !initialized) return;
-	engine->onScroll.push_back([=](GLFWwindow* window, double xoffset, double yoffset) {
-		this->on_scroll(window, xoffset, yoffset);
-		});
-}
-void Object::sub_mouse() {
-	if(!engine->initialized || engine->ended || !initialized) return;
-	engine->onMouse.push_back([=](GLFWwindow* window, double mouseX, double mouseY) {
-		this->on_mouse(window, mouseX, mouseY);
-		});
-}
-void Object::sub_mouse_delta() {
-	if(!engine->initialized || engine->ended || !initialized) return;
-	engine->onMouseDelta.push_back([=](GLFWwindow* window, float deltaX, float deltaY) {
-		this->on_mouse_delta(window, deltaX, deltaY);
-		});
-}
-void Object::sub_mouse_button() {
-	if(!engine->initialized || engine->ended || !initialized) return;
-	engine->onMouseButton.push_back([=](GLFWwindow* window, int button, int action, int mods) {
-		this->on_mouse_button(window, button, action, mods);
-		});
-}
-void Object::sub_mouse_enter() {
-	if(!engine->initialized || engine->ended || !initialized) return;
-	engine->onMouseEnter.push_back([=](GLFWwindow* window, int entered) {
-		this->on_mouse_enter(window, entered);
-		});
-}
-void Object::sub_delete() {
-	if(!engine->initialized || engine->ended || !initialized) return;
-	engine->onDelete.push_back([=]() {
-		this->on_delete();
-		});
-}
-void Object::sub_loop() {
-	if(!engine->initialized || engine->ended || !initialized) return;
-	engine->onLoop.push_back([=](double delta) {
-		this->on_loop(delta);
-		});
 }
 
 void Object::on_resize(GLFWwindow* window, int width, int height) {}
@@ -300,8 +305,7 @@ Shader::Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath
 		engine->Delete();
 		return;
 	}
-
-	sub_delete();
+	engine->sub_delete(this);
 }
 void Shader::use() {
 	if(engine->ended || !initialized) return;
@@ -371,22 +375,21 @@ void Shader::bindTextures() {
 #pragma region Camera
 // save reference to object as it is in the contructor to be used in the set function
 // similar effect as glfwSetWindowUserPointer in the main function
-Camera::Camera(Engine* _engine) : Object(_engine), projection(Mat4x4()), view(Mat4x4()), self(nullptr) {
+Camera::Camera(Engine* _engine) : Object(_engine), projection(Mat4x4()), view(Mat4x4()) {
 	if(!initialized) return;
-	self=this;
 }
 void Camera::update() {}
 void Camera::bindShader(Shader* shader) {
 	if(engine->ended || !initialized || !shader->initialized) return;
-	self->shaders.push_back(shader);
+	shaders.push_back(shader);
 }
 void Camera::use() {
 	if(engine->ended || !initialized) return;
-	for(unsigned int i=0; i < self->shaders.size(); i++) {
-		Shader* ptr=(self->shaders)[i];
+	for(unsigned int i=0; i < shaders.size(); i++) {
+		Shader* ptr=(shaders)[i];
 		if(!ptr->initialized) continue;
-		ptr->setMat4x4("projection", self->projection);
-		ptr->setMat4x4("view", self->view);
+		ptr->setMat4x4("projection", projection);
+		ptr->setMat4x4("view", view);
 	}
 }
 
@@ -405,10 +408,10 @@ FreeCam::FreeCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _for
 	Camera(_engine), aspect(_aspect), position(_position), forward(_forward), up(_up) {
 	if(!initialized) return;
 	glfwSetInputMode(engine->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	Object::sub_key();
-	Object::sub_scroll();
-	Object::sub_mouse_delta();
-	Object::sub_loop();
+	engine->sub_key(this);
+	engine->sub_scroll(this);
+	engine->sub_mouse_delta(this);
+	engine->sub_loop(this);
 }
 void FreeCam::update() {
 	if(engine->ended || !initialized) return;
@@ -520,7 +523,7 @@ void Texture::Bind(Shader* shader, unsigned int location) {
 #pragma region Renderers
 Renderer::Renderer(Engine* _engine, Shader* _shader) : Object(_engine), shader(_shader), VAO(0), VBO(0), EBO(0) {
 	if(!initialized || !shader->initialized) { initialized=false; return; }
-	sub_delete();
+	engine->sub_delete(this);
 }
 void Renderer::draw() {
 	if(engine->ended || !initialized) return;
@@ -621,7 +624,7 @@ SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _positi
 }
 void SpriteRenderer::draw() {
 	if(engine->ended || !initialized) return;
-	Mat4x4 model=scaleMat(Vector3(scale, 1.0f)) * axisRotMat(rotAxis, deg_to_rad(rotAngle)) * translate(Vector3(position, zIndex-100));
+	Mat4x4 model=scaleMat(Vector3(scale, 1.0f)) * axisRotMat(rotAxis, deg_to_rad(rotAngle)) * translate(Vector3(position, zIndex - 100));
 	shader->bindTextures();
 	shader->setMat4x4("model", model);
 	glBindVertexArray(VAO);

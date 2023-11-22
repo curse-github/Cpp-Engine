@@ -7,7 +7,6 @@
 #include <string>
 #include <functional>
 #include "Lib.h"
-#include <map>
 typedef std::function<void(GLFWwindow*, int, int)>           onresizefun;
 typedef std::function<void(GLFWwindow*, int, int, int, int)> onkeyfun;
 typedef std::function<void(GLFWwindow*, double, double)>     onscrollfun;
@@ -19,13 +18,14 @@ typedef std::function<void()>                                ondeletefun;
 typedef std::function<void(double)>                          onloopfun;
 
 void engine_on_error(int error, const char* description);
+class Object;
 class Engine {
 public:
 	GLFWwindow* window=nullptr;
 	Vector2 screenSize;
 	bool initialized=false;
 	bool ended=false;
-	Engine() : window(nullptr), screenSize(Vector2(0.0f, 0.0f)) {}
+	Engine() : window(nullptr), screenSize(Vector2()) {}
 	Engine(Vector2 size, const char* title, bool vsync);
 	void Loop();
 	void Close();
@@ -39,8 +39,18 @@ public:
 	std::vector<std::function<void(GLFWwindow*, float, float)>> onMouseDelta;
 	std::vector<std::function<void(GLFWwindow*, int, int, int)>> onMouseButton;
 	std::vector<std::function<void(GLFWwindow*, int)>> onMouseEnter;
-	std::vector<std::function<void()>> onDelete;
-	std::vector<std::function<void(double)>> onLoop;
+	std::vector<ondeletefun> onDelete;
+	std::vector<onloopfun> onLoop;
+
+	void sub_resize(Object* obj);
+	void sub_key(Object* obj);
+	void sub_scroll(Object* obj);
+	void sub_mouse(Object* obj);
+	void sub_mouse_delta(Object* obj);
+	void sub_mouse_button(Object* obj);
+	void sub_mouse_enter(Object* obj);
+	void sub_delete(Object* obj);
+	void sub_loop(Object* obj);
 protected:
 	void on_resize(GLFWwindow* window, int width, int height);
 	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -55,19 +65,11 @@ class Object {
 public:
 	bool initialized=false;
 protected:
+public:
 	Engine* engine;
 	Object() : engine(nullptr) {}
 	Object(Engine* _engine);
 
-	void sub_resize();
-	void sub_key();
-	void sub_scroll();
-	void sub_mouse();
-	void sub_mouse_delta();
-	void sub_mouse_button();
-	void sub_mouse_enter();
-	void sub_delete();
-	void sub_loop();
 
 	virtual void on_resize(GLFWwindow* window, int width, int height);
 	virtual void on_key(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -102,12 +104,11 @@ public:
 };
 class Camera : public Object {
 protected:
-	Camera* self;
 	std::vector<Shader*> shaders;
 public:
 	Mat4x4 projection;
 	Mat4x4 view;
-	Camera() : Object(), self(nullptr), projection(Mat4x4()), view(Mat4x4()) {}
+	Camera() : Object(), projection(Mat4x4()), view(Mat4x4()) {}
 	Camera(Engine* _engine);
 	virtual void update();
 	void bindShader(Shader* shader);

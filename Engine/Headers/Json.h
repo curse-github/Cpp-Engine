@@ -1,6 +1,7 @@
 #ifndef _JSONH
 #define _JSONH
 #include "Lib.h"
+
 extern Vector2 mapSize;
 extern float mapScale;
 extern float spacing;
