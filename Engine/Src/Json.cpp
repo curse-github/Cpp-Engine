@@ -6,6 +6,7 @@ void cutEmptySpace(std::string* str);
 void cutSemicolon(std::string* str);
 void cutComma(std::string* str);
 std::string parseString(std::string* json);
+int parseInt(std::string* json);
 float parseFloat(std::string* json);
 Vector2 parseVector2(std::string* json);
 Vector3 parseVector3(std::string* json);
@@ -24,6 +25,10 @@ float playerSpeed;
 float playerSprintSpeed;
 std::string playerTexPath;
 Vector4 playerModulate;
+std::string instanceUnlitTexPath;
+std::string instanceWorkingTexPath;
+std::string instanceBrokenTexPath;
+std::vector<std::vector<int>> instanceData;
 
 bool parsedMap;
 
@@ -60,6 +65,43 @@ void loadMapData(const std::string& mapName) {
 			mapTexPath=parseString(&data);
 		} else if(key == "minimapTex") {
 			minimapTexPath=parseString(&data);
+		} else if(key == "instanceUnlitTex") {
+			instanceUnlitTexPath=parseString(&data);
+		} else if(key == "instanceWorkingTex") {
+			instanceWorkingTexPath=parseString(&data);
+		} else if(key == "instanceBrokenTex") {
+			instanceBrokenTexPath=parseString(&data);
+		} else if(key == "instanceData") {
+			cutEmptySpace(&data);
+			if(!startsWith(data, "[")) return;
+			stringCut(&data, 1);
+			//maximum 500 iterations
+			unsigned int limit = 500;
+			for(unsigned int i=0; i<limit; i++) {
+				cutEmptySpace(&data);
+				if(!startsWith(data, "[")) return;
+				stringCut(&data, 1);
+				int one=parseInt(&data);
+				cutComma(&data);
+				int two=parseInt(&data);
+				cutComma(&data);
+				int three=parseInt(&data);
+				cutComma(&data);
+				int four=parseInt(&data);
+				cutComma(&data);
+				int five=parseInt(&data);
+				cutEmptySpace(&data);
+				if(!startsWith(data, "]")) return;
+				stringCut(&data, 1);
+				cutEmptySpace(&data);
+				std::vector<int> tmp = {one,two,three,four,five};
+				instanceData.push_back(tmp);
+				if(!startsWith(data, ",")) break;
+				stringCut(&data, 1);
+			}
+			cutEmptySpace(&data);
+			if(!startsWith(data, "]")) return;
+			stringCut(&data, 1);
 		} else {
 			Log("Unknown key \""+key+"\"");
 			return;
@@ -127,6 +169,18 @@ std::string parseString(std::string* json) {
 	}
 	stringCut(json, 1);
 	return str;
+}
+int parseInt(std::string* json) {
+	cutEmptySpace(json);
+	std::string str="";
+	while(startsWith(*json, "0") || startsWith(*json, "1") ||
+		startsWith(*json, "2") || startsWith(*json, "3") ||
+		startsWith(*json, "4") || startsWith(*json, "5") ||
+		startsWith(*json, "6") || startsWith(*json, "7") ||
+		startsWith(*json, "8") || startsWith(*json, "9")) {
+		str+=stringCut(json, 1);
+	}
+	return std::stoi(str);
 }
 float parseFloat(std::string* json) {
 	cutEmptySpace(json);
