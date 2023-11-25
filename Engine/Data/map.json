@@ -6,16 +6,20 @@
   "mapTex": "Resources/map.png",
   "minimapTex": "Resources/miniMap.png",
   //player vars
-  "playerOffset": [ 26.5, 30.0 ],
+  "playerOffset": [ 26.5, 28.0 ],
   "playerSize": 0.5,
   "playerSpeed": 4.0,
   "playerSprintSpeed": 6.0,
   "playerTex": "Resources/ghost.png",
-  "playerModulate": [ 0.35 /*r*/, 0.0 /*g*/, 0.7 /*b*/],
+  "playerModulate": [ 0.35 /*r*/, 0.0 /*g*/, 0.7 /*b*/ ],
+  "flashlightTex": "Resources/circle.png",
+  "flashlightColor": [ 0.5, 0.5, 0.0 ],
+  "flashlightRange": 2.0,
   //instance vars
   "instanceUnlitTex": "Resources/white.png",
   "instanceWorkingTex": "Resources/green.png",
   "instanceBrokenTex": "Resources/red.png",
+  "instanceBrokenChance": 5, //%
   //data for each machine
   //x, y, id, bank, zone
   "instanceData": [

@@ -70,17 +70,19 @@ class FpsTracker : Object {
 class PlayerController : public Object {
 	protected:
 	SpriteRenderer* playerRenderer;
+	SpriteRenderer* flashlightRenderer;
 	SpriteRenderer* playerIconRenderer;
 	OrthoCam* sceneCam;
 	public:
 	Vector2 pos;
-	PlayerController() : Object(), playerRenderer(nullptr), playerIconRenderer(nullptr), sceneCam(nullptr), pos(Vector2(0)) {}
-	PlayerController(Engine* _engine, SpriteRenderer* _playerRenderer, SpriteRenderer* _playerIconRenderer, OrthoCam* _sceneCam)
-		: Object(_engine), playerRenderer(_playerRenderer), playerIconRenderer(_playerIconRenderer), sceneCam(_sceneCam), pos(Vector2(0)) {
+	PlayerController() : Object(), playerRenderer(nullptr), flashlightRenderer(nullptr), playerIconRenderer(nullptr), sceneCam(nullptr), pos(Vector2(0)) {}
+	PlayerController(Engine* _engine, SpriteRenderer* _playerRenderer, SpriteRenderer* _flashlightRenderer, SpriteRenderer* _playerIconRenderer, OrthoCam* _sceneCam)
+		: Object(_engine), playerRenderer(_playerRenderer), flashlightRenderer(_flashlightRenderer), playerIconRenderer(_playerIconRenderer), sceneCam(_sceneCam), pos(Vector2(0)) {
 		if(!initialized) return;
 		engine->sub_key(this);
 		engine->sub_loop(this);
 		pos=worldToGrid(playerRenderer->position);
+		flashlightRenderer->position=playerRenderer->position;
 		sceneCam->position=playerRenderer->position;
 		playerIconRenderer->position=gridToMinimap(pos);
 		sceneCam->update();
@@ -105,6 +107,7 @@ class PlayerController : public Object {
 		pos+=inputVec;
 		Vector2 worldPos=gridToWorld(pos);
 		playerRenderer->position=worldPos;
+		flashlightRenderer->position=worldPos;
 		sceneCam->position=worldPos;
 		playerIconRenderer->position=gridToMinimap(pos);
 		sceneCam->update();
@@ -120,21 +123,23 @@ OrthoCam* cam;
 OrthoCam* uiCam;
 
 Shader* playerShader;
+Shader* flashlightShader;
 Shader* playerIconShader;
 SpriteRenderer* playerRenderer;
+SpriteRenderer* flashlightRenderer;
 SpriteRenderer* playerIconRenderer;
 
 Shader* backgroundShader;
 std::vector<Renderer*> sceneRenderers;
 Shader* instanceUnlitShader;
+std::vector<SpriteRenderer*> machineRenderers;
 Shader* instanceWorkingShader;
 Shader* instanceBrokenShader;
-std::vector<SpriteRenderer*> machineRenderers;
+std::vector<SpriteRenderer*> machineStateRenderers;
 Shader* minimapShader;
 std::vector<Renderer*> uiRenderers;
 Shader* textShader;
 std::vector<TextRenderer*> debugText;
-Shader* lineShader;
 
 PlayerController* playerController;
 
@@ -164,12 +169,13 @@ int main(int argc, char** argv) {
 	}
 	// setup textures
 	Texture playerTex=Texture(engine, playerTexPath);
+	Texture flashlightTex=Texture(engine, flashlightTexPath);
 	Texture backgroundTex=Texture(engine, mapTexPath);
 	Texture minimapTex=Texture(engine, minimapTexPath);
 	Texture instanceUnlitTex=Texture(engine, instanceUnlitTexPath);
 	Texture instanceWorkingTex=Texture(engine, instanceWorkingTexPath);
 	Texture instanceBrokenTex=Texture(engine, instanceBrokenTexPath);
-	if(engine->ended||!playerTex.initialized||
+	if(engine->ended||!playerTex.initialized||!flashlightTex.initialized||
 		!backgroundTex.initialized||!minimapTex.initialized||
 		!instanceUnlitTex.initialized||!instanceWorkingTex.initialized||
 		!instanceBrokenTex.initialized
@@ -181,6 +187,7 @@ int main(int argc, char** argv) {
 	minimapSize=Vector2((float)minimapTex.width, (float)minimapTex.height)*minimapScale;
 	// setup shaders
 	playerShader=new Shader(engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
+	flashlightShader=new Shader(engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
 	playerIconShader=new Shader(engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
 	backgroundShader=new Shader(engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
 	minimapShader=new Shader(engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
@@ -188,12 +195,12 @@ int main(int argc, char** argv) {
 	instanceWorkingShader=new Shader(engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
 	instanceBrokenShader=new Shader(engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
 	textShader=new Shader(engine, "Shaders/textVs.glsl", "Shaders/textFrag.glsl");
-	lineShader=new Shader(engine, "Shaders/textVs.glsl", "Shaders/colorFrag.glsl");
 	if(engine->ended||
-		!playerShader->initialized||!playerIconShader->initialized||
-		!backgroundShader->initialized||!minimapShader->initialized||
-		!instanceUnlitShader->initialized||!instanceWorkingShader->initialized||
-		!instanceBrokenShader->initialized||!textShader->initialized
+		!playerShader->initialized||!flashlightShader->initialized||
+		!playerIconShader->initialized||!backgroundShader->initialized||
+		!minimapShader->initialized||!instanceUnlitShader->initialized||
+		!instanceWorkingShader->initialized||!instanceBrokenShader->initialized||
+		!textShader->initialized
 		) {
 		Log("Shaders failed to init");
 		engine->Delete();
@@ -202,20 +209,19 @@ int main(int argc, char** argv) {
 	// set shader constants
 	playerShader->setTexture("_texture", &playerTex, 0);
 	playerShader->setFloat4("modulate", Vector4(playerModulate, 1.0f));
+	flashlightShader->setTexture("_texture", &flashlightTex, 0);
+	flashlightShader->setFloat4("modulate", Vector4(flashlightColor, 0.25f));
 	playerIconShader->setTexture("_texture", &playerTex, 0);
 	playerIconShader->setFloat4("modulate", Vector4(playerModulate, 0.75f));
 	backgroundShader->setTexture("_texture", &backgroundTex, 0);
-	backgroundShader->setFloat4("modulate", Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 	minimapShader->setTexture("_texture", &minimapTex, 0);
 	minimapShader->setFloat4("modulate", Vector4(1.0f, 1.0f, 1.0f, 0.75f));
 	instanceUnlitShader->setTexture("_texture", &instanceUnlitTex, 0);
-	instanceUnlitShader->setFloat4("modulate", Vector4(0.75f, 0.75f, 0.75f, 1.0f));
+	instanceUnlitShader->setFloat4("modulate", Vector4(0.5f, 0.5f, 0.5f, 1.0f));
 	instanceWorkingShader->setTexture("_texture", &instanceWorkingTex, 0);
-	instanceWorkingShader->setFloat4("modulate", Vector4(1.0f, 1.0f, 1.0f, 1.0f));
 	instanceBrokenShader->setTexture("_texture", &instanceBrokenTex, 0);
-	instanceBrokenShader->setFloat4("modulate", Vector4(1.0f, 1.0f, 1.0f, 1.0f));
-	lineShader->setFloat4("color", Vector4(0.75f, 0.0f, 0.0f, 1.0f));
 	cam->bindShader(playerShader);
+	cam->bindShader(flashlightShader);
 	uiCam->bindShader(playerIconShader);
 	cam->bindShader(backgroundShader);
 	uiCam->bindShader(minimapShader);
@@ -223,13 +229,12 @@ int main(int argc, char** argv) {
 	cam->bindShader(instanceWorkingShader);
 	cam->bindShader(instanceBrokenShader);
 	uiCam->bindShader(textShader);
-	cam->bindShader(lineShader);
 	cam->use();
 	uiCam->use();
-	// player
-	playerRenderer=new SpriteRenderer(engine, playerShader, gridToWorld(playerOffset), playerSize*mapScale, 1.0f);
+	// player and playerIcon
+	playerRenderer=new SpriteRenderer(engine, playerShader, gridToWorld(playerOffset), playerSize*mapScale);
 	sceneRenderers.push_back(playerRenderer);
-	// playerIcon
+	flashlightRenderer=new SpriteRenderer(engine, flashlightShader, gridToWorld(playerOffset), flashlightRange*mapScale, 1.0f);
 	playerIconRenderer=new SpriteRenderer(engine, playerIconShader, Vector2(minimapSize.x/2, 540.0f-minimapSize.y/2), Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), 1.0f);
 	uiRenderers.push_back(playerIconRenderer);
 	// map and minimap
@@ -248,27 +253,13 @@ int main(int argc, char** argv) {
 	for(unsigned int i=0; i<instanceData.size(); i++) {
 		std::vector<int> dat=instanceData[i];
 		Vector2 pos=gridToWorld(Vector2((float)dat[0]+0.5f, (float)dat[1]+0.5f));
-		machineRenderers.push_back(new SpriteRenderer(engine, instanceUnlitShader, pos, Vector2(mapScale, mapScale), 1.0f));
+		machineRenderers.push_back(new SpriteRenderer(engine, instanceUnlitShader, pos, Vector2(mapScale, mapScale), 2.0f));
+		bool broken = ((float)std::rand())/((float)RAND_MAX)<=(instanceBrokenChance/100.0f);
+		machineStateRenderers.push_back(new SpriteRenderer(engine, broken?instanceBrokenShader:instanceWorkingShader, pos, Vector2(mapScale, mapScale), 3.0f));
 	}
-	// circle at spawn
-	std::vector<Vector2> positions;
-	int sides = 20;
-	float circleSize = 1.0f;
-	for(unsigned int i=0; i<sides; i++) {
-		positions.push_back(gridToWorld(playerOffset)+Vector2((float)cos(TAU/sides*i),(float)sin(TAU/sides*i))*circleSize*mapScale);
-	}
-	sceneRenderers.push_back(new LineRenderer(engine, lineShader, positions, true, -1.0f));
-	positions.clear();
-	// star
-	positions.push_back(gridToWorld(playerOffset)+Vector2((float)cos(TAU/20*13),(float)sin(TAU/20*13))*circleSize*mapScale);
-	positions.push_back(gridToWorld(playerOffset)+Vector2((float)cos(TAU/20*5),(float)sin(TAU/20*5))*circleSize*mapScale);
-	positions.push_back(gridToWorld(playerOffset)+Vector2((float)cos(TAU/20*17),(float)sin(TAU/20*17))*circleSize*mapScale);
-	positions.push_back(gridToWorld(playerOffset)+Vector2((float)cos(TAU/20*9),(float)sin(TAU/20*9))*circleSize*mapScale);
-	positions.push_back(gridToWorld(playerOffset)+Vector2((float)cos(TAU/20*1),(float)sin(TAU/20*1))*circleSize*mapScale);
-	sceneRenderers.push_back(new LineRenderer(engine, lineShader, positions, true, -1.0f));
-	positions.clear();
 	// setup other stuff
-	playerController=new PlayerController(engine, playerRenderer, playerIconRenderer, cam);
+	playerController=new PlayerController(engine, playerRenderer, flashlightRenderer, playerIconRenderer, cam);
+	playerController->pos=playerOffset;
 	// run main loop
 	engine->onLoop.push_back(Loop);
 	engine->onDelete.push_back(onLateDelete);
@@ -284,10 +275,20 @@ void Loop(double delta) {
 	// draw scene
 	for(Renderer* ren:sceneRenderers) ren->draw();
 	for(SpriteRenderer* ren:machineRenderers) ren->draw();
+	glEnable(GL_STENCIL_TEST);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+	glStencilFunc(GL_ALWAYS, 1, 0b0);// compare against 0b1
+	glStencilMask(0b1);// write to 0b1
+	flashlightRenderer->draw();
+	glStencilFunc(GL_EQUAL, 1, 0b1);// compare against 0b1
+	glStencilMask(0b0);// write to none
+	for(SpriteRenderer* ren:machineStateRenderers) ren->draw();
+	glDisable(GL_STENCIL_TEST);
 	// draw ui
 	glClear(GL_DEPTH_BUFFER_BIT);
 	for(Renderer* ren:uiRenderers) ren->draw();
 	for(TextRenderer* ren:debugText) ren->draw();
+	
 }
 void onLateDelete() {
 	delete engine;
@@ -297,6 +298,9 @@ void onLateDelete() {
 
 	delete playerShader;
 	delete playerIconShader;
+	delete flashlightShader;
+
+	delete flashlightRenderer;
 
 	delete backgroundShader;
 	for(Renderer* ren:sceneRenderers) { delete ren; }

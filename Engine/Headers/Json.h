@@ -16,10 +16,14 @@ extern float playerSpeed;
 extern float playerSprintSpeed;
 extern std::string playerTexPath;
 extern Vector3 playerModulate;
+extern std::string flashlightTexPath;
+extern Vector3 flashlightColor;
+extern float flashlightRange;
 
 extern std::string instanceUnlitTexPath;
 extern std::string instanceWorkingTexPath;
 extern std::string instanceBrokenTexPath;
+extern float instanceBrokenChance;
 extern std::vector<std::vector<int>> instanceData;
 
 extern bool parsedMap;

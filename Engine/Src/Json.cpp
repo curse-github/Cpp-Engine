@@ -25,9 +25,14 @@ float playerSpeed;
 float playerSprintSpeed;
 std::string playerTexPath;
 Vector3 playerModulate;
+std::string flashlightTexPath;
+Vector3 flashlightColor;
+float flashlightRange;
+
 std::string instanceUnlitTexPath;
 std::string instanceWorkingTexPath;
 std::string instanceBrokenTexPath;
+float instanceBrokenChance;
 std::vector<std::vector<int>> instanceData;
 
 bool parsedMap;
@@ -35,7 +40,7 @@ bool parsedMap;
 void loadMapData(const std::string& mapName) {
 	parsedMap=false;
 	std::string data;
-	FsReadDiskFile(&data, "Data/" + mapName + ".json");
+	FsReadDiskFile(&data, "Data/"+mapName+".json");
 	cutEmptySpace(&data);
 	if(!startsWith(data, "{")) return;
 	stringCut(&data, 1);
@@ -43,40 +48,48 @@ void loadMapData(const std::string& mapName) {
 	while(!startsWith(data, "}")) {
 		std::string key=parseString(&data);
 		cutSemicolon(&data);
-		if(key == "mapSize") {
+		if(key=="mapSize") {
 			mapSize=parseVector2(&data);
-		} else if(key == "mapScale") {
+		} else if(key=="mapScale") {
 			mapScale=parseFloat(&data);
-		} else if(key == "spacing") {
+		} else if(key=="spacing") {
 			spacing=parseFloat(&data);
-		} else if(key == "playerOffset") {
+		} else if(key=="playerOffset") {
 			playerOffset=parseVector2(&data);
-		} else if(key == "playerSize") {
+		} else if(key=="playerSize") {
 			playerSize=parseFloat(&data);
-		} else if(key == "playerSpeed") {
+		} else if(key=="playerSpeed") {
 			playerSpeed=parseFloat(&data);
-		} else if(key == "playerSprintSpeed") {
+		} else if(key=="playerSprintSpeed") {
 			playerSprintSpeed=parseFloat(&data);
-		} else if(key == "playerTex") {
+		} else if(key=="playerTex") {
 			playerTexPath=parseString(&data);
-		} else if(key == "playerModulate") {
+		} else if(key=="playerModulate") {
 			playerModulate=parseVector3(&data);
-		} else if(key == "mapTex") {
+		} else if(key=="flashlightTex") {
+			flashlightTexPath=parseString(&data);
+		} else if(key=="flashlightColor") {
+			flashlightColor=parseVector3(&data);
+		} else if(key=="flashlightRange") {
+			flashlightRange=parseFloat(&data);
+		} else if(key=="mapTex") {
 			mapTexPath=parseString(&data);
-		} else if(key == "minimapTex") {
+		} else if(key=="minimapTex") {
 			minimapTexPath=parseString(&data);
-		} else if(key == "instanceUnlitTex") {
+		} else if(key=="instanceUnlitTex") {
 			instanceUnlitTexPath=parseString(&data);
-		} else if(key == "instanceWorkingTex") {
+		} else if(key=="instanceWorkingTex") {
 			instanceWorkingTexPath=parseString(&data);
-		} else if(key == "instanceBrokenTex") {
+		} else if(key=="instanceBrokenTex") {
 			instanceBrokenTexPath=parseString(&data);
-		} else if(key == "instanceData") {
+		} else if(key=="instanceBrokenChance") {
+			instanceBrokenChance=parseFloat(&data);
+		} else if(key=="instanceData") {
 			cutEmptySpace(&data);
 			if(!startsWith(data, "[")) return;
 			stringCut(&data, 1);
 			//maximum 500 iterations
-			unsigned int limit = 500;
+			unsigned int limit=500;
 			for(unsigned int i=0; i<limit; i++) {
 				cutEmptySpace(&data);
 				if(!startsWith(data, "[")) return;
@@ -94,7 +107,7 @@ void loadMapData(const std::string& mapName) {
 				if(!startsWith(data, "]")) return;
 				stringCut(&data, 1);
 				cutEmptySpace(&data);
-				std::vector<int> tmp = {one,two,three,four,five};
+				std::vector<int> tmp={ one, two, three, four, five };
 				instanceData.push_back(tmp);
 				if(!startsWith(data, ",")) break;
 				stringCut(&data, 1);
@@ -111,12 +124,12 @@ void loadMapData(const std::string& mapName) {
 	}
 	if(!startsWith(data, "}")) return;
 	stringCut(&data, 1);
-	fullMapSize=mapSize * (1 + spacing) * mapScale;
+	fullMapSize=mapSize*(1+spacing)*mapScale;
 	parsedMap=true;
 	return;
 }
 bool startsWith(std::string str, std::string start) {
-	return str.substr(0, std::min((int)start.size(), (int)str.size())) == start;
+	return str.substr(0, std::min((int)start.size(), (int)str.size()))==start;
 }
 std::string stringCut(std::string* str, int num) {
 	int len=std::min(num, (int)str->size());
@@ -130,7 +143,7 @@ void cutComment(std::string* str) {
 		while(!startsWith(*str, "\n")) {
 			stringCut(str, 1);
 		}
-	} else if (startsWith(*str, "/*")) {
+	} else if(startsWith(*str, "/*")) {
 		stringCut(str, 2);
 		while(!startsWith(*str, "*/")) {
 			stringCut(str, 1);
@@ -139,12 +152,15 @@ void cutComment(std::string* str) {
 	}
 }
 void cutEmptySpace(std::string* str) {
-	while((startsWith(*str, " ") || startsWith(*str, "\n") ||
-		startsWith(*str, "\r") || startsWith(*str, "\t") ||
-		startsWith(*str, "\b")) && str->size() > 0
+	if(startsWith(*str, "//")||startsWith(*str, "/*")) {
+		cutComment(str);
+	}
+	while((startsWith(*str, " ")||startsWith(*str, "\n")||
+		startsWith(*str, "\r")||startsWith(*str, "\t")||
+		startsWith(*str, "\b"))&&str->size()>0
 		) {
 		stringCut(str, 1);
-		if(startsWith(*str, "//") || startsWith(*str, "/*")) {
+		if(startsWith(*str, "//")||startsWith(*str, "/*")) {
 			cutComment(str);
 		}
 	}
@@ -161,10 +177,10 @@ void cutComma(std::string* str) {
 }
 std::string parseString(std::string* json) {
 	cutEmptySpace(json);
-	if(!startsWith(*json, "\"") && !startsWith(*json, "\'")) return "";
+	if(!startsWith(*json, "\"")&&!startsWith(*json, "\'")) return "";
 	stringCut(json, 1);
 	std::string str="";
-	while(!startsWith(*json, "\"") && !startsWith(*json, "\'")) {
+	while(!startsWith(*json, "\"")&&!startsWith(*json, "\'")) {
 		str+=stringCut(json, 1);
 	}
 	stringCut(json, 1);
@@ -173,11 +189,11 @@ std::string parseString(std::string* json) {
 int parseInt(std::string* json) {
 	cutEmptySpace(json);
 	std::string str="";
-	while(startsWith(*json, "0") || startsWith(*json, "1") ||
-		startsWith(*json, "2") || startsWith(*json, "3") ||
-		startsWith(*json, "4") || startsWith(*json, "5") ||
-		startsWith(*json, "6") || startsWith(*json, "7") ||
-		startsWith(*json, "8") || startsWith(*json, "9")) {
+	while(startsWith(*json, "0")||startsWith(*json, "1")||
+		startsWith(*json, "2")||startsWith(*json, "3")||
+		startsWith(*json, "4")||startsWith(*json, "5")||
+		startsWith(*json, "6")||startsWith(*json, "7")||
+		startsWith(*json, "8")||startsWith(*json, "9")) {
 		str+=stringCut(json, 1);
 	}
 	return std::stoi(str);
@@ -185,11 +201,11 @@ int parseInt(std::string* json) {
 float parseFloat(std::string* json) {
 	cutEmptySpace(json);
 	std::string str="";
-	while(startsWith(*json, "0") || startsWith(*json, "1") ||
-		startsWith(*json, "2") || startsWith(*json, "3") ||
-		startsWith(*json, "4") || startsWith(*json, "5") ||
-		startsWith(*json, "6") || startsWith(*json, "7") ||
-		startsWith(*json, "8") || startsWith(*json, "9") ||
+	while(startsWith(*json, "0")||startsWith(*json, "1")||
+		startsWith(*json, "2")||startsWith(*json, "3")||
+		startsWith(*json, "4")||startsWith(*json, "5")||
+		startsWith(*json, "6")||startsWith(*json, "7")||
+		startsWith(*json, "8")||startsWith(*json, "9")||
 		startsWith(*json, ".")) {
 		str+=stringCut(json, 1);
 	}

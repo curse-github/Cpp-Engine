@@ -56,7 +56,7 @@ void Engine::Loop() {
 		double delta=glfwGetTime()-lastFrameTime;
 		lastFrameTime=glfwGetTime();
 		glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 		for(unsigned int i=0; i<onLoop.size(); i++) {
 			onLoop[i](delta);
 		}
@@ -752,10 +752,9 @@ void TextRenderer::draw() {
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions) : LineRenderer(_engine, _shader, _positions, false, 0.0f) {}
-LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, bool _loop) : LineRenderer(_engine, _shader, _positions, _loop, 0.0f) {}
-LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, bool _loop, float _zIndex) :
-	Renderer(_engine, _shader), positions(_positions), zIndex(_zIndex), loop(_loop) {
+LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions) : LineRenderer(_engine, _shader, _positions, false) {}
+LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, bool _loop) :
+	Renderer(_engine, _shader), positions(_positions), loop(_loop) {
 	if(!initialized) return;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -782,7 +781,7 @@ LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2
 void LineRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	shader->bindTextures();
-	shader->setMat4x4("model", translate(Vector3(0.0f, 0.0f, zIndex-100)));
+	shader->setMat4x4("model", Mat4x4());
 	glBindVertexArray(VAO);
 	glDrawArrays(loop?GL_LINE_LOOP:GL_LINE_STRIP, 0, positions.size());
 }
