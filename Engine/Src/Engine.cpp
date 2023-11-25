@@ -786,3 +786,22 @@ void LineRenderer::draw() {
 	glDrawArrays(loop?GL_LINE_LOOP:GL_LINE_STRIP, 0, positions.size());
 }
 #pragma endregion// Renderers
+
+#pragma region Stencil
+
+void StencilSimple::Enable() {
+	glEnable(GL_STENCIL_TEST);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+}
+void StencilSimple::Write() {
+	glStencilFunc(GL_ALWAYS, 1, 0b0);// compare against none
+	glStencilMask(0b1);// write to 0b1
+}
+void StencilSimple::Compare() {
+	glStencilFunc(GL_EQUAL, 1, 0b1);// compare against 0b1
+	glStencilMask(0b0);// write to none
+}
+void StencilSimple::Disable() {
+	glDisable(GL_STENCIL_TEST);
+}
+#pragma endregion// Stencil

@@ -1,11 +1,11 @@
 {
-  //map vars
+  // map vars
   "mapSize": [ 49.0 /*x*/, 34.0 /*y*/ ],
   "mapScale": 35.0,
   "spacing": 0.05,
   "mapTex": "Resources/map.png",
   "minimapTex": "Resources/miniMap.png",
-  //player vars
+  // player vars
   "playerOffset": [ 26.5, 28.0 ],
   "playerSize": 0.5,
   "playerSpeed": 4.0,
@@ -13,15 +13,15 @@
   "playerTex": "Resources/ghost.png",
   "playerModulate": [ 0.35 /*r*/, 0.0 /*g*/, 0.7 /*b*/ ],
   "flashlightTex": "Resources/circle.png",
-  "flashlightColor": [ 0.5, 0.5, 0.0 ],
+  "flashlightColor": [ 0.3, 0.3, 0.0 ],
   "flashlightRange": 2.0,
-  //instance vars
+  // instance vars
   "instanceUnlitTex": "Resources/white.png",
   "instanceWorkingTex": "Resources/green.png",
   "instanceBrokenTex": "Resources/red.png",
   "instanceBrokenChance": 5, //%
-  //data for each machine
-  //x, y, id, bank, zone
+  // data for each machine
+  // x, y, id, bank, zone
   "instanceData": [
     [ 3, 14, 1, 1, 1 ],
     [ 4, 14, 4, 1, 1 ],

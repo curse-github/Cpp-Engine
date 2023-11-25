@@ -119,29 +119,30 @@ void onLateDelete();
 
 Engine* engine;
 FpsTracker* tracker;
+PlayerController* playerController;
+StencilSimple lightStencil;
+
 OrthoCam* cam;
 OrthoCam* uiCam;
 
 Shader* playerShader;
 Shader* flashlightShader;
 Shader* playerIconShader;
+Shader* backgroundShader;
+Shader* instanceUnlitShader;
+Shader* instanceWorkingShader;
+Shader* instanceBrokenShader;
+Shader* minimapShader;
+Shader* textShader;
+
 SpriteRenderer* playerRenderer;
 SpriteRenderer* flashlightRenderer;
 SpriteRenderer* playerIconRenderer;
 
-Shader* backgroundShader;
 std::vector<Renderer*> sceneRenderers;
-Shader* instanceUnlitShader;
-std::vector<SpriteRenderer*> machineRenderers;
-Shader* instanceWorkingShader;
-Shader* instanceBrokenShader;
 std::vector<SpriteRenderer*> machineStateRenderers;
-Shader* minimapShader;
 std::vector<Renderer*> uiRenderers;
-Shader* textShader;
 std::vector<TextRenderer*> debugText;
-
-PlayerController* playerController;
 
 int main(int argc, char** argv) {
 	// setup engine
@@ -152,6 +153,7 @@ int main(int argc, char** argv) {
 	}
 	// setup fps tracker
 	tracker=new FpsTracker(engine);
+	lightStencil=StencilSimple();
 	// setup cameras
 	cam=new OrthoCam(engine, Vector2(0.0f, 0.0f), Vector2(480.0f, 270.0f));
 	uiCam=new OrthoCam(engine, Vector2(480.0f, 270.0f), Vector2(960.0f, 540.0f));
@@ -253,7 +255,7 @@ int main(int argc, char** argv) {
 	for(unsigned int i=0; i<instanceData.size(); i++) {
 		std::vector<int> dat=instanceData[i];
 		Vector2 pos=gridToWorld(Vector2((float)dat[0]+0.5f, (float)dat[1]+0.5f));
-		machineRenderers.push_back(new SpriteRenderer(engine, instanceUnlitShader, pos, Vector2(mapScale, mapScale), 2.0f));
+		sceneRenderers.push_back(new SpriteRenderer(engine, instanceUnlitShader, pos, Vector2(mapScale, mapScale), 2.0f));
 		bool broken = ((float)std::rand())/((float)RAND_MAX)<=(instanceBrokenChance/100.0f);
 		machineStateRenderers.push_back(new SpriteRenderer(engine, broken?instanceBrokenShader:instanceWorkingShader, pos, Vector2(mapScale, mapScale), 3.0f));
 	}
@@ -274,16 +276,12 @@ void Loop(double delta) {
 	debugText[2]->text="Time: "+std::to_string(glfwGetTime());
 	// draw scene
 	for(Renderer* ren:sceneRenderers) ren->draw();
-	for(SpriteRenderer* ren:machineRenderers) ren->draw();
-	glEnable(GL_STENCIL_TEST);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-	glStencilFunc(GL_ALWAYS, 1, 0b0);// compare against 0b1
-	glStencilMask(0b1);// write to 0b1
+	lightStencil.Enable();
+	lightStencil.Write();
 	flashlightRenderer->draw();
-	glStencilFunc(GL_EQUAL, 1, 0b1);// compare against 0b1
-	glStencilMask(0b0);// write to none
+	lightStencil.Compare();
 	for(SpriteRenderer* ren:machineStateRenderers) ren->draw();
-	glDisable(GL_STENCIL_TEST);
+	lightStencil.Disable();
 	// draw ui
 	glClear(GL_DEPTH_BUFFER_BIT);
 	for(Renderer* ren:uiRenderers) ren->draw();
@@ -293,26 +291,30 @@ void Loop(double delta) {
 void onLateDelete() {
 	delete engine;
 	delete tracker;
+	delete playerController;
+
 	delete cam;
 	delete uiCam;
 
 	delete playerShader;
-	delete playerIconShader;
 	delete flashlightShader;
+	delete playerIconShader;
+	delete backgroundShader;
+	delete instanceUnlitShader;
+	delete instanceWorkingShader;
+	delete instanceBrokenShader;
+	delete minimapShader;
+	delete textShader;
 
 	delete flashlightRenderer;
 
-	delete backgroundShader;
 	for(Renderer* ren:sceneRenderers) { delete ren; }
-	sceneRenderers.clear();
-	for(SpriteRenderer* ren:machineRenderers) { delete ren; }
-	machineRenderers.clear();
-	delete minimapShader;
+	for(SpriteRenderer* ren:machineStateRenderers) { delete ren; }
 	for(Renderer* ren:uiRenderers) { delete ren; }
-	uiRenderers.clear();
-	delete textShader;
 	for(TextRenderer* ren:debugText) { delete ren; }
+	sceneRenderers.clear();
+	machineStateRenderers.clear();
+	uiRenderers.clear();
 	debugText.clear();
 
-	delete playerController;
 }

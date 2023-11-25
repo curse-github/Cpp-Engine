@@ -220,6 +220,15 @@ class LineRenderer : public Renderer {
 	void draw() override;
 };
 
+class StencilSimple {
+	public:
+	StencilSimple() {}
+	void Enable();
+	void Disable();
+	void Write();
+	void Compare();
+};
+
 #define vsShader "#version 330 core\n\
 layout(location=0) in vec3 vecPos;\n\
 layout(location=1) in vec2 vecUV;\n\
