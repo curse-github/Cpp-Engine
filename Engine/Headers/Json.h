@@ -15,7 +15,7 @@ extern float playerSize;
 extern float playerSpeed;
 extern float playerSprintSpeed;
 extern std::string playerTexPath;
-extern Vector4 playerModulate;
+extern Vector3 playerModulate;
 
 extern std::string instanceUnlitTexPath;
 extern std::string instanceWorkingTexPath;

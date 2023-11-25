@@ -24,7 +24,7 @@ float playerSize;
 float playerSpeed;
 float playerSprintSpeed;
 std::string playerTexPath;
-Vector4 playerModulate;
+Vector3 playerModulate;
 std::string instanceUnlitTexPath;
 std::string instanceWorkingTexPath;
 std::string instanceBrokenTexPath;
@@ -60,7 +60,7 @@ void loadMapData(const std::string& mapName) {
 		} else if(key == "playerTex") {
 			playerTexPath=parseString(&data);
 		} else if(key == "playerModulate") {
-			playerModulate=parseVector4(&data);
+			playerModulate=parseVector3(&data);
 		} else if(key == "mapTex") {
 			mapTexPath=parseString(&data);
 		} else if(key == "minimapTex") {

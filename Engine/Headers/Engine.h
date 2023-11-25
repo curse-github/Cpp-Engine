@@ -194,7 +194,9 @@ public:
 	float zIndex=0;
 	float rotAngle;
 	SpriteRenderer() : Renderer(), position(Vector2()), scale(Vector2()), rotAngle(0.0f) {}
-	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _rotAngle);
+	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale);
+	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _zIndex);
+	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _zIndex, float _rotAngle);
 	void draw() override;
 };
 extern bool characterMapInitialized;
@@ -206,6 +208,17 @@ public:
 	Vector3 color;
 	TextRenderer() : Renderer(), text(""), position(Vector2()), scale(0), color(Vector3()) {}
 	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector2 _position, float _scale, Vector3 _color);
+	void draw() override;
+};
+class LineRenderer : public Renderer {
+	public:
+	std::vector<Vector2> positions;
+	float zIndex;
+	bool loop;
+	LineRenderer() : Renderer(), positions{}, loop(false), zIndex(0.0f) {}
+	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions);
+	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, bool _loop);
+	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, bool _loop, float _zIndex);
 	void draw() override;
 };
 

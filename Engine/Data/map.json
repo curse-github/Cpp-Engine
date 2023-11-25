@@ -11,7 +11,7 @@
   "playerSpeed": 4.0,
   "playerSprintSpeed": 6.0,
   "playerTex": "Resources/ghost.png",
-  "playerModulate": [ 0.35 /*r*/, 0.0 /*g*/, 0.7 /*b*/, 0.75 /*a*/ ],
+  "playerModulate": [ 0.35 /*r*/, 0.0 /*g*/, 0.7 /*b*/],
   //instance vars
   "instanceUnlitTex": "Resources/white.png",
   "instanceWorkingTex": "Resources/green.png",
