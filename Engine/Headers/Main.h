@@ -16,10 +16,10 @@ const float minimapScale=0.15f;
 Vector2 minimapSize;
 
 Vector2 gridToWorld(Vector2 grid) {
-	return Vector2(grid.x*mapScale*(1.0+spacing), (mapSize.y-grid.y)*mapScale*(1.0+spacing));
+	return Vector2(grid.x*mapScale*(1.0f+spacing), (mapSize.y-grid.y)*mapScale*(1.0f+spacing));
 }
 Vector2 worldToGrid(Vector2 world) {
-	return Vector2(world.x/mapScale/(1.0+spacing), mapSize.y-world.y/mapScale/(1.0+spacing));
+	return Vector2(world.x/mapScale/(1.0f+spacing), mapSize.y-world.y/mapScale/(1.0f+spacing));
 }
 Vector2 gridToMinimap(Vector2 grid) {
 	return Vector2(grid.x/mapSize.x*minimapSize.x, 540-grid.y/mapSize.y*minimapSize.y);
@@ -53,6 +53,7 @@ SpriteRenderer* flashlightRenderer;
 SpriteRenderer* playerIconRenderer;
 
 std::vector<Renderer*> sceneRenderers;
+std::vector<SpriteRenderer*> instanceRenderers;
 std::vector<SpriteRenderer*> instanceStateRenderers;
 std::vector<Renderer*> uiRenderers;
 std::vector<TextRenderer*> debugText;

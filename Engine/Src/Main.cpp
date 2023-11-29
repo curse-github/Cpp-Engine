@@ -147,7 +147,7 @@ CollitionData BoxCollider::checkCollision(BoxCollider* other) {
 
 int main(int argc, char** argv) {
 	// setup engine
-	engine=new Engine(Vector2(1920, 1080), "Ghost Game", false);
+	engine=new Engine(Vector2(1920.0, 1080.0), "Ghost Game", false);
 	if(!engine->initialized||engine->ended) {
 		Log("Engine failed to init");
 		return 0;
@@ -224,7 +224,7 @@ int main(int argc, char** argv) {
 	instanceUnlitShader->setFloat4("modulate", Vector4(0.5f, 0.5f, 0.5f, 1.0f));
 	instanceWorkingShader->setTexture("_texture", &instanceWorkingTex, 0);
 	instanceBrokenShader->setTexture("_texture", &instanceBrokenTex, 0);
-	lineShader->setFloat4("color", Vector4(0.5f, 0.0f, 0.0f, 1.0f));
+	lineShader->setFloat4("color", Vector4(0.0f, 0.0f, 1.0f, 1.0f));
 	cam->bindShader(playerShader);
 	cam->bindShader(flashlightShader);
 	uiCam->bindShader(playerIconShader);
@@ -246,7 +246,7 @@ int main(int argc, char** argv) {
 	uiRenderers.push_back(playerIconRenderer);
 	// map and minimap
 	sceneRenderers.push_back(new SpriteRenderer(engine, backgroundShader, fullMapSize/2.0f, fullMapSize));// background
-	uiRenderers.push_back(new SpriteRenderer(engine, minimapShader, Vector2(minimapSize.x/2, 540.0f-minimapSize.y/2), minimapSize));// minimap
+	uiRenderers.push_back(new SpriteRenderer(engine, minimapShader, Vector2(minimapSize.x/2.0f, 540.0f-minimapSize.y/2.0f), minimapSize));// minimap
 	// setup text renderers
 	debugText.push_back(new TextRenderer(engine, textShader, "Pos: ", Vector2(1.0f, 33.0f), 2.0f, Vector3(0.75f, 0.75f, 0.75f)));
 	debugText.push_back(new TextRenderer(engine, textShader, "Fps Avg: ", Vector2(1.0f, 17.0f), 2.0f, Vector3(0.75f, 0.75f, 0.75f)));
@@ -260,7 +260,7 @@ int main(int argc, char** argv) {
 	for(unsigned int i=0; i<instanceData.size(); i++) {// instances
 		std::vector<int> dat=instanceData[i];
 		Vector2 pos=gridToWorld(Vector2((float)dat[0]+0.5f, (float)dat[1]+0.5f));
-		sceneRenderers.push_back(new SpriteRenderer(engine, instanceUnlitShader, pos, Vector2(mapScale, mapScale), 2.0f));
+		instanceRenderers.push_back(new SpriteRenderer(engine, instanceUnlitShader, pos, Vector2(mapScale, mapScale), 2.0f));
 		bool broken=((float)std::rand())/((float)RAND_MAX)<=(instanceBrokenChance/100.0f);
 		instanceStateRenderers.push_back(new SpriteRenderer(engine, broken ? instanceBrokenShader : instanceWorkingShader, pos, Vector2(mapScale, mapScale), 3.0f));
 		instanceColliders.push_back(new BoxCollider(engine, pos, Vector2(mapScale, mapScale), lineShader));
@@ -275,7 +275,7 @@ int main(int argc, char** argv) {
 	}
 	// setup other stuff
 	playerCollider=new BoxCollider(engine, Vector2(), playerHitbox*playerSize*mapScale, lineShader);
-	ColliderDebug=true;// make hitboxes visible
+	//ColliderDebug=true;// make hitboxes visible
 	playerController=new PlayerController(engine, playerRenderer, playerCollider, flashlightRenderer, playerIconRenderer, cam);
 	playerController->setPos(gridToWorld(playerOffset));
 	// run main loop
@@ -287,19 +287,23 @@ int main(int argc, char** argv) {
 }
 void Loop(double delta) {
 	// set debug text
-	debugText[0]->text="Pos: "+playerController->getPos().to_string();
+	Vector2 playerPos = playerController->getPos();
+	debugText[0]->text="Pos: "+playerPos.to_string();
 	debugText[1]->text="Fps Avg: "+std::to_string(tracker->getAvgFps())+", high: "+std::to_string(tracker->getHighFps())+", low: "+std::to_string(tracker->getLowFps());
 	debugText[2]->text="Time: "+std::to_string(glfwGetTime());
 	// draw scene
 	for(Renderer* ren:sceneRenderers) ren->draw();
+	for(SpriteRenderer* ren:instanceRenderers) if ((playerPos-ren->position).length() <= (sqrt(2)+7.7)*mapScale) ren->draw();
+	
 	lightStencil.Enable();
 	lightStencil.Write();
 	flashlightRenderer->draw();
 	lightStencil.Compare();
-	for(SpriteRenderer* ren:instanceStateRenderers) ren->draw();
+
+	for(SpriteRenderer* ren:instanceStateRenderers) if ((playerPos-ren->position).length() <= (sqrt(2)+flashlightRange)*mapScale) ren->draw();
 	lightStencil.Disable();
 	playerCollider->drawOutline();
-	for(BoxCollider* col:instanceColliders) col->drawOutline();
+	for(BoxCollider* col:instanceColliders) if ((playerPos-col->pos).length() <= (sqrt(2)+7.7)*mapScale) col->drawOutline();
 	// draw ui
 	glClear(GL_DEPTH_BUFFER_BIT);
 	for(Renderer* ren:uiRenderers) ren->draw();
@@ -327,10 +331,12 @@ void onLateDelete() {
 	delete flashlightRenderer;
 
 	for(Renderer* ren:sceneRenderers) { delete ren; }
+	for(Renderer* ren:instanceRenderers) { delete ren; }
 	for(SpriteRenderer* ren:instanceStateRenderers) { delete ren; }
 	for(Renderer* ren:uiRenderers) { delete ren; }
 	for(TextRenderer* ren:debugText) { delete ren; }
 	sceneRenderers.clear();
+	instanceRenderers.clear();
 	instanceStateRenderers.clear();
 	uiRenderers.clear();
 	debugText.clear();
