@@ -21,6 +21,7 @@ Vector2 fullMapSize;
 
 Vector2 playerOffset;
 float playerSize;
+Vector2 playerHitbox;
 float playerSpeed;
 float playerSprintSpeed;
 std::string playerTexPath;
@@ -34,6 +35,9 @@ std::string instanceWorkingTexPath;
 std::string instanceBrokenTexPath;
 float instanceBrokenChance;
 std::vector<std::vector<int>> instanceData;
+
+std::vector<Vector3> horizontalWallData;
+std::vector<Vector3> verticalWallData;
 
 bool parsedMap;
 
@@ -58,6 +62,8 @@ void loadMapData(const std::string& mapName) {
 			playerOffset=parseVector2(&data);
 		} else if(key=="playerSize") {
 			playerSize=parseFloat(&data);
+		} else if(key=="playerHitbox") {
+			playerHitbox=parseVector2(&data);
 		} else if(key=="playerSpeed") {
 			playerSpeed=parseFloat(&data);
 		} else if(key=="playerSprintSpeed") {
@@ -84,6 +90,34 @@ void loadMapData(const std::string& mapName) {
 			instanceBrokenTexPath=parseString(&data);
 		} else if(key=="instanceBrokenChance") {
 			instanceBrokenChance=parseFloat(&data);
+		} else if(key=="horizontalWallData") {
+			cutEmptySpace(&data);
+			if(!startsWith(data, "[")) return;
+			stringCut(&data, 1);
+			//maximum 500 iterations
+			unsigned int limit=500;
+			for(unsigned int i=0; i<limit; i++) {
+				horizontalWallData.push_back(parseVector3(&data));
+				if(!startsWith(data, ",")) break;
+				stringCut(&data, 1);
+			}
+			cutEmptySpace(&data);
+			if(!startsWith(data, "]")) return;
+			stringCut(&data, 1);
+		} else if(key=="verticalWallData") {
+			cutEmptySpace(&data);
+			if(!startsWith(data, "[")) return;
+			stringCut(&data, 1);
+			//maximum 500 iterations
+			unsigned int limit=500;
+			for(unsigned int i=0; i<limit; i++) {
+				verticalWallData.push_back(parseVector3(&data));
+				if(!startsWith(data, ",")) break;
+				stringCut(&data, 1);
+			}
+			cutEmptySpace(&data);
+			if(!startsWith(data, "]")) return;
+			stringCut(&data, 1);
 		} else if(key=="instanceData") {
 			cutEmptySpace(&data);
 			if(!startsWith(data, "[")) return;
@@ -106,7 +140,6 @@ void loadMapData(const std::string& mapName) {
 				cutEmptySpace(&data);
 				if(!startsWith(data, "]")) return;
 				stringCut(&data, 1);
-				cutEmptySpace(&data);
 				std::vector<int> tmp={ one, two, three, four, five };
 				instanceData.push_back(tmp);
 				if(!startsWith(data, ",")) break;

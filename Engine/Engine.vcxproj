@@ -29,6 +29,7 @@
     <ClInclude Include="Headers\Json.h" />
     <ClInclude Include="Headers\Lib.h" />
     <ClInclude Include="Headers\Engine.h" />
+    <ClInclude Include="Headers\Main.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Data\map.json" />

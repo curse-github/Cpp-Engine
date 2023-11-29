@@ -752,9 +752,8 @@ void TextRenderer::draw() {
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions) : LineRenderer(_engine, _shader, _positions, false) {}
-LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, bool _loop) :
-	Renderer(_engine, _shader), positions(_positions), loop(_loop) {
+LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position, bool _loop) :
+	Renderer(_engine, _shader), positions(_positions), width(_width), position(_position), loop(_loop) {
 	if(!initialized) return;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -778,11 +777,15 @@ LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
+LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width) : LineRenderer(_engine, _shader, _positions, _width, Vector2(0.0f,0.0f), false) {}
+LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop) : LineRenderer(_engine, _shader, _positions, _width, Vector2(0.0f,0.0f), _loop) {}
+LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position) : LineRenderer(_engine, _shader, _positions, _width, _position, false) {}
 void LineRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	shader->bindTextures();
-	shader->setMat4x4("model", Mat4x4());
+	shader->setMat4x4("model", translate(Vector3(position,0.0f)));
 	glBindVertexArray(VAO);
+	glLineWidth(width);
 	glDrawArrays(loop?GL_LINE_LOOP:GL_LINE_STRIP, 0, positions.size());
 }
 #pragma endregion// Renderers

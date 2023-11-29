@@ -12,6 +12,7 @@ extern Vector2 fullMapSize;
 
 extern Vector2 playerOffset;
 extern float playerSize;
+extern Vector2 playerHitbox;
 extern float playerSpeed;
 extern float playerSprintSpeed;
 extern std::string playerTexPath;
@@ -25,6 +26,9 @@ extern std::string instanceWorkingTexPath;
 extern std::string instanceBrokenTexPath;
 extern float instanceBrokenChance;
 extern std::vector<std::vector<int>> instanceData;
+
+extern std::vector<Vector3> horizontalWallData;
+extern std::vector<Vector3> verticalWallData;
 
 extern bool parsedMap;
 void loadMapData(const std::string& mapName);

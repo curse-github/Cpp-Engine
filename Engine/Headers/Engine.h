@@ -213,13 +213,16 @@ public:
 class LineRenderer : public Renderer {
 	public:
 	std::vector<Vector2> positions;
+	float width;
+	Vector2 position;
 	bool loop;
-	LineRenderer() : Renderer(), positions{}, loop(false) {}
-	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions);
-	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, bool _loop);
+	LineRenderer() : Renderer(), positions{}, width(1.0f), position(Vector2()), loop(false) {}
+	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position, bool _loop);
+	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width);
+	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop);
+	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position);
 	void draw() override;
 };
-
 class StencilSimple {
 	public:
 	StencilSimple() {}
