@@ -112,6 +112,7 @@ public:
 	Camera(Engine* _engine);
 	virtual void update();
 	void bindShader(Shader* shader);
+	void bindShaders(std::vector<Shader*> shaders);
 	void use();
 };
 class LookAtCam : public Camera {

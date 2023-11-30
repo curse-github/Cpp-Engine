@@ -26,15 +26,12 @@ Vector2 gridToMinimap(Vector2 grid) {
 }
 
 class FpsTracker;
-//class PlayerController;
 class Player;
 class BoxCollider;
 
 Engine* engine;
 FpsTracker* tracker;
-//PlayerController* playerController;
 Player* player;
-//StencilSimple lightStencil;
 
 OrthoCam* cam;
 OrthoCam* uiCam;
@@ -50,17 +47,12 @@ Shader* minimapShader;
 Shader* lineShader;
 Shader* textShader;
 
-//SpriteRenderer* playerRenderer;
-//SpriteRenderer* flashlightRenderer;
-//SpriteRenderer* playerIconRenderer;
-
 std::vector<Renderer*> sceneRenderers;
 std::vector<SpriteRenderer*> instanceRenderers;
 std::vector<SpriteRenderer*> instanceStateRenderers;
 std::vector<Renderer*> uiRenderers;
 std::vector<TextRenderer*> debugText;
 
-//BoxCollider* playerCollider;
 std::vector<BoxCollider*> instanceColliders;
 class FpsTracker : Object {
 	protected:
@@ -78,33 +70,18 @@ class FpsTracker : Object {
 	int getLowFps();
 	float getFrameTime();
 };
-class PlayerController : public Object {
-	protected:
-	SpriteRenderer* playerRenderer;
-	BoxCollider* playerCollider;
-	SpriteRenderer* flashlightRenderer;
-	SpriteRenderer* playerIconRenderer;
-	OrthoCam* sceneCam;
-	public:
-	PlayerController() : Object(), playerRenderer(nullptr), playerCollider(nullptr), flashlightRenderer(nullptr), playerIconRenderer(nullptr), sceneCam(nullptr) {}
-	PlayerController(Engine* _engine, SpriteRenderer* _playerRenderer, BoxCollider* _playerCollider, SpriteRenderer* _flashlightRenderer, SpriteRenderer* _playerIconRenderer, OrthoCam* _sceneCam);
-	int inputs[5]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
-	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods) override;
-	void on_loop(double delta) override;
-	void setPos(Vector2 pos);
-	Vector2 getPos();
-};
+
 class Player : public Object {
 	protected:
-	StencilSimple lightStencil;
+	StencilSimple flashlightStencil;
 	OrthoCam* sceneCam;
-	SpriteRenderer* playerRenderer;
-	BoxCollider* playerCollider;
+	SpriteRenderer* renderer;
+	BoxCollider* collider;
 	SpriteRenderer* flashlightRenderer;
-	SpriteRenderer* playerIconRenderer;
+	SpriteRenderer* iconRenderer;
 	public:
 	Vector2 position;
-	Player() : Object(), position(Vector2()), lightStencil(StencilSimple()), sceneCam(nullptr), playerRenderer(nullptr), playerCollider(nullptr), flashlightRenderer(nullptr), playerIconRenderer(nullptr) {}
+	Player() : Object(), position(Vector2()), flashlightStencil(StencilSimple()), sceneCam(nullptr), renderer(nullptr), collider(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {}
 	Player(Engine* _engine, OrthoCam* _sceneCam, Vector2 _position, Shader* playerShader, Shader* flashlightShader, Shader* iconShader);
 	int inputs[5]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
 	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods) override;
@@ -117,6 +94,7 @@ class Player : public Object {
 	void drawColliderOutline();
 };
 bool ColliderDebug = false;
+
 struct CollitionData {
 	Vector2 normal;
 	float dist;

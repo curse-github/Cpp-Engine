@@ -383,6 +383,9 @@ void Camera::bindShader(Shader* shader) {
 	if(engine->ended||!initialized||!shader->initialized) return;
 	shaders.push_back(shader);
 }
+void Camera::bindShaders(std::vector<Shader*> shaders) {
+	for(unsigned int i=0; i<shaders.size(); i++) bindShader(shaders[i]);
+}
 void Camera::use() {
 	if(engine->ended||!initialized) return;
 	for(unsigned int i=0; i<shaders.size(); i++) {
