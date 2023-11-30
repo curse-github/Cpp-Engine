@@ -104,6 +104,89 @@ Vector2 PlayerController::getPos() {
 }
 #pragma endregion// PlayerController
 
+#pragma region Player
+Player::Player(Engine* _engine, OrthoCam* _sceneCam, Vector2 _position, Shader* playerShader, Shader* flashlightShader, Shader* iconShader)
+	: Object(_engine), position(_position), lightStencil(StencilSimple()), sceneCam(_sceneCam), playerRenderer(nullptr), playerCollider(nullptr), flashlightRenderer(nullptr), playerIconRenderer(nullptr) {
+	if(!initialized) return;
+	engine->sub_key(this);
+	engine->sub_loop(this);
+
+	playerRenderer=new SpriteRenderer(engine, playerShader, position, playerSize*mapScale,1);
+	sceneRenderers.push_back(playerRenderer);
+	playerCollider=new BoxCollider(engine, position, playerHitbox*playerSize*mapScale, lineShader);
+	flashlightRenderer=new SpriteRenderer(engine, flashlightShader, position, flashlightRange*mapScale, 1.0f);
+	playerIconRenderer=new SpriteRenderer(engine, iconShader, gridToMinimap(worldToGrid(position)), Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), 1.0f);
+	uiRenderers.push_back(playerIconRenderer);
+
+	resolveCollitions();
+	playerRenderer->position=position;
+	flashlightRenderer->position=position;
+	sceneCam->position=position;
+	playerIconRenderer->position=gridToMinimap(worldToGrid(position));
+	sceneCam->update();
+	sceneCam->use();
+}
+void Player::on_key(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	if(engine->ended||!initialized) return;
+	if(key==GLFW_KEY_W) inputs[0]=action;
+	else if(key==GLFW_KEY_A) inputs[1]=action;
+	else if(key==GLFW_KEY_S) inputs[2]=action;
+	else if(key==GLFW_KEY_D) inputs[3]=action;
+	else if(key==GLFW_KEY_LEFT_SHIFT) inputs[4]=action;
+}
+void Player::on_loop(double delta) {
+	if(engine->ended||!initialized) return;
+	Vector2 inputVec=Vector2(
+		(float)(inputs[3]>=GLFW_PRESS)-(float)(inputs[1]>=GLFW_PRESS),
+		(float)(inputs[0]>=GLFW_PRESS)-(float)(inputs[2]>=GLFW_PRESS)
+	).normalized();
+	if(inputVec.x==0&&inputVec.y==0) return;
+	position+=inputVec*((float)delta)*((inputs[4]>=GLFW_PRESS) ? playerSprintSpeed : playerSpeed)*mapScale*(1+spacing);
+	resolveCollitions();
+	playerRenderer->position=position;
+	flashlightRenderer->position=position;
+	sceneCam->position=position;
+	playerIconRenderer->position=gridToMinimap(worldToGrid(position));
+	sceneCam->update();
+	sceneCam->use();
+}
+void Player::on_delete() {
+	delete playerCollider;
+	delete flashlightRenderer;
+}
+void Player::resolveCollitions() {
+	playerCollider->pos=position;
+	for(unsigned int i=0; i<instanceColliders.size(); i++) {
+		CollitionData collition=instanceColliders[i]->checkCollision(playerCollider);
+		playerCollider->pos+=collition.normal*collition.dist;
+	}
+	position=playerCollider->pos;
+}
+void Player::flashlightStencilOn() {
+	lightStencil.Enable();
+	lightStencil.Write();
+	flashlightRenderer->draw();
+	lightStencil.Compare();
+}
+void Player::flashlightStencilOff() {
+	flashlightRenderer->draw();
+	lightStencil.Disable();
+}
+void Player::setPos(Vector2 _position) {
+	position=_position;
+	resolveCollitions();
+	playerRenderer->position=position;
+	flashlightRenderer->position=position;
+	sceneCam->position=position;
+	playerIconRenderer->position=gridToMinimap(worldToGrid(position));
+	sceneCam->update();
+	sceneCam->use();
+}
+void Player::drawColliderOutline() {
+	playerCollider->drawOutline();
+}
+#pragma endregion
+
 #pragma region BoxCollider
 BoxCollider::BoxCollider(Engine* _engine, Vector2 _pos, Vector2 _size, Shader* _debugLineShader) : Object(_engine), pos(_pos), size(_size), debugLineShader(_debugLineShader) {
 	std::vector<Vector2> positions;
@@ -154,7 +237,7 @@ int main(int argc, char** argv) {
 	}
 	// setup fps tracker
 	tracker=new FpsTracker(engine);
-	lightStencil=StencilSimple();
+	//lightStencil=StencilSimple();
 	// setup cameras
 	cam=new OrthoCam(engine, Vector2(0.0f, 0.0f), Vector2(480.0f, 270.0f));
 	uiCam=new OrthoCam(engine, Vector2(480.0f, 270.0f), Vector2(960.0f, 540.0f));
@@ -239,11 +322,11 @@ int main(int argc, char** argv) {
 	uiCam->use();
 #pragma endregion// setup shaders
 	// player and playerIcon
-	playerRenderer=new SpriteRenderer(engine, playerShader, Vector2(), playerSize*mapScale);
-	sceneRenderers.push_back(playerRenderer);
-	flashlightRenderer=new SpriteRenderer(engine, flashlightShader, Vector2(), flashlightRange*mapScale, 1.0f);
-	playerIconRenderer=new SpriteRenderer(engine, playerIconShader, Vector2(), Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), 1.0f);
-	uiRenderers.push_back(playerIconRenderer);
+	//playerRenderer=new SpriteRenderer(engine, playerShader, Vector2(), playerSize*mapScale);
+	//sceneRenderers.push_back(playerRenderer);
+	//flashlightRenderer=new SpriteRenderer(engine, flashlightShader, Vector2(), flashlightRange*mapScale, 1.0f);
+	//playerIconRenderer=new SpriteRenderer(engine, playerIconShader, Vector2(), Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), 1.0f);
+	//uiRenderers.push_back(playerIconRenderer);
 	// map and minimap
 	sceneRenderers.push_back(new SpriteRenderer(engine, backgroundShader, fullMapSize/2.0f, fullMapSize));// background
 	uiRenderers.push_back(new SpriteRenderer(engine, minimapShader, Vector2(minimapSize.x/2.0f, 540.0f-minimapSize.y/2.0f), minimapSize));// minimap
@@ -273,11 +356,10 @@ int main(int argc, char** argv) {
 		Vector3 line=verticalWallData[i];
 		instanceColliders.push_back(new BoxCollider(engine, gridToWorld(Vector2(line.x,(line.z+line.y)/2)), Vector2(spacing*4*mapScale,(line.z-line.y)*(1.0f+spacing)*mapScale), lineShader));
 	}
-	// setup other stuff
-	playerCollider=new BoxCollider(engine, Vector2(), playerHitbox*playerSize*mapScale, lineShader);
 	//ColliderDebug=true;// make hitboxes visible
-	playerController=new PlayerController(engine, playerRenderer, playerCollider, flashlightRenderer, playerIconRenderer, cam);
-	playerController->setPos(gridToWorld(playerOffset));
+	//playerController=new PlayerController(engine, playerRenderer, playerCollider, flashlightRenderer, playerIconRenderer, cam);
+	//playerController->setPos(gridToWorld(playerOffset));
+	player=new Player(engine,cam, gridToWorld(playerOffset),playerShader,flashlightShader,playerIconShader);
 	// run main loop
 	engine->onLoop.push_back(Loop);
 	engine->onDelete.push_back(onLateDelete);
@@ -287,7 +369,8 @@ int main(int argc, char** argv) {
 }
 void Loop(double delta) {
 	// set debug text
-	Vector2 playerPos = playerController->getPos();
+	//Vector2 playerPos = playerController->getPos();
+	Vector2 playerPos = player->position;
 	debugText[0]->text="Pos: "+playerPos.to_string();
 	debugText[1]->text="Fps Avg: "+std::to_string(tracker->getAvgFps())+", high: "+std::to_string(tracker->getHighFps())+", low: "+std::to_string(tracker->getLowFps());
 	debugText[2]->text="Time: "+std::to_string(glfwGetTime());
@@ -295,14 +378,16 @@ void Loop(double delta) {
 	for(Renderer* ren:sceneRenderers) ren->draw();
 	for(SpriteRenderer* ren:instanceRenderers) if ((playerPos-ren->position).length() <= (sqrt(2)+7.7)*mapScale) ren->draw();
 	
-	lightStencil.Enable();
-	lightStencil.Write();
-	flashlightRenderer->draw();
-	lightStencil.Compare();
-
+	//lightStencil.Enable();
+	//lightStencil.Write();
+	//flashlightRenderer->draw();
+	//lightStencil.Compare();
+	player->flashlightStencilOn();
+	
 	for(SpriteRenderer* ren:instanceStateRenderers) if ((playerPos-ren->position).length() <= (sqrt(2)+flashlightRange)*mapScale) ren->draw();
-	lightStencil.Disable();
-	playerCollider->drawOutline();
+	player->flashlightStencilOff();
+	//lightStencil.Disable();
+	player->drawColliderOutline();
 	for(BoxCollider* col:instanceColliders) if ((playerPos-col->pos).length() <= (sqrt(2)+7.7)*mapScale) col->drawOutline();
 	// draw ui
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -312,7 +397,8 @@ void Loop(double delta) {
 void onLateDelete() {
 	delete engine;
 	delete tracker;
-	delete playerController;
+	//delete playerController;
+	delete player;
 
 	delete cam;
 	delete uiCam;
@@ -328,8 +414,6 @@ void onLateDelete() {
 	delete lineShader;
 	delete textShader;
 
-	delete flashlightRenderer;
-
 	for(Renderer* ren:sceneRenderers) { delete ren; }
 	for(Renderer* ren:instanceRenderers) { delete ren; }
 	for(SpriteRenderer* ren:instanceStateRenderers) { delete ren; }
@@ -341,7 +425,7 @@ void onLateDelete() {
 	uiRenderers.clear();
 	debugText.clear();
 
-	delete playerCollider;
+	//delete playerCollider;
 	for(BoxCollider* col:instanceColliders) { delete col; }
 	instanceColliders.clear();
 }

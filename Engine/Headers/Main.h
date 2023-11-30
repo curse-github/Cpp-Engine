@@ -26,13 +26,15 @@ Vector2 gridToMinimap(Vector2 grid) {
 }
 
 class FpsTracker;
-class PlayerController;
+//class PlayerController;
+class Player;
 class BoxCollider;
 
 Engine* engine;
 FpsTracker* tracker;
-PlayerController* playerController;
-StencilSimple lightStencil;
+//PlayerController* playerController;
+Player* player;
+//StencilSimple lightStencil;
 
 OrthoCam* cam;
 OrthoCam* uiCam;
@@ -48,9 +50,9 @@ Shader* minimapShader;
 Shader* lineShader;
 Shader* textShader;
 
-SpriteRenderer* playerRenderer;
-SpriteRenderer* flashlightRenderer;
-SpriteRenderer* playerIconRenderer;
+//SpriteRenderer* playerRenderer;
+//SpriteRenderer* flashlightRenderer;
+//SpriteRenderer* playerIconRenderer;
 
 std::vector<Renderer*> sceneRenderers;
 std::vector<SpriteRenderer*> instanceRenderers;
@@ -58,7 +60,7 @@ std::vector<SpriteRenderer*> instanceStateRenderers;
 std::vector<Renderer*> uiRenderers;
 std::vector<TextRenderer*> debugText;
 
-BoxCollider* playerCollider;
+//BoxCollider* playerCollider;
 std::vector<BoxCollider*> instanceColliders;
 class FpsTracker : Object {
 	protected:
@@ -91,6 +93,28 @@ class PlayerController : public Object {
 	void on_loop(double delta) override;
 	void setPos(Vector2 pos);
 	Vector2 getPos();
+};
+class Player : public Object {
+	protected:
+	StencilSimple lightStencil;
+	OrthoCam* sceneCam;
+	SpriteRenderer* playerRenderer;
+	BoxCollider* playerCollider;
+	SpriteRenderer* flashlightRenderer;
+	SpriteRenderer* playerIconRenderer;
+	public:
+	Vector2 position;
+	Player() : Object(), position(Vector2()), lightStencil(StencilSimple()), sceneCam(nullptr), playerRenderer(nullptr), playerCollider(nullptr), flashlightRenderer(nullptr), playerIconRenderer(nullptr) {}
+	Player(Engine* _engine, OrthoCam* _sceneCam, Vector2 _position, Shader* playerShader, Shader* flashlightShader, Shader* iconShader);
+	int inputs[5]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
+	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods) override;
+	void on_loop(double delta) override;
+	void on_delete() override;
+	void resolveCollitions();
+	void flashlightStencilOn();
+	void flashlightStencilOff();
+	void setPos(Vector2 pos);
+	void drawColliderOutline();
 };
 bool ColliderDebug = false;
 struct CollitionData {
