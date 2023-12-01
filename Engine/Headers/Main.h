@@ -55,9 +55,8 @@ Shader* instanceBrokenShader;
 Shader* lineShader;
 Shader* textShader;
 
-std::vector<Renderer*> sceneRenderers;
-std::vector<SpriteRenderer*> instanceRenderers;
-std::vector<SpriteRenderer*> instanceStateRenderers;
+std::vector<Renderer2D*> sceneRenderers;
+std::vector<Renderer2D*> instanceStateRenderers;
 std::vector<Renderer*> uiRenderers;
 std::vector<TextRenderer*> debugText;
 
@@ -90,17 +89,13 @@ struct CollitionData {
 	float dist;
 	CollitionData(Vector2 _normal,float _dist) : normal(_normal), dist(_dist) {}
 };
-class BoxCollider : public Object{
+class BoxCollider : public LineRenderer{
 	public:
-	Vector2 pos;
 	Vector2 size;
 	float boundingRadius;
-	Shader* debugLineShader;
-	LineRenderer* debugRenderer;
-	BoxCollider() : Object(), pos(Vector2(0)), size(Vector2(0)), boundingRadius(0.0f), debugLineShader(nullptr), debugRenderer(nullptr) {}
+	BoxCollider() : LineRenderer(), size(Vector2(0)), boundingRadius(0.0f) {}
 	BoxCollider(Engine* _engine, Vector2 _pos, Vector2 _size, Shader* _debugLineShader);
-	void drawOutline();
-	void on_delete() override;
+	void draw();
 	CollitionData checkCollision(BoxCollider* other);
 };
 
@@ -108,11 +103,11 @@ class Player : public Object {
 	protected:
 	StencilSimple flashlightStencil;
 	OrthoCam* sceneCam;
-	SpriteRenderer* renderer;
 	BoxCollider* collider;
 	SpriteRenderer* flashlightRenderer;
 	SpriteRenderer* iconRenderer;
 	public:
+	SpriteRenderer* renderer;
 	Vector2 position;
 	Player() : Object(), position(Vector2()), flashlightStencil(StencilSimple()), sceneCam(nullptr), renderer(nullptr), collider(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {}
 	Player(Engine* _engine, OrthoCam* _sceneCam, Vector2 _position, Shader* playerShader, Shader* flashlightShader, Shader* iconShader);
@@ -124,7 +119,6 @@ class Player : public Object {
 	void flashlightStencilOn();
 	void flashlightStencilOff();
 	void setPos(Vector2 pos);
-	void drawColliderOutline();
 };
 
 class Enemy : public Object {
@@ -139,7 +133,6 @@ class Enemy : public Object {
 	void on_loop(double delta) override;
 	void resolveCollitions();
 	void setPos(Vector2 pos);
-	void drawColliderOutline();
 };
 
 int main(int argc, char** argv);

@@ -60,34 +60,21 @@ float FpsTracker::getFrameTime() {
 #pragma endregion// FpsTracker
 
 #pragma region BoxCollider
-BoxCollider::BoxCollider(Engine* _engine, Vector2 _pos, Vector2 _size, Shader* _debugLineShader) : Object(_engine), pos(_pos), size(_size), debugLineShader(_debugLineShader) {
-	std::vector<Vector2> positions;
-	positions.push_back(Vector2(-size.x/2, size.y/2));
-	positions.push_back(Vector2(size.x/2, size.y/2));
-	positions.push_back(Vector2(size.x/2, -size.y/2));
-	positions.push_back(Vector2(-size.x/2, -size.y/2));
-	debugRenderer=new LineRenderer(engine, debugLineShader, positions, 2.0f, _pos, true);
-
-	boundingRadius=sqrt(size.x*size.x+size.y*size.y);
-
-	engine->sub_delete(this);
-}
-void BoxCollider::drawOutline() {
-	debugRenderer->position=pos;
-	if(ColliderDebug) debugRenderer->draw();
-}
-void BoxCollider::on_delete() {
-	delete debugRenderer;
+BoxCollider::BoxCollider(Engine* _engine, Vector2 _pos, Vector2 _size, Shader* _debugLineShader) :
+	LineRenderer(_engine, _debugLineShader, { Vector2(-_size.x/2, _size.y/2), Vector2(_size.x/2, _size.y/2), Vector2(_size.x/2, -_size.y/2), Vector2(-_size.x/2, -_size.y/2) }, 2.0f, _pos, true),
+	size(_size), boundingRadius(sqrt(size.x*size.x+size.y*size.y)) {}
+void BoxCollider::draw() {
+	if(ColliderDebug) LineRenderer::draw();
 }
 CollitionData BoxCollider::checkCollision(BoxCollider* other) {
-	if((pos-other->pos).length()-boundingRadius-other->boundingRadius>=0) CollitionData(Vector2(0.0f, 0.0f), 0.0f);
-	if (pos==other->pos) return CollitionData(Vector2(0.0f, 0.0f), 0.0f);
+	if((position-other->position).length()-boundingRadius-other->boundingRadius>=0) CollitionData(Vector2(0.0f, 0.0f), 0.0f);
+	if(position==other->position) return CollitionData(Vector2(0.0f, 0.0f), 0.0f);
 	// collision x-axis?
-	float collisionX1=((pos.x+size.x/2)-(other->pos.x-other->size.x/2));
-	float collisionX2=((other->pos.x+other->size.x/2)-(pos.x-size.x/2));
+	float collisionX1=((position.x+size.x/2)-(other->position.x-other->size.x/2));
+	float collisionX2=((other->position.x+other->size.x/2)-(position.x-size.x/2));
 	// collision y-axis?
-	float collisionY1=((pos.y+size.y/2)-(other->pos.y-other->size.y/2));
-	float collisionY2=((other->pos.y+other->size.y/2)-(pos.y-size.y/2));
+	float collisionY1=((position.y+size.y/2)-(other->position.y-other->size.y/2));
+	float collisionY2=((other->position.y+other->size.y/2)-(position.y-size.y/2));
 	// collision only if on both axes
 	if(collisionX1>0&&collisionX2>0&&collisionY1>0&&collisionY2>0) {
 		if(std::abs(collisionX2-collisionX1)/size.x>std::abs(collisionY2-collisionY1)/size.y) {
@@ -153,17 +140,17 @@ void Player::on_loop(double delta) {
 	sceneCam->use();
 }
 void Player::on_delete() {
-	if (!initialized) return;
+	if(!initialized) return;
 	delete flashlightRenderer;
 }
 void Player::resolveCollitions() {
 	if(engine->ended||!initialized) return;
-	collider->pos=position;
+	collider->position=position;
 	for(unsigned int i=0; i<instanceColliders.size(); i++) {
 		CollitionData collition=instanceColliders[i]->checkCollision(collider);
-		collider->pos+=collition.normal*collition.dist;
+		collider->position+=collition.normal*collition.dist;
 	}
-	position=collider->pos;
+	position=collider->position;
 }
 void Player::flashlightStencilOn() {
 	if(engine->ended||!initialized) return;
@@ -188,10 +175,6 @@ void Player::setPos(Vector2 _position) {
 	sceneCam->update();
 	sceneCam->use();
 }
-void Player::drawColliderOutline() {
-	if(engine->ended||!initialized) return;
-	collider->drawOutline();
-}
 #pragma endregion// Player
 
 #pragma region Enemy
@@ -215,19 +198,19 @@ Enemy::Enemy(Engine* _engine, Vector2 _position, Shader* enemyShader, Shader* ic
 }
 void Enemy::on_loop(double delta) {
 	if(engine->ended||!initialized) return;
-	position+=Vector2(1.0f,0.0f)*((float)delta)*mapScale*(1+spacing);
+	position+=Vector2(1.0f, 0.0f)*((float)delta)*mapScale*(1+spacing);
 	resolveCollitions();
 	renderer->position=position;
 	iconRenderer->position=gridToMinimap(worldToGrid(position));
 }
 void Enemy::resolveCollitions() {
 	if(engine->ended||!initialized) return;
-	collider->pos=position;
+	collider->position=position;
 	for(unsigned int i=0; i<instanceColliders.size(); i++) {
 		CollitionData collition=instanceColliders[i]->checkCollision(collider);
-		collider->pos+=collition.normal*collition.dist;
+		collider->position+=collition.normal*collition.dist;
 	}
-	position=collider->pos;
+	position=collider->position;
 }
 void Enemy::setPos(Vector2 _position) {
 	if(engine->ended||!initialized) return;
@@ -236,16 +219,13 @@ void Enemy::setPos(Vector2 _position) {
 	renderer->position=position;
 	iconRenderer->position=gridToMinimap(worldToGrid(position));
 }
-void Enemy::drawColliderOutline() {
-	if(engine->ended||!initialized) return;
-	collider->drawOutline();
-}
 #pragma endregion// Enemy
 
+Vector2 HD1080P(1920.0, 1080.0);
 Vector2 viewRange(480.0f, 270.0f);
 int main(int argc, char** argv) {
 	// setup engine
-	engine=new Engine(Vector2(1920.0, 1080.0), "Ghost Game", false);
+	engine=new Engine(HD1080P, "Ghost Game", false);
 	if(!engine->initialized||engine->ended) {
 		Log("Engine failed to init.");
 		return 0;
@@ -253,7 +233,7 @@ int main(int argc, char** argv) {
 	// setup fps tracker
 	tracker=new FpsTracker(engine);
 	// setup cameras
-	cam=new OrthoCam(engine, Vector2(0.0f, 0.0f), viewRange);
+	cam=new OrthoCam(engine, Vector2(), viewRange);
 	uiCam=new OrthoCam(engine, Vector2(480.0f, 270.0f), Vector2(960.0f, 540.0f));
 	if(engine->ended||!cam->initialized||!uiCam->initialized) {
 		Log("Cameras failed to init.");
@@ -319,7 +299,7 @@ int main(int argc, char** argv) {
 	cam->use();
 	uiCam->use();
 	// player object
-	enemy=new Enemy(engine, gridToWorld(playerOffset+Vector2(0.0f,2.0f)), enemyShader, enemyIconShader);
+	enemy=new Enemy(engine, gridToWorld(playerOffset+Vector2(0.0f, 2.0f)), enemyShader, enemyIconShader);
 	player=new Player(engine, cam, gridToWorld(playerOffset), playerShader, flashlightShader, playerIconShader);
 	// map and minimap
 	sceneRenderers.push_back(new SpriteRenderer(engine, backgroundShader, fullMapSize/2.0f, fullMapSize));// background
@@ -331,11 +311,12 @@ int main(int argc, char** argv) {
 		engine->Delete();
 		return 0;
 	}
+	//ColliderDebug=true;// make hitboxes visible
 	// create instances
 	for(unsigned int i=0; i<instanceData.size(); i++) {
 		std::vector<int> dat=instanceData[i];
 		Vector2 pos=gridToWorld(Vector2((float)dat[0]+0.5f, (float)dat[1]+0.5f));
-		instanceRenderers.push_back(new SpriteRenderer(engine, instanceUnlitShader, pos, Vector2(mapScale, mapScale), 2.0f));
+		sceneRenderers.push_back(new SpriteRenderer(engine, instanceUnlitShader, pos, Vector2(mapScale, mapScale), 2.0f));
 		bool broken=((float)std::rand())/((float)RAND_MAX)<=(instanceBrokenChance/100.0f);
 		instanceStateRenderers.push_back(new SpriteRenderer(engine, broken ? instanceBrokenShader : instanceWorkingShader, pos, Vector2(mapScale, mapScale), 3.0f));
 		instanceColliders.push_back(new BoxCollider(engine, pos, Vector2(mapScale, mapScale), lineShader));
@@ -343,14 +324,13 @@ int main(int argc, char** argv) {
 	// create horizontal wall colliders
 	for(unsigned int i=0; i<horizontalWallData.size(); i++) {
 		Vector3 line=horizontalWallData[i];
-		instanceColliders.push_back(new BoxCollider(engine, gridToWorld(Vector2((line.z+line.y)/2, line.x)), Vector2((line.z-line.y)*(1.0f+spacing)*mapScale, spacing*4*mapScale), lineShader));
+		instanceColliders.push_back(new BoxCollider(engine, gridToWorld(Vector2((line.z+line.y)/2, line.x)), Vector2(((line.z-line.y)*(1.0f+spacing)+spacing*4)*mapScale, spacing*4*mapScale), lineShader));
 	}
 	// create vertical wall colliders
 	for(unsigned int i=0; i<verticalWallData.size(); i++) {
 		Vector3 line=verticalWallData[i];
-		instanceColliders.push_back(new BoxCollider(engine, gridToWorld(Vector2(line.x, (line.z+line.y)/2)), Vector2(spacing*4*mapScale, (line.z-line.y)*(1.0f+spacing)*mapScale), lineShader));
+		instanceColliders.push_back(new BoxCollider(engine, gridToWorld(Vector2(line.x, (line.z+line.y)/2)), Vector2(spacing*4*mapScale, ((line.z-line.y)*(1.0f+spacing)+spacing*4)*mapScale), lineShader));
 	}
-	//ColliderDebug=true;// make hitboxes visible
 	// run main loop
 	engine->onLoop.push_back(Loop);
 	engine->onDelete.push_back(onLateDelete);
@@ -365,24 +345,12 @@ void Loop(double delta) {
 	debugText[0]->text+="Fps Avg: "+std::to_string(tracker->getAvgFps())+", high: "+std::to_string(tracker->getHighFps())+", low: "+std::to_string(tracker->getLowFps())+"\n";
 	debugText[0]->text+="Time: "+std::to_string(glfwGetTime());
 	// draw scene
-	for(Renderer* ren:sceneRenderers) ren->draw();
-	for(SpriteRenderer* ren:instanceRenderers) {
-		if((std::abs(playerPos.x-ren->position.x)<=mapScale/2.0f+viewRange.x/2.0f)&&
-			(std::abs(playerPos.y-ren->position.y)<=mapScale/2.0f+viewRange.y/2.0f)) {
-			ren->draw();
-		}
-	}
+	for(Renderer2D* ren:sceneRenderers) if(ren->shouldDraw(playerPos, viewRange)) ren->draw();
 	player->flashlightStencilOn();
-	for(SpriteRenderer* ren:instanceStateRenderers) if((playerPos-ren->position).length()<=(sqrt(2)+flashlightRange)/2.0f*mapScale) ren->draw();
+	for(Renderer2D* ren:instanceStateRenderers) if(ren->shouldDraw(playerPos, flashlightRange*mapScale)) ren->draw();
 	player->flashlightStencilOff();
 
-	player->drawColliderOutline();
-	for(BoxCollider* col:instanceColliders) {
-		if((std::abs(playerPos.x-col->pos.x)<=mapScale/2.0f+viewRange.x/2.0f)&&
-			(std::abs(playerPos.y-col->pos.y)<=mapScale/2.0f+viewRange.y/2.0f)) {
-			col->drawOutline();
-		}
-	}
+	for(BoxCollider* col:instanceColliders) if(col->shouldDraw(playerPos, viewRange)) col->draw();
 	// draw ui
 	glClear(GL_DEPTH_BUFFER_BIT);
 	for(Renderer* ren:uiRenderers) ren->draw();
@@ -396,7 +364,7 @@ void onLateDelete() {
 	//cams
 	delete cam;
 	delete uiCam;
-	//sahders
+	//shaders
 	delete playerShader;
 	delete flashlightShader;
 	delete playerIconShader;
@@ -414,13 +382,11 @@ void onLateDelete() {
 	delete lineShader;
 	delete textShader;
 	//renderers
-	for(Renderer* ren:sceneRenderers) { delete ren; }
-	for(Renderer* ren:instanceRenderers) { delete ren; }
-	for(SpriteRenderer* ren:instanceStateRenderers) { delete ren; }
+	for(Renderer2D* ren:sceneRenderers) { delete ren; }
+	for(Renderer2D* ren:instanceStateRenderers) { delete ren; }
 	for(Renderer* ren:uiRenderers) { delete ren; }
 	for(TextRenderer* ren:debugText) { delete ren; }
 	sceneRenderers.clear();
-	instanceRenderers.clear();
 	instanceStateRenderers.clear();
 	uiRenderers.clear();
 	debugText.clear();

@@ -187,42 +187,55 @@ public:
 	CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _rotAxis, float _rotAngle);
 	void draw() override;
 };
-class SpriteRenderer : public Renderer {
+class Renderer2D : public Renderer {
+	public:
+	bool hasBoundingBox;
+	Renderer2D() : Renderer(), hasBoundingBox(false) {}
+	Renderer2D(Engine* _engine, Shader* _shader) : Renderer(_engine,_shader), hasBoundingBox(false) {}
+	Renderer2D(Engine* _engine, Shader* _shader, Vector2 _boundingBoxPos, Vector2 _boundingBoxSize) : Renderer(_engine,_shader), hasBoundingBox(true) {}
+	virtual bool shouldDraw(Vector2 viewer, Vector2 viewRange);
+	bool shouldDraw(Vector2 viewer, float viewRange);
+};
+class SpriteRenderer : public Renderer2D {
 public:
 	Vector2 position;
 	Vector2 scale;
 	Vector3 rotAxis=Vector3(0.0f, 0.0f, 1.0f);
 	float zIndex=0;
 	float rotAngle;
-	SpriteRenderer() : Renderer(), position(Vector2()), scale(Vector2()), rotAngle(0.0f) {}
+	SpriteRenderer() : Renderer2D(), position(Vector2()), scale(Vector2()), rotAngle(0.0f) {}
 	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale);
 	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _zIndex);
 	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _zIndex, float _rotAngle);
 	void draw() override;
+	bool shouldDraw(Vector2 viewer, Vector2 viewRange) override;
 };
 extern bool characterMapInitialized;
-class TextRenderer : public Renderer {
+class TextRenderer : public Renderer2D {
 public:
 	std::string text;
 	Vector2 position;
 	float scale;
 	Vector3 color;
-	TextRenderer() : Renderer(), text(""), position(Vector2()), scale(0), color(Vector3()) {}
+	TextRenderer() : Renderer2D(), text(""), position(Vector2()), scale(0), color(Vector3()) {}
 	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector2 _position, float _scale, Vector3 _color);
 	void draw() override;
 };
-class LineRenderer : public Renderer {
+class LineRenderer : public Renderer2D {
 	public:
 	std::vector<Vector2> positions;
 	float width;
 	Vector2 position;
+	Vector2 boundingBoxPos = Vector2(0.0f,0.0f);
+	Vector2 boundingBoxSize = Vector2(0.0f,0.0f);
 	bool loop;
-	LineRenderer() : Renderer(), positions{}, width(1.0f), position(Vector2()), loop(false) {}
+	LineRenderer() : Renderer2D(), positions{}, width(1.0f), position(Vector2()), loop(false) {}
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position, bool _loop);
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width);
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop);
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position);
 	void draw() override;
+	bool shouldDraw(Vector2 viewer, Vector2 viewRange) override;
 };
 class StencilSimple {
 	public:
