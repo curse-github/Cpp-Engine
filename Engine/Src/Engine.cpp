@@ -51,7 +51,7 @@ Engine::Engine(Vector2 size, const char* title, bool vsync) : window(nullptr), s
 }
 void Engine::Loop() {
 	if(ended||!initialized) return;
-	double lastFrameTime=0.0f;
+	double lastFrameTime=glfwGetTime();
 	while(!glfwWindowShouldClose(window)) {
 		double delta=glfwGetTime()-lastFrameTime;
 		lastFrameTime=glfwGetTime();
@@ -726,11 +726,13 @@ void TextRenderer::draw() {
 
 	// iterate through all characters
 	float x=position.x;
+	float y=position.y;
 	std::string::const_iterator c;
 	for(c=text.begin(); c!=text.end(); c++) {
+		if (*c=='\n'){ x=position.x;y-=(8*scale+1); continue;}
 		Character ch=Characters[*c];
 		float xpos=x+ch.Bearing.x*scale;
-		float ypos=position.y-(ch.Size.y-ch.Bearing.y)*scale;
+		float ypos=y-(ch.Size.y-ch.Bearing.y)*scale;
 		float w=ch.Size.x*scale;
 		float h=ch.Size.y*scale;
 		// update VBO for each character

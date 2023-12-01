@@ -21,6 +21,9 @@ extern std::string flashlightTexPath;
 extern Vector3 flashlightColor;
 extern float flashlightRange;
 
+extern std::string enemyTexPath;
+extern Vector3 enemyModulate;
+
 extern std::string instanceUnlitTexPath;
 extern std::string instanceWorkingTexPath;
 extern std::string instanceBrokenTexPath;

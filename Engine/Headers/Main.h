@@ -26,12 +26,14 @@ Vector2 gridToMinimap(Vector2 grid) {
 }
 
 class FpsTracker;
-class Player;
 class BoxCollider;
+class Player;
+class Enemy;
 
 Engine* engine;
 FpsTracker* tracker;
 Player* player;
+Enemy* enemy;
 
 OrthoCam* cam;
 OrthoCam* uiCam;
@@ -39,11 +41,17 @@ OrthoCam* uiCam;
 Shader* playerShader;
 Shader* flashlightShader;
 Shader* playerIconShader;
+
+Shader* enemyShader;
+Shader* enemyIconShader;
+
 Shader* backgroundShader;
+Shader* minimapShader;
+
 Shader* instanceUnlitShader;
 Shader* instanceWorkingShader;
 Shader* instanceBrokenShader;
-Shader* minimapShader;
+
 Shader* lineShader;
 Shader* textShader;
 
@@ -54,6 +62,11 @@ std::vector<Renderer*> uiRenderers;
 std::vector<TextRenderer*> debugText;
 
 std::vector<BoxCollider*> instanceColliders;
+
+Shader* createTexShader(Texture* tex, Vector4 modulate);
+Shader* createColorShader(Vector4 color);
+Shader* createTextShader();
+
 class FpsTracker : Object {
 	protected:
 	double lastFrames[60]={};
@@ -69,6 +82,26 @@ class FpsTracker : Object {
 	int getHighFps();
 	int getLowFps();
 	float getFrameTime();
+};
+
+bool ColliderDebug = false;
+struct CollitionData {
+	Vector2 normal;
+	float dist;
+	CollitionData(Vector2 _normal,float _dist) : normal(_normal), dist(_dist) {}
+};
+class BoxCollider : public Object{
+	public:
+	Vector2 pos;
+	Vector2 size;
+	float boundingRadius;
+	Shader* debugLineShader;
+	LineRenderer* debugRenderer;
+	BoxCollider() : Object(), pos(Vector2(0)), size(Vector2(0)), boundingRadius(0.0f), debugLineShader(nullptr), debugRenderer(nullptr) {}
+	BoxCollider(Engine* _engine, Vector2 _pos, Vector2 _size, Shader* _debugLineShader);
+	void drawOutline();
+	void on_delete() override;
+	CollitionData checkCollision(BoxCollider* other);
 };
 
 class Player : public Object {
@@ -93,25 +126,20 @@ class Player : public Object {
 	void setPos(Vector2 pos);
 	void drawColliderOutline();
 };
-bool ColliderDebug = false;
 
-struct CollitionData {
-	Vector2 normal;
-	float dist;
-	CollitionData(Vector2 _normal,float _dist) : normal(_normal), dist(_dist) {}
-};
-class BoxCollider : public Object{
+class Enemy : public Object {
+	protected:
+	SpriteRenderer* renderer;
+	BoxCollider* collider;
+	SpriteRenderer* iconRenderer;
 	public:
-	Vector2 pos;
-	Vector2 size;
-	float boundingRadius;
-	Shader* debugLineShader;
-	LineRenderer* debugRenderer;
-	BoxCollider() : Object(), pos(Vector2(0)), size(Vector2(0)), boundingRadius(0.0f), debugLineShader(nullptr), debugRenderer(nullptr) {}
-	BoxCollider(Engine* _engine, Vector2 _pos, Vector2 _size, Shader* _debugLineShader);
-	void drawOutline();
-	void on_delete() override;
-	CollitionData checkCollision(BoxCollider* other);
+	Vector2 position;
+	Enemy() : Object(), position(Vector2()), renderer(nullptr), collider(nullptr), iconRenderer(nullptr) {}
+	Enemy(Engine* _engine, Vector2 _position, Shader* enemyShader, Shader* iconShader);
+	void on_loop(double delta) override;
+	void resolveCollitions();
+	void setPos(Vector2 pos);
+	void drawColliderOutline();
 };
 
 int main(int argc, char** argv);

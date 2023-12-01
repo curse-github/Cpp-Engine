@@ -30,6 +30,9 @@ std::string flashlightTexPath;
 Vector3 flashlightColor;
 float flashlightRange;
 
+std::string enemyTexPath;
+Vector3 enemyModulate;
+
 std::string instanceUnlitTexPath;
 std::string instanceWorkingTexPath;
 std::string instanceBrokenTexPath;
@@ -58,7 +61,12 @@ void loadMapData(const std::string& mapName) {
 			mapScale=parseFloat(&data);
 		} else if(key=="spacing") {
 			spacing=parseFloat(&data);
-		} else if(key=="playerOffset") {
+		} else if(key=="mapTex") {
+			mapTexPath=parseString(&data);
+		} else if(key=="minimapTex") {
+			minimapTexPath=parseString(&data);
+		}
+		else if(key=="playerOffset") {
 			playerOffset=parseVector2(&data);
 		} else if(key=="playerSize") {
 			playerSize=parseFloat(&data);
@@ -78,11 +86,13 @@ void loadMapData(const std::string& mapName) {
 			flashlightColor=parseVector3(&data);
 		} else if(key=="flashlightRange") {
 			flashlightRange=parseFloat(&data);
-		} else if(key=="mapTex") {
-			mapTexPath=parseString(&data);
-		} else if(key=="minimapTex") {
-			minimapTexPath=parseString(&data);
-		} else if(key=="instanceUnlitTex") {
+		}
+		else if(key=="enemyTexPath") {
+			enemyTexPath=parseString(&data);
+		} else if(key=="enemyModulate") {
+			enemyModulate=parseVector3(&data);
+		}
+		else if(key=="instanceUnlitTex") {
 			instanceUnlitTexPath=parseString(&data);
 		} else if(key=="instanceWorkingTex") {
 			instanceWorkingTexPath=parseString(&data);
@@ -90,7 +100,8 @@ void loadMapData(const std::string& mapName) {
 			instanceBrokenTexPath=parseString(&data);
 		} else if(key=="instanceBrokenChance") {
 			instanceBrokenChance=parseFloat(&data);
-		} else if(key=="horizontalWallData") {
+		}
+		else if(key=="horizontalWallData") {
 			cutEmptySpace(&data);
 			if(!startsWith(data, "[")) return;
 			stringCut(&data, 1);

@@ -38,9 +38,12 @@ public:
 	Vector2 operator-(Vector2 b);
 	Vector2 operator-();
 	Vector2 operator*(float b);
+	Vector2 operator*(double b);
 	Vector2 operator*(int b);
 	Vector2 operator/(float b);
+	Vector2 operator/(double b);
 	Vector2 operator/(int b);
+	bool operator==(Vector2 b);
 	std::string to_string();
 };
 
@@ -66,6 +69,7 @@ public:
 	Vector3 operator*(int b);
 	Vector3 operator/(float b);
 	Vector3 operator/(int b);
+	bool operator==(Vector3 b);
 	std::string to_string();
 };
 class Vector4 {
@@ -91,6 +95,7 @@ public:
 	Vector4 operator*(int b);
 	Vector4 operator/(float b);
 	Vector4 operator/(int b);
+	bool operator==(Vector4 b);
 	std::string to_string();
 };
 class Mat4x4 {

@@ -40,9 +40,12 @@ Vector2 Vector2::operator+(Vector2 b) { return Vector2(x + b.x, y + b.y); }
 Vector2 Vector2::operator-(Vector2 b) { return Vector2(x - b.x, y - b.y); }
 Vector2 Vector2::operator-() { return Vector2(-x, -y); }
 Vector2 Vector2::operator*(float b) { return Vector2(x * b, y * b); }
-Vector2 Vector2::operator*(int b) { return Vector2(x * b, y * b); }
+Vector2 Vector2::operator*(double b) { return Vector2(x * ((float)b), y * ((float)b)); }
+Vector2 Vector2::operator*(int b) { return Vector2(x * ((float)b), y * ((float)b)); }
 Vector2 Vector2::operator/(float b) { return Vector2(x / b, y / b); }
-Vector2 Vector2::operator/(int b) { return Vector2(x / b, y / b); }
+Vector2 Vector2::operator/(double b) { return Vector2(x / ((float)b), y / ((float)b)); }
+Vector2 Vector2::operator/(int b) { return Vector2(x / ((float)b), y / ((float)b)); }
+bool Vector2::operator==(Vector2 b) { return (x==b.x)&&(y==b.y); }
 std::string Vector2::to_string() {
 	return "(" + std::to_string(x) + ", " + std::to_string(y) + ")";
 }
@@ -73,6 +76,7 @@ Vector3 Vector3::operator*(float b) { return Vector3(x * b, y * b, z * b); }
 Vector3 Vector3::operator*(int b) { return Vector3(x * b, y * b, z * b); }
 Vector3 Vector3::operator/(float b) { return Vector3(x / b, y / b, z / b); }
 Vector3 Vector3::operator/(int b) { return Vector3(x / b, y / b, z / b); }
+bool Vector3::operator==(Vector3 b) { return (x==b.x)&&(y==b.y)&&(z==b.z); }
 std::string Vector3::to_string() {
 	return "(" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + ")";
 }
@@ -97,6 +101,7 @@ Vector4 Vector4::operator*(float b) { return Vector4(x * b, y * b, z * b, w * b)
 Vector4 Vector4::operator*(int b) { return Vector4(x * b, y * b, z * b, w * b); }
 Vector4 Vector4::operator/(float b) { return Vector4(x / b, y / b, z / b, w / b); }
 Vector4 Vector4::operator/(int b) { return Vector4(x / b, y / b, z / b, w / b); }
+bool Vector4::operator==(Vector4 b) { return (x==b.x)&&(y==b.y)&&(z==b.z)&&(w==b.w); }
 std::string Vector4::to_string() {
 	return "(" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + ", " + std::to_string(w) + ")";
 }
