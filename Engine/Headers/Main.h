@@ -1,10 +1,6 @@
 #pragma once
 #ifndef _MAINH
 #define _MAINH
-#include <glad/glad.h>// must be included first
-#include <GLFW/glfw3.h>// https://www.glfw.org/docs/3.3/
-#define STB_IMAGE_IMPLEMENTATION// not sure what this is for
-#include <stb_image.h>
 #include "Lib.h"
 #include "Engine.h"
 #include "Json.h"
@@ -83,13 +79,13 @@ class FpsTracker : Object {
 	float getFrameTime();
 };
 
-bool ColliderDebug = false;
+bool ColliderDebug=false;
 struct CollitionData {
 	Vector2 normal;
 	float dist;
-	CollitionData(Vector2 _normal,float _dist) : normal(_normal), dist(_dist) {}
+	CollitionData(Vector2 _normal, float _dist) : normal(_normal), dist(_dist) {}
 };
-class BoxCollider : public LineRenderer{
+class BoxCollider : public LineRenderer {
 	public:
 	Vector2 size;
 	float boundingRadius;

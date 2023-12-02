@@ -62,7 +62,7 @@ float FpsTracker::getFrameTime() {
 #pragma region BoxCollider
 BoxCollider::BoxCollider(Engine* _engine, Vector2 _pos, Vector2 _size, Shader* _debugLineShader) :
 	LineRenderer(_engine, _debugLineShader, { Vector2(-_size.x/2, _size.y/2), Vector2(_size.x/2, _size.y/2), Vector2(_size.x/2, -_size.y/2), Vector2(-_size.x/2, -_size.y/2) }, 2.0f, _pos, true),
-	size(_size), boundingRadius(sqrt(size.x*size.x+size.y*size.y)) {}
+	size(_size), boundingRadius(sqrt(size.x* size.x+size.y*size.y)) {}
 void BoxCollider::draw() {
 	if(ColliderDebug) LineRenderer::draw();
 }
@@ -145,6 +145,7 @@ void Player::on_delete() {
 }
 void Player::resolveCollitions() {
 	if(engine->ended||!initialized) return;
+	//if (inputs[4]) return;// noclip when left shift
 	collider->position=position;
 	for(unsigned int i=0; i<instanceColliders.size(); i++) {
 		CollitionData collition=instanceColliders[i]->checkCollision(collider);
@@ -315,7 +316,7 @@ int main(int argc, char** argv) {
 	// create instances
 	for(unsigned int i=0; i<instanceData.size(); i++) {
 		std::vector<int> dat=instanceData[i];
-		Vector2 pos=gridToWorld(Vector2((float)dat[0]+0.5f, (float)dat[1]+0.5f));
+		Vector2 pos=gridToWorld(Vector2(((float)dat[0]+0.5f), ((float)dat[1]+0.5f)));
 		sceneRenderers.push_back(new SpriteRenderer(engine, instanceUnlitShader, pos, Vector2(mapScale, mapScale), 2.0f));
 		bool broken=((float)std::rand())/((float)RAND_MAX)<=(instanceBrokenChance/100.0f);
 		instanceStateRenderers.push_back(new SpriteRenderer(engine, broken ? instanceBrokenShader : instanceWorkingShader, pos, Vector2(mapScale, mapScale), 3.0f));
@@ -324,12 +325,12 @@ int main(int argc, char** argv) {
 	// create horizontal wall colliders
 	for(unsigned int i=0; i<horizontalWallData.size(); i++) {
 		Vector3 line=horizontalWallData[i];
-		instanceColliders.push_back(new BoxCollider(engine, gridToWorld(Vector2((line.z+line.y)/2, line.x)), Vector2(((line.z-line.y)*(1.0f+spacing)+spacing*4)*mapScale, spacing*4*mapScale), lineShader));
+		instanceColliders.push_back(new BoxCollider(engine, gridToWorld(Vector2((line.z+line.y)/2, line.x)), Vector2(((line.z-line.y)*(1.0f+spacing)+spacing*3)*mapScale, spacing*3*mapScale), lineShader));
 	}
 	// create vertical wall colliders
 	for(unsigned int i=0; i<verticalWallData.size(); i++) {
 		Vector3 line=verticalWallData[i];
-		instanceColliders.push_back(new BoxCollider(engine, gridToWorld(Vector2(line.x, (line.z+line.y)/2)), Vector2(spacing*4*mapScale, ((line.z-line.y)*(1.0f+spacing)+spacing*4)*mapScale), lineShader));
+		instanceColliders.push_back(new BoxCollider(engine, gridToWorld(Vector2(line.x, (line.z+line.y)/2)), Vector2(spacing*3*mapScale, ((line.z-line.y)*(1.0f+spacing)+spacing*3)*mapScale), lineShader));
 	}
 	// run main loop
 	engine->onLoop.push_back(Loop);

@@ -23,7 +23,7 @@ void Log(Mat4x4 out);
 void FsReadDiskFile(std::string* content, const std::string& filePath);
 
 class Vector2 {
-public:
+	public:
 	float x;
 	float y;
 	Vector2();
@@ -43,12 +43,13 @@ public:
 	Vector2 operator/(float b);
 	Vector2 operator/(double b);
 	Vector2 operator/(int b);
+	float operator[](int i);
 	bool operator==(Vector2 b);
 	std::string to_string();
 };
 
 class Vector3 {
-public:
+	public:
 	float x;
 	float y;
 	float z;
@@ -66,14 +67,17 @@ public:
 	Vector3 operator-(Vector3 b);
 	Vector3 operator-();
 	Vector3 operator*(float b);
+	Vector3 operator*(double b);
 	Vector3 operator*(int b);
 	Vector3 operator/(float b);
+	Vector3 operator/(double b);
 	Vector3 operator/(int b);
+	float operator[](int i);
 	bool operator==(Vector3 b);
 	std::string to_string();
 };
 class Vector4 {
-public:
+	public:
 	float x;
 	float y;
 	float z;
@@ -92,14 +96,17 @@ public:
 	Vector4 operator-(Vector4 b);
 	Vector4 operator-();
 	Vector4 operator*(float b);
+	Vector4 operator*(double b);
 	Vector4 operator*(int b);
 	Vector4 operator/(float b);
+	Vector4 operator/(double b);
 	Vector4 operator/(int b);
+	float operator[](int i);
 	bool operator==(Vector4 b);
 	std::string to_string();
 };
 class Mat4x4 {
-public:
+	public:
 	float values[16];
 	Mat4x4(float _values[16]);
 	Mat4x4();

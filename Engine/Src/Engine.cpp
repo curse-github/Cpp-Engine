@@ -1,5 +1,6 @@
 #include "Engine.h"
 #include <algorithm>
+#define STB_IMAGE_IMPLEMENTATION// not sure what this is for
 #include <stb_image.h>
 #include <freetype/freetype.h>
 #include <map>
@@ -611,7 +612,7 @@ bool Renderer2D::shouldDraw(Vector2 viewer, Vector2 viewRange) {
 	return true;
 }
 bool Renderer2D::shouldDraw(Vector2 viewer, float viewRange) {
-	return shouldDraw(viewer,Vector2(viewRange,viewRange));
+	return shouldDraw(viewer, Vector2(viewRange, viewRange));
 }
 
 float quadvertices[]={
@@ -625,7 +626,7 @@ int quadindices[]={
 	1, 2, 3
 };
 SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _zIndex, float _rotAngle) :
-	Renderer2D(_engine, _shader,_position,_scale), position(_position), scale(_scale), zIndex(_zIndex), rotAngle(_rotAngle) {
+	Renderer2D(_engine, _shader, _position, _scale), position(_position), scale(_scale), zIndex(_zIndex), rotAngle(_rotAngle) {
 	if(!initialized) return;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -655,7 +656,7 @@ void SpriteRenderer::draw() {
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 bool SpriteRenderer::shouldDraw(Vector2 viewer, Vector2 viewRange) {
-	return AABBOverlap(position,scale,viewer,viewRange);
+	return AABBOverlap(position, scale, viewer, viewRange);
 }
 
 struct Character {
@@ -751,7 +752,7 @@ void TextRenderer::draw() {
 	float y=position.y;
 	std::string::const_iterator c;
 	for(c=text.begin(); c!=text.end(); c++) {
-		if (*c=='\n'){ x=position.x;y-=(8*scale+1); continue;}
+		if(*c=='\n') { x=position.x;y-=(8*scale+1); continue; }
 		Character ch=Characters[*c];
 		float xpos=x+ch.Bearing.x*scale;
 		float ypos=y-(ch.Size.y-ch.Bearing.y)*scale;
@@ -788,16 +789,16 @@ LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);// bind buffer so that following code will assign the VBO buffer
-	float leftMostX = std::numeric_limits<float>::max();
-	float rightMostX = std::numeric_limits<float>::lowest();
-	float bottomMostY = std::numeric_limits<float>::max();
-	float topMostY = std::numeric_limits<float>::lowest();
+	float leftMostX=std::numeric_limits<float>::max();
+	float rightMostX=std::numeric_limits<float>::lowest();
+	float bottomMostY=std::numeric_limits<float>::max();
+	float topMostY=std::numeric_limits<float>::lowest();
 	std::vector<float> verts;
 	for(Vector2 pos : positions) {
-		if (pos.x < leftMostX) leftMostX=pos.x;
-		else if (pos.x > rightMostX) rightMostX=pos.x;
-		if (pos.y < bottomMostY) bottomMostY=pos.y;
-		else if (pos.y > topMostY) topMostY=pos.y;
+		if(pos.x<leftMostX) leftMostX=pos.x;
+		else if(pos.x>rightMostX) rightMostX=pos.x;
+		if(pos.y<bottomMostY) bottomMostY=pos.y;
+		else if(pos.y>topMostY) topMostY=pos.y;
 		verts.push_back(pos.x);
 		verts.push_back(pos.y);
 		verts.push_back(0.0f);
@@ -812,23 +813,23 @@ LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	if(positions.size()>0) {
-		boundingBoxPos=Vector2(rightMostX+leftMostX,topMostY+bottomMostY)/2.0f;
-		boundingBoxSize=Vector2(rightMostX-leftMostX,topMostY-bottomMostY);
+		boundingBoxPos=Vector2(rightMostX+leftMostX, topMostY+bottomMostY)/2.0f;
+		boundingBoxSize=Vector2(rightMostX-leftMostX, topMostY-bottomMostY);
 	}
 }
-LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width) : LineRenderer(_engine, _shader, _positions, _width, Vector2(0.0f,0.0f), false) {}
-LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop) : LineRenderer(_engine, _shader, _positions, _width, Vector2(0.0f,0.0f), _loop) {}
+LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width) : LineRenderer(_engine, _shader, _positions, _width, Vector2(0.0f, 0.0f), false) {}
+LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop) : LineRenderer(_engine, _shader, _positions, _width, Vector2(0.0f, 0.0f), _loop) {}
 LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position) : LineRenderer(_engine, _shader, _positions, _width, _position, false) {}
 void LineRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	shader->bindTextures();
-	shader->setMat4x4("model", translate(Vector3(position,0.0f)));
+	shader->setMat4x4("model", translate(Vector3(position, 0.0f)));
 	glBindVertexArray(VAO);
 	glLineWidth(width);
-	glDrawArrays(loop?GL_LINE_LOOP:GL_LINE_STRIP, 0, positions.size());
+	glDrawArrays(loop ? GL_LINE_LOOP : GL_LINE_STRIP, 0, positions.size());
 }
 bool LineRenderer::shouldDraw(Vector2 viewer, Vector2 viewRange) {
-	return AABBOverlap(position+boundingBoxPos,boundingBoxSize,viewer,viewRange);
+	return AABBOverlap(position+boundingBoxPos, boundingBoxSize, viewer, viewRange);
 }
 #pragma endregion// Renderers
 

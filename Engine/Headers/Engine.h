@@ -20,7 +20,7 @@ typedef std::function<void(double)>                          onloopfun;
 void engine_on_error(int error, const char* description);
 class Object;
 class Engine {
-public:
+	public:
 	GLFWwindow* window=nullptr;
 	Vector2 screenSize;
 	bool initialized=false;
@@ -51,7 +51,7 @@ public:
 	void sub_mouse_enter(Object* obj);
 	void sub_delete(Object* obj);
 	void sub_loop(Object* obj);
-protected:
+	protected:
 	void on_resize(GLFWwindow* window, int width, int height);
 	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods);
 	void on_scroll(GLFWwindow* window, double xoffset, double yoffset);
@@ -62,10 +62,10 @@ protected:
 	void on_mouse_enter(GLFWwindow* window, int entered);
 };
 class Object {
-public:
+	public:
 	bool initialized=false;
-protected:
-public:
+	protected:
+	public:
 	Engine* engine;
 	Object() : engine(nullptr) {}
 	Object(Engine* _engine);
@@ -83,12 +83,12 @@ public:
 };
 class Texture;
 class Shader : public Object {
-protected:
+	protected:
 	unsigned int program=0;
 	void on_delete() override;
 	std::vector<Texture*> textures;
 	std::vector<int> textureIndexes;
-public:
+	public:
 	Shader() : Object() {}
 	Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath);
 	void use();
@@ -103,9 +103,9 @@ public:
 	void bindTextures();
 };
 class Camera : public Object {
-protected:
+	protected:
 	std::vector<Shader*> shaders;
-public:
+	public:
 	Mat4x4 projection;
 	Mat4x4 view;
 	Camera() : Object(), projection(Mat4x4()), view(Mat4x4()) {}
@@ -116,7 +116,7 @@ public:
 	void use();
 };
 class LookAtCam : public Camera {
-public:
+	public:
 	float fov=45;
 	float aspect;
 	Vector3 position;
@@ -126,7 +126,7 @@ public:
 	void update();
 };
 class FreeCam : public Camera {
-protected:
+	protected:
 	float aspect;
 	Vector3 position;
 	Vector3 forward;
@@ -134,7 +134,7 @@ protected:
 	float SPEED=2.5f;
 	float pitch=0.0f;
 	float yaw=-90.0f;
-public:
+	public:
 	float fov=45;
 	float SENSITIVITY=0.1f;
 	bool paused=false;
@@ -148,7 +148,7 @@ public:
 	void on_scroll(GLFWwindow* window, double xoffset, double yoffset) override;
 };
 class OrthoCam : public Camera {
-public:
+	public:
 	Vector2 position;
 	Vector2 size;
 	OrthoCam() : Camera(), position(Vector2()), size(Vector2()) {}
@@ -156,9 +156,9 @@ public:
 	void update();
 };
 class Texture : public Object {
-public:
+	public:
 	unsigned int ID;
-public:
+	public:
 	std::string path;
 	int width;
 	int height;
@@ -167,19 +167,19 @@ public:
 	void Bind(Shader* shader, unsigned int location);
 };
 class Renderer : public Object {
-protected:
+	protected:
 	Shader* shader;
 	unsigned int VAO;
 	unsigned int VBO;
 	unsigned int EBO;
 	void on_delete() override;
-public:
+	public:
 	Renderer() : Object(), shader(nullptr), VAO(0), VBO(0), EBO(0) {}
 	Renderer(Engine* _engine, Shader* _shader);
 	virtual void draw();
 };
 class CubeRenderer : public Renderer {
-public:
+	public:
 	Vector3 position;
 	Vector3 rotAxis;
 	float rotAngle;
@@ -191,13 +191,13 @@ class Renderer2D : public Renderer {
 	public:
 	bool hasBoundingBox;
 	Renderer2D() : Renderer(), hasBoundingBox(false) {}
-	Renderer2D(Engine* _engine, Shader* _shader) : Renderer(_engine,_shader), hasBoundingBox(false) {}
-	Renderer2D(Engine* _engine, Shader* _shader, Vector2 _boundingBoxPos, Vector2 _boundingBoxSize) : Renderer(_engine,_shader), hasBoundingBox(true) {}
+	Renderer2D(Engine* _engine, Shader* _shader) : Renderer(_engine, _shader), hasBoundingBox(false) {}
+	Renderer2D(Engine* _engine, Shader* _shader, Vector2 _boundingBoxPos, Vector2 _boundingBoxSize) : Renderer(_engine, _shader), hasBoundingBox(true) {}
 	virtual bool shouldDraw(Vector2 viewer, Vector2 viewRange);
 	bool shouldDraw(Vector2 viewer, float viewRange);
 };
 class SpriteRenderer : public Renderer2D {
-public:
+	public:
 	Vector2 position;
 	Vector2 scale;
 	Vector3 rotAxis=Vector3(0.0f, 0.0f, 1.0f);
@@ -212,7 +212,7 @@ public:
 };
 extern bool characterMapInitialized;
 class TextRenderer : public Renderer2D {
-public:
+	public:
 	std::string text;
 	Vector2 position;
 	float scale;
@@ -226,10 +226,10 @@ class LineRenderer : public Renderer2D {
 	std::vector<Vector2> positions;
 	float width;
 	Vector2 position;
-	Vector2 boundingBoxPos = Vector2(0.0f,0.0f);
-	Vector2 boundingBoxSize = Vector2(0.0f,0.0f);
+	Vector2 boundingBoxPos=Vector2(0.0f, 0.0f);
+	Vector2 boundingBoxSize=Vector2(0.0f, 0.0f);
 	bool loop;
-	LineRenderer() : Renderer2D(), positions{}, width(1.0f), position(Vector2()), loop(false) {}
+	LineRenderer() : Renderer2D(), positions {}, width(1.0f), position(Vector2()), loop(false) {}
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position, bool _loop);
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width);
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop);
