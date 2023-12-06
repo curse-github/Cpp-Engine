@@ -60,12 +60,10 @@ Engine::Engine(Vector2 size, const char* title, bool vsync) : window(nullptr), s
 }
 Engine::~Engine() {
 	if (!initialized) return;
+	//Todo: upper bound?
 	while(objects.size()>0) {
 		Object* ptr = objects[0];
-		if(ptr) {
-			// possible remove from callbacks
-			delete ptr;
-		}
+		if(ptr) delete ptr;
 	}
 }
 void Engine::Loop() {
@@ -77,8 +75,9 @@ void Engine::Loop() {
 		glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 		for(unsigned int i=0; i<onLoop.size(); i++) {
-			onLoop[i](delta);
+			onLoop[i]->on_loop(delta);
 		}
+		renderLoop(delta);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
@@ -105,20 +104,20 @@ void Engine::SetCursorMode(int mode) {
 void Engine::on_resize(GLFWwindow* window, int width, int height) {
 	if(ended||!initialized) return;
 	glViewport(0, 0, width, height); screenSize=Vector2((float)width, (float)height);
-	for_each(onResize.begin(), onResize.end(), [window, width, height](onresizefun callback) {
-		callback(window, width, height);
+	for_each(onResize.begin(), onResize.end(), [window, width, height](Object* obj) {
+		obj->on_resize(window, width, height);
 		});
 }
 void Engine::on_key(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if(ended||!initialized) return;
-	for_each(onKey.begin(), onKey.end(), [window, key, scancode, action, mods](onkeyfun callback) {
-		callback(window, key, scancode, action, mods);
+	for_each(onKey.begin(), onKey.end(), [window, key, scancode, action, mods](Object* obj) {
+		obj->on_key(window, key, scancode, action, mods);
 		});
 }
 void Engine::on_scroll(GLFWwindow* window, double xoffset, double yoffset) {
 	if(ended||!initialized) return;
-	for_each(onScroll.begin(), onScroll.end(), [window, xoffset, yoffset](onscrollfun callback) {
-		callback(window, xoffset, yoffset);
+	for_each(onScroll.begin(), onScroll.end(), [window, xoffset, yoffset](Object* obj) {
+		obj->on_scroll(window, xoffset, yoffset);
 		});
 }
 void Engine::on_mouse(GLFWwindow* window, double mouseX, double mouseY) {
@@ -129,27 +128,27 @@ void Engine::on_mouse(GLFWwindow* window, double mouseX, double mouseY) {
 	float deltaX=((float)mouseX)-lastMouse.x;
 	float deltaY=lastMouse.y-((float)mouseY);
 	lastMouse=Vector2((float)mouseX, (float)mouseY);
-	for_each(onMouse.begin(), onMouse.end(), [window, mouseX, mouseY](onmousefun callback) {
-		callback(window, mouseX, mouseY);
+	for_each(onMouse.begin(), onMouse.end(), [window, mouseX, mouseY](Object* obj) {
+		obj->on_mouse(window, mouseX, mouseY);
 		});
 	if((deltaX!=0)||(deltaY!=0)) on_mouse_delta(window, deltaX, deltaY);
 }
 void Engine::on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY) {
 	if(ended||!initialized) return;
-	for_each(onMouseDelta.begin(), onMouseDelta.end(), [window, deltaX, deltaY](onmousedeltafun callback) {
-		callback(window, deltaX, deltaY);
+	for_each(onMouseDelta.begin(), onMouseDelta.end(), [window, deltaX, deltaY](Object* obj) {
+		obj->on_mouse_delta(window, deltaX, deltaY);
 		});
 }
 void Engine::on_mouse_button(GLFWwindow* window, int button, int action, int mods) {
 	if(ended||!initialized) return;
-	for_each(onMouseButton.begin(), onMouseButton.end(), [window, button, action, mods](onmousebuttonfun callback) {
-		callback(window, button, action, mods);
+	for_each(onMouseButton.begin(), onMouseButton.end(), [window, button, action, mods](Object* obj) {
+		obj->on_mouse_button(window, button, action, mods);
 		});
 }
 void Engine::on_mouse_enter(GLFWwindow* window, int entered) {
 	if(ended||!initialized) return;
-	for_each(onMouseEnter.begin(), onMouseEnter.end(), [window, entered](onmouseenterfun callback) {
-		callback(window, entered);
+	for_each(onMouseEnter.begin(), onMouseEnter.end(), [window, entered](Object* obj) {
+		obj->on_mouse_enter(window, entered);
 		});
 }
 #pragma endregion// callbacks
@@ -157,51 +156,35 @@ void Engine::on_mouse_enter(GLFWwindow* window, int entered) {
 #pragma region subFuncs
 void Engine::sub_resize(Object* obj) {
 	if(!initialized||ended||!obj->initialized) return;
-	onResize.push_back([=](GLFWwindow* window, int width, int height) {
-		obj->on_resize(window, width, height);
-		});
+	onResize.push_back(obj);
 }
 void Engine::sub_key(Object* obj) {
 	if(!initialized||ended||!obj->initialized) return;
-	onKey.push_back([=](GLFWwindow* window, int key, int scancode, int action, int mods) {
-		obj->on_key(window, key, scancode, action, mods);
-		});
+	onKey.push_back(obj);
 }
 void Engine::sub_scroll(Object* obj) {
 	if(!initialized||ended||!obj->initialized) return;
-	onScroll.push_back([=](GLFWwindow* window, double xoffset, double yoffset) {
-		obj->on_scroll(window, xoffset, yoffset);
-		});
+	onScroll.push_back(obj);
 }
 void Engine::sub_mouse(Object* obj) {
 	if(!initialized||ended||!obj->initialized) return;
-	onMouse.push_back([=](GLFWwindow* window, double mouseX, double mouseY) {
-		obj->on_mouse(window, mouseX, mouseY);
-		});
+	onMouse.push_back(obj);
 }
 void Engine::sub_mouse_delta(Object* obj) {
 	if(!initialized||ended||!obj->initialized) return;
-	onMouseDelta.push_back([=](GLFWwindow* window, float deltaX, float deltaY) {
-		obj->on_mouse_delta(window, deltaX, deltaY);
-		});
+	onMouseDelta.push_back(obj);
 }
 void Engine::sub_mouse_button(Object* obj) {
 	if(!initialized||ended||!obj->initialized) return;
-	onMouseButton.push_back([=](GLFWwindow* window, int button, int action, int mods) {
-		obj->on_mouse_button(window, button, action, mods);
-		});
+	onMouseButton.push_back(obj);
 }
 void Engine::sub_mouse_enter(Object* obj) {
 	if(!initialized||ended||!obj->initialized) return;
-	onMouseEnter.push_back([=](GLFWwindow* window, int entered) {
-		obj->on_mouse_enter(window, entered);
-		});
+	onMouseEnter.push_back(obj);
 }
 void Engine::sub_loop(Object* obj) {
 	if(!initialized||ended||!obj->initialized) return;
-	onLoop.push_back([=](double delta) {
-		obj->on_loop(delta);
-		});
+	onLoop.push_back(obj);
 }
 #pragma endregion// subFuncs
 
@@ -213,10 +196,21 @@ Object::Object(Engine* _engine) : engine(_engine) {
 	initialized=true;
 	engine->objects.push_back(this);
 }
-Object::~Object() {
-	for(unsigned int i=0; i<engine->objects.size(); i++) {
-		if (engine->objects[i]==this) engine->objects.erase(engine->objects.begin()+i);
+template <typename T> void vecRemoveValue(std::vector<T>& vec, const T& value) {
+	for(unsigned int i=0; i<vec.size(); i++) {
+		if (vec[i]==value) vec.erase(vec.begin()+i);
 	}
+}
+Object::~Object() {
+	vecRemoveValue(engine->objects,this);
+	vecRemoveValue(engine->onResize,this);
+	vecRemoveValue(engine->onKey,this);
+	vecRemoveValue(engine->onScroll,this);
+	vecRemoveValue(engine->onMouse,this);
+	vecRemoveValue(engine->onMouseDelta,this);
+	vecRemoveValue(engine->onMouseButton,this);
+	vecRemoveValue(engine->onMouseEnter,this);
+	vecRemoveValue(engine->onLoop,this);
 }
 
 void Object::on_resize(GLFWwindow* window, int width, int height) {}

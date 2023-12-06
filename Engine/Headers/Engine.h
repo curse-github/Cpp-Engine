@@ -7,15 +7,7 @@
 #include <string>
 #include <functional>
 #include "Lib.h"
-typedef std::function<void(GLFWwindow*, int, int)>           onresizefun;
-typedef std::function<void(GLFWwindow*, int, int, int, int)> onkeyfun;
-typedef std::function<void(GLFWwindow*, double, double)>     onscrollfun;
-typedef std::function<void(GLFWwindow*, double, double)>     onmousefun;
-typedef std::function<void(GLFWwindow*, float, float)>       onmousedeltafun;
-typedef std::function<void(GLFWwindow*, int, int, int)>      onmousebuttonfun;
-typedef std::function<void(GLFWwindow*, int)>                onmouseenterfun;
-typedef std::function<void()>                                ondeletefun;
-typedef std::function<void(double)>                          onloopfun;
+typedef std::function<void(double)> onloopfun;
 
 void engine_on_error(int error, const char* description);
 class Object;
@@ -43,14 +35,15 @@ class Engine {
 	void Delete();
 	void SetCursorMode(int mode);
 
-	std::vector<std::function<void(GLFWwindow*, int, int)>> onResize;
-	std::vector<std::function<void(GLFWwindow*, int, int, int, int)>> onKey;
-	std::vector<std::function<void(GLFWwindow*, double, double)>> onScroll;
-	std::vector<std::function<void(GLFWwindow*, double, double)>> onMouse;
-	std::vector<std::function<void(GLFWwindow*, float, float)>> onMouseDelta;
-	std::vector<std::function<void(GLFWwindow*, int, int, int)>> onMouseButton;
-	std::vector<std::function<void(GLFWwindow*, int)>> onMouseEnter;
-	std::vector<onloopfun> onLoop;
+	std::vector<Object*> onResize;
+	std::vector<Object*> onKey;
+	std::vector<Object*> onScroll;
+	std::vector<Object*> onMouse;
+	std::vector<Object*> onMouseDelta;
+	std::vector<Object*> onMouseButton;
+	std::vector<Object*> onMouseEnter;
+	std::vector<Object*> onLoop;
+	onloopfun renderLoop;
 
 	void sub_resize(Object* obj);
 	void sub_key(Object* obj);
@@ -64,6 +57,8 @@ class Engine {
 class Object {
 	protected:
 	Engine* engine;
+	friend Engine;
+	public:
 	virtual void on_resize(GLFWwindow* window, int width, int height);
 	virtual void on_key(GLFWwindow* window, int key, int scancode, int action, int mods);
 	virtual void on_scroll(GLFWwindow* window, double xoffset, double yoffset);
@@ -72,8 +67,6 @@ class Object {
 	virtual void on_mouse_button(GLFWwindow* window, int button, int action, int mods);
 	virtual void on_mouse_enter(GLFWwindow* window, int entered);
 	virtual void on_loop(double delta);
-	friend Engine;
-	public:
 	bool initialized=false;
 	Object() : engine(nullptr) {}
 	Object(Engine* _engine);

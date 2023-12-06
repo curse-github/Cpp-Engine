@@ -296,6 +296,7 @@ int main(int argc, char** argv) {
 	uiCam->use();
 	// player object
 	enemy=new Enemy(engine, gridToWorld(playerOffset+Vector2(0.0f, 2.0f)), enemyShader, enemyIconShader);
+	delete enemy;
 	player=new Player(engine, cam, gridToWorld(playerOffset), playerShader, flashlightShader, playerIconShader);
 	// map and minimap
 	sceneRenderers.push_back(new SpriteRenderer(engine, backgroundShader, fullMapSize/2.0f, fullMapSize));// background
@@ -328,7 +329,7 @@ int main(int argc, char** argv) {
 		instanceColliders.push_back(new BoxCollider(engine, gridToWorld(Vector2(line.x, (line.z+line.y)/2)), Vector2(spacing*3*mapScale, ((line.z-line.y)*(1.0f+spacing)+spacing*3)*mapScale), lineShader));
 	}
 	// run main loop
-	engine->onLoop.push_back(Loop);
+	engine->renderLoop=Loop;
 	Log("Engine initialized successfully.");
 	engine->Loop();
 	//destruction
