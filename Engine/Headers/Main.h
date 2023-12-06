@@ -65,14 +65,14 @@ Shader* createTextShader();
 class FpsTracker : Object {
 	protected:
 	double lastFrames[60]={};
-	public:
 	int avgFps=0;
 	int highFps=0;
 	int lowFps=0;
 	float frameTime=0;
+	void on_loop(double delta) override;
+	public:
 	FpsTracker() : Object() {}
 	FpsTracker(Engine* _engine);
-	void on_loop(double delta) override;
 	int getAvgFps();
 	int getHighFps();
 	int getLowFps();
@@ -99,19 +99,18 @@ class Player : public Object {
 	protected:
 	StencilSimple flashlightStencil;
 	OrthoCam* sceneCam;
+	SpriteRenderer* renderer;
 	BoxCollider* collider;
 	SpriteRenderer* flashlightRenderer;
 	SpriteRenderer* iconRenderer;
-	public:
-	SpriteRenderer* renderer;
-	Vector2 position;
-	Player() : Object(), position(Vector2()), flashlightStencil(StencilSimple()), sceneCam(nullptr), renderer(nullptr), collider(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {}
-	Player(Engine* _engine, OrthoCam* _sceneCam, Vector2 _position, Shader* playerShader, Shader* flashlightShader, Shader* iconShader);
 	int inputs[5]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
 	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods) override;
 	void on_loop(double delta) override;
-	void on_delete() override;
 	void resolveCollitions();
+	public:
+	Vector2 position;
+	Player() : Object(), position(Vector2()), flashlightStencil(StencilSimple()), sceneCam(nullptr), renderer(nullptr), collider(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {}
+	Player(Engine* _engine, OrthoCam* _sceneCam, Vector2 _position, Shader* playerShader, Shader* flashlightShader, Shader* iconShader);
 	void flashlightStencilOn();
 	void flashlightStencilOff();
 	void setPos(Vector2 pos);
@@ -122,16 +121,15 @@ class Enemy : public Object {
 	SpriteRenderer* renderer;
 	BoxCollider* collider;
 	SpriteRenderer* iconRenderer;
+	void on_loop(double delta) override;
+	void resolveCollitions();
 	public:
 	Vector2 position;
 	Enemy() : Object(), position(Vector2()), renderer(nullptr), collider(nullptr), iconRenderer(nullptr) {}
 	Enemy(Engine* _engine, Vector2 _position, Shader* enemyShader, Shader* iconShader);
-	void on_loop(double delta) override;
-	void resolveCollitions();
 	void setPos(Vector2 pos);
 };
 
 int main(int argc, char** argv);
 void Loop(double delta);
-void onLateDelete();
 #endif// MAINH

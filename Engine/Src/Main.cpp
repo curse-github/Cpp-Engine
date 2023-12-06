@@ -113,7 +113,6 @@ Player::Player(Engine* _engine, OrthoCam* _sceneCam, Vector2 _position, Shader* 
 
 	engine->sub_key(this);
 	engine->sub_loop(this);
-	engine->sub_delete(this);
 }
 void Player::on_key(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if(engine->ended||!initialized) return;
@@ -138,10 +137,6 @@ void Player::on_loop(double delta) {
 	iconRenderer->position=gridToMinimap(worldToGrid(position));
 	sceneCam->update();
 	sceneCam->use();
-}
-void Player::on_delete() {
-	if(!initialized) return;
-	delete flashlightRenderer;
 }
 void Player::resolveCollitions() {
 	if(engine->ended||!initialized) return;
@@ -249,38 +244,38 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 	// setup textures
-	Texture playerTex=Texture(engine, playerTexPath);
-	Texture enemyTex=Texture(engine, enemyTexPath);
-	Texture flashlightTex=Texture(engine, flashlightTexPath);
-	Texture backgroundTex=Texture(engine, mapTexPath);
-	Texture minimapTex=Texture(engine, minimapTexPath);
-	Texture instanceUnlitTex=Texture(engine, instanceUnlitTexPath);
-	Texture instanceWorkingTex=Texture(engine, instanceWorkingTexPath);
-	Texture instanceBrokenTex=Texture(engine, instanceBrokenTexPath);
-	if(engine->ended||!playerTex.initialized||!flashlightTex.initialized||
-		!backgroundTex.initialized||!minimapTex.initialized||
-		!instanceUnlitTex.initialized||!instanceWorkingTex.initialized||
-		!instanceBrokenTex.initialized
+	Texture* playerTex=new Texture(engine, playerTexPath);
+	Texture* enemyTex=new Texture(engine, enemyTexPath);
+	Texture* flashlightTex=new Texture(engine, flashlightTexPath);
+	Texture* backgroundTex=new Texture(engine, mapTexPath);
+	Texture* minimapTex=new Texture(engine, minimapTexPath);
+	Texture* instanceUnlitTex=new Texture(engine, instanceUnlitTexPath);
+	Texture* instanceWorkingTex=new Texture(engine, instanceWorkingTexPath);
+	Texture* instanceBrokenTex=new Texture(engine, instanceBrokenTexPath);
+	if(engine->ended||!playerTex->initialized||!flashlightTex->initialized||
+		!backgroundTex->initialized||!minimapTex->initialized||
+		!instanceUnlitTex->initialized||!instanceWorkingTex->initialized||
+		!instanceBrokenTex->initialized
 		) {
 		Log("Textures failed to init.");
 		engine->Delete();
 		return 0;
 	}
-	minimapSize=Vector2((float)minimapTex.width, (float)minimapTex.height)*minimapScale;
+	minimapSize=Vector2((float)minimapTex->width, (float)minimapTex->height)*minimapScale;
 	// setup shaders
-	playerShader=createTexShader(&playerTex, Vector4(playerModulate, 1.0f));
-	flashlightShader=createTexShader(&flashlightTex, Vector4(flashlightColor, 0.25f));
-	playerIconShader=createTexShader(&playerTex, Vector4(playerModulate, 0.75f));
+	playerShader=createTexShader(playerTex, Vector4(playerModulate, 1.0f));
+	flashlightShader=createTexShader(flashlightTex, Vector4(flashlightColor, 0.25f));
+	playerIconShader=createTexShader(playerTex, Vector4(playerModulate, 0.75f));
 
-	enemyShader=createTexShader(&enemyTex, Vector4(enemyModulate, 1.0f));
-	enemyIconShader=createTexShader(&enemyTex, Vector4(enemyModulate, 0.75f));
+	enemyShader=createTexShader(enemyTex, Vector4(enemyModulate, 1.0f));
+	enemyIconShader=createTexShader(enemyTex, Vector4(enemyModulate, 0.75f));
 
-	backgroundShader=createTexShader(&backgroundTex, Vector4());
-	minimapShader=createTexShader(&minimapTex, Vector4(1.0f, 1.0f, 1.0f, 0.75f));
+	backgroundShader=createTexShader(backgroundTex, Vector4());
+	minimapShader=createTexShader(minimapTex, Vector4(1.0f, 1.0f, 1.0f, 0.75f));
 
-	instanceUnlitShader=createTexShader(&instanceUnlitTex, Vector4(0.5f, 0.5f, 0.5f, 1.0f));
-	instanceWorkingShader=createTexShader(&instanceWorkingTex, Vector4());
-	instanceBrokenShader=createTexShader(&instanceBrokenTex, Vector4());
+	instanceUnlitShader=createTexShader(instanceUnlitTex, Vector4(0.5f, 0.5f, 0.5f, 1.0f));
+	instanceWorkingShader=createTexShader(instanceWorkingTex, Vector4());
+	instanceBrokenShader=createTexShader(instanceBrokenTex, Vector4());
 
 	lineShader=createColorShader(Vector4(0.0f, 0.0f, 1.0f, 1.0f));
 	textShader=createTextShader();
@@ -334,9 +329,15 @@ int main(int argc, char** argv) {
 	}
 	// run main loop
 	engine->onLoop.push_back(Loop);
-	engine->onDelete.push_back(onLateDelete);
 	Log("Engine initialized successfully.");
 	engine->Loop();
+	//destruction
+	delete engine;
+	sceneRenderers.clear();
+	instanceStateRenderers.clear();
+	uiRenderers.clear();
+	debugText.clear();
+	instanceColliders.clear();
 	return 1;
 }
 void Loop(double delta) {
@@ -356,42 +357,4 @@ void Loop(double delta) {
 	glClear(GL_DEPTH_BUFFER_BIT);
 	for(Renderer* ren:uiRenderers) ren->draw();
 	for(TextRenderer* ren:debugText) ren->draw();
-}
-void onLateDelete() {
-	delete engine;
-	delete tracker;
-	delete player;
-	delete enemy;
-	//cams
-	delete cam;
-	delete uiCam;
-	//shaders
-	delete playerShader;
-	delete flashlightShader;
-	delete playerIconShader;
-
-	delete enemyShader;
-	delete enemyIconShader;
-
-	delete backgroundShader;
-	delete minimapShader;
-
-	delete instanceUnlitShader;
-	delete instanceWorkingShader;
-	delete instanceBrokenShader;
-
-	delete lineShader;
-	delete textShader;
-	//renderers
-	for(Renderer2D* ren:sceneRenderers) { delete ren; }
-	for(Renderer2D* ren:instanceStateRenderers) { delete ren; }
-	for(Renderer* ren:uiRenderers) { delete ren; }
-	for(TextRenderer* ren:debugText) { delete ren; }
-	sceneRenderers.clear();
-	instanceStateRenderers.clear();
-	uiRenderers.clear();
-	debugText.clear();
-
-	for(BoxCollider* col:instanceColliders) { delete col; }
-	instanceColliders.clear();
 }

@@ -8,6 +8,13 @@
 #define clamp(a,b,c) std::max(b,std::min(a,c))
 
 #pragma region Engine
+void engine_on_error(int error, const char* description) {
+	Log("GLDW error: "+std::string(description));
+#ifdef _DEBUG
+	__debugbreak();
+#endif
+}
+
 Engine::Engine(Vector2 size, const char* title, bool vsync) : window(nullptr), screenSize(size) {
 	if(!glfwInit()) {
 		ended=true;
@@ -51,6 +58,16 @@ Engine::Engine(Vector2 size, const char* title, bool vsync) : window(nullptr), s
 
 	initialized=true;
 }
+Engine::~Engine() {
+	if (!initialized) return;
+	while(objects.size()>0) {
+		Object* ptr = objects[0];
+		if(ptr) {
+			// possible remove from callbacks
+			delete ptr;
+		}
+	}
+}
 void Engine::Loop() {
 	if(ended||!initialized) return;
 	double lastFrameTime=glfwGetTime();
@@ -77,24 +94,14 @@ void Engine::Delete() {
 	ended=true;
 	glfwDestroyWindow(window);
 	glfwTerminate();
-	for_each(onDelete.begin(), onDelete.end(), [](ondeletefun callback) {
-		callback();
-		});
 }
-
-void Engine::SetCursor(int mode) {
+void Engine::SetCursorMode(int mode) {
 	if(ended||!initialized) return;
 	glfwSetInputMode(window, GLFW_CURSOR, mode);
 	lastMouse=Vector2(-1.0f, -1.0f);
 }
 
 #pragma region callbacks
-void engine_on_error(int error, const char* description) {
-	Log("GLDW error: "+std::string(description));
-#ifdef _DEBUG
-	__debugbreak();
-#endif
-}
 void Engine::on_resize(GLFWwindow* window, int width, int height) {
 	if(ended||!initialized) return;
 	glViewport(0, 0, width, height); screenSize=Vector2((float)width, (float)height);
@@ -190,12 +197,6 @@ void Engine::sub_mouse_enter(Object* obj) {
 		obj->on_mouse_enter(window, entered);
 		});
 }
-void Engine::sub_delete(Object* obj) {
-	if(!initialized||ended||!obj->initialized) return;
-	onDelete.push_back([=]() {
-		obj->on_delete();
-		});
-}
 void Engine::sub_loop(Object* obj) {
 	if(!initialized||ended||!obj->initialized) return;
 	onLoop.push_back([=](double delta) {
@@ -203,22 +204,28 @@ void Engine::sub_loop(Object* obj) {
 		});
 }
 #pragma endregion// subFuncs
+
 #pragma endregion// Engine
 
 #pragma region Object
 Object::Object(Engine* _engine) : engine(_engine) {
 	if(!engine->initialized||engine->ended) { initialized=false; return; }
 	initialized=true;
+	engine->objects.push_back(this);
+}
+Object::~Object() {
+	for(unsigned int i=0; i<engine->objects.size(); i++) {
+		if (engine->objects[i]==this) engine->objects.erase(engine->objects.begin()+i);
+	}
 }
 
 void Object::on_resize(GLFWwindow* window, int width, int height) {}
-void Object::on_key(GLFWwindow* window, int key, int scancode, int action, int mods) {}
+void Object::on_key(GLFWwindow* window, int key, int scancode, int action, int mods) { }
 void Object::on_scroll(GLFWwindow* window, double xoffset, double yoffset) {}
 void Object::on_mouse(GLFWwindow* window, double mouseX, double mouseY) {}
 void Object::on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY) {}
 void Object::on_mouse_button(GLFWwindow* window, int button, int action, int mods) {}
 void Object::on_mouse_enter(GLFWwindow* window, int entered) {}
-void Object::on_delete() {}
 void Object::on_loop(double delta) {}
 #pragma endregion// Object
 
@@ -302,18 +309,16 @@ Shader::Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath
 	//char programInfoLog[512];
 	glGetProgramiv(program, GL_LINK_STATUS, &programSuccess);
 	if(!programSuccess) {// glGetProgramInfoLog(shaderProgram, 512, NULL, programInfoLog);
-		on_delete();
 		Log("Shader program failed to create.");//error
 		engine->Delete();
 		return;
 	}
-	engine->sub_delete(this);
 }
 void Shader::use() {
 	if(engine->ended||!initialized) return;
 	glUseProgram(program);
 }
-void Shader::on_delete() {
+Shader::~Shader() {
 	if(!initialized) return;
 	glDeleteProgram(program);
 }
@@ -375,8 +380,6 @@ void Shader::bindTextures() {
 #pragma endregion// Shader
 
 #pragma region Camera
-// save reference to object as it is in the contructor to be used in the set function
-// similar effect as glfwSetWindowUserPointer in the main function
 Camera::Camera(Engine* _engine) : Object(_engine), projection(Mat4x4()), view(Mat4x4()) {
 	if(!initialized) return;
 }
@@ -428,7 +431,7 @@ void FreeCam::on_key(GLFWwindow* window, int key, int scancode, int action, int 
 	if(engine->ended||!initialized) return;
 	if(key==GLFW_KEY_ESCAPE&&action==GLFW_PRESS) {
 		paused=!paused;
-		engine->SetCursor(paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+		engine->SetCursorMode(paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 		return;
 	}
 	if(paused) return;
@@ -526,15 +529,11 @@ void Texture::Bind(Shader* shader, unsigned int location) {
 #pragma endregion// Texture
 
 #pragma region Renderers
-Renderer::Renderer(Engine* _engine, Shader* _shader) : Object(_engine), shader(_shader), VAO(0), VBO(0), EBO(0) {
-	if(!initialized||!shader->initialized) { initialized=false; return; }
-	engine->sub_delete(this);
-}
-void Renderer::draw() {
-	if(engine->ended||!initialized) return;
-}
-void Renderer::on_delete() {
-	if(engine->ended||!initialized) return;
+Renderer::Renderer(Engine* _engine, Shader* _shader) : Object(_engine), shader(_shader), VAO(0), VBO(0), EBO(0) { if(!initialized||!shader->initialized) initialized=false; }
+void Renderer::setShader(Shader* _shader) { shader=_shader; }
+void Renderer::draw() { if(engine->ended||!initialized) return; }
+Renderer::~Renderer() {
+	if(!initialized) return;
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
@@ -597,7 +596,7 @@ void CubeRenderer::draw() {
 	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
 
-bool AABBOverlap(Vector2 aPos, Vector2 aSize, Vector2 bPos, Vector2 bSize) {
+bool Renderer2D::AABBOverlap(Vector2 aPos, Vector2 aSize, Vector2 bPos, Vector2 bSize) {
 	if(aPos==bPos) return true;// guaranteed collition
 	// collision x-axis?
 	float collisionX1=((aPos.x+aSize.x/2)-(bPos.x-bSize.x/2));
@@ -645,8 +644,8 @@ SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _positi
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale) : SpriteRenderer(_engine, _shader, _position, _scale, 0.0f, 0.0f) {}
 SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _zIndex) : SpriteRenderer(_engine, _shader, _position, _scale, _zIndex, 0.0f) {}
+SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale) : SpriteRenderer(_engine, _shader, _position, _scale, 0.0f, 0.0f) {}
 void SpriteRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	Mat4x4 model=scaleMat(Vector3(scale, 1.0f))*axisRotMat(rotAxis, deg_to_rad(rotAngle))*translate(Vector3(position, zIndex-100));
@@ -655,9 +654,7 @@ void SpriteRenderer::draw() {
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
-bool SpriteRenderer::shouldDraw(Vector2 viewer, Vector2 viewRange) {
-	return AABBOverlap(position, scale, viewer, viewRange);
-}
+bool SpriteRenderer::shouldDraw(Vector2 viewer, Vector2 viewRange) { return AABBOverlap(position, scale, viewer, viewRange); }
 
 struct Character {
 	unsigned int TextureID=0;// ID handle of the glyph texture
@@ -817,9 +814,9 @@ LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2
 		boundingBoxSize=Vector2(rightMostX-leftMostX, topMostY-bottomMostY);
 	}
 }
-LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width) : LineRenderer(_engine, _shader, _positions, _width, Vector2(0.0f, 0.0f), false) {}
-LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop) : LineRenderer(_engine, _shader, _positions, _width, Vector2(0.0f, 0.0f), _loop) {}
 LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position) : LineRenderer(_engine, _shader, _positions, _width, _position, false) {}
+LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop) : LineRenderer(_engine, _shader, _positions, _width, Vector2(0.0f, 0.0f), _loop) {}
+LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width) : LineRenderer(_engine, _shader, _positions, _width, Vector2(0.0f, 0.0f), false) {}
 void LineRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	shader->bindTextures();
@@ -828,9 +825,7 @@ void LineRenderer::draw() {
 	glLineWidth(width);
 	glDrawArrays(loop ? GL_LINE_LOOP : GL_LINE_STRIP, 0, positions.size());
 }
-bool LineRenderer::shouldDraw(Vector2 viewer, Vector2 viewRange) {
-	return AABBOverlap(position+boundingBoxPos, boundingBoxSize, viewer, viewRange);
-}
+bool LineRenderer::shouldDraw(Vector2 viewer, Vector2 viewRange) { return AABBOverlap(position+boundingBoxPos, boundingBoxSize, viewer, viewRange); }
 #pragma endregion// Renderers
 
 #pragma region Stencil

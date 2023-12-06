@@ -20,37 +20,6 @@ typedef std::function<void(double)>                          onloopfun;
 void engine_on_error(int error, const char* description);
 class Object;
 class Engine {
-	public:
-	GLFWwindow* window=nullptr;
-	Vector2 screenSize;
-	bool initialized=false;
-	bool ended=false;
-	Engine() : window(nullptr), screenSize(Vector2()) {}
-	Engine(Vector2 size, const char* title, bool vsync);
-	void Loop();
-	void Close();
-	void Delete();
-	void SetCursor(int mode);
-
-	std::vector<std::function<void(GLFWwindow*, int, int)>> onResize;
-	std::vector<std::function<void(GLFWwindow*, int, int, int, int)>> onKey;
-	std::vector<std::function<void(GLFWwindow*, double, double)>> onScroll;
-	std::vector<std::function<void(GLFWwindow*, double, double)>> onMouse;
-	std::vector<std::function<void(GLFWwindow*, float, float)>> onMouseDelta;
-	std::vector<std::function<void(GLFWwindow*, int, int, int)>> onMouseButton;
-	std::vector<std::function<void(GLFWwindow*, int)>> onMouseEnter;
-	std::vector<ondeletefun> onDelete;
-	std::vector<onloopfun> onLoop;
-
-	void sub_resize(Object* obj);
-	void sub_key(Object* obj);
-	void sub_scroll(Object* obj);
-	void sub_mouse(Object* obj);
-	void sub_mouse_delta(Object* obj);
-	void sub_mouse_button(Object* obj);
-	void sub_mouse_enter(Object* obj);
-	void sub_delete(Object* obj);
-	void sub_loop(Object* obj);
 	protected:
 	void on_resize(GLFWwindow* window, int width, int height);
 	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -60,17 +29,41 @@ class Engine {
 	void on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY);
 	void on_mouse_button(GLFWwindow* window, int button, int action, int mods);
 	void on_mouse_enter(GLFWwindow* window, int entered);
+	public:
+	GLFWwindow* window=nullptr;
+	Vector2 screenSize;
+	bool initialized=false;
+	bool ended=false;
+	std::vector<Object*> objects;
+	Engine() : window(nullptr), screenSize(Vector2()) {}
+	Engine(Vector2 size, const char* title, bool vsync);
+	virtual ~Engine();
+	void Loop();
+	void Close();
+	void Delete();
+	void SetCursorMode(int mode);
+
+	std::vector<std::function<void(GLFWwindow*, int, int)>> onResize;
+	std::vector<std::function<void(GLFWwindow*, int, int, int, int)>> onKey;
+	std::vector<std::function<void(GLFWwindow*, double, double)>> onScroll;
+	std::vector<std::function<void(GLFWwindow*, double, double)>> onMouse;
+	std::vector<std::function<void(GLFWwindow*, float, float)>> onMouseDelta;
+	std::vector<std::function<void(GLFWwindow*, int, int, int)>> onMouseButton;
+	std::vector<std::function<void(GLFWwindow*, int)>> onMouseEnter;
+	std::vector<onloopfun> onLoop;
+
+	void sub_resize(Object* obj);
+	void sub_key(Object* obj);
+	void sub_scroll(Object* obj);
+	void sub_mouse(Object* obj);
+	void sub_mouse_delta(Object* obj);
+	void sub_mouse_button(Object* obj);
+	void sub_mouse_enter(Object* obj);
+	void sub_loop(Object* obj);
 };
 class Object {
-	public:
-	bool initialized=false;
 	protected:
-	public:
 	Engine* engine;
-	Object() : engine(nullptr) {}
-	Object(Engine* _engine);
-
-
 	virtual void on_resize(GLFWwindow* window, int width, int height);
 	virtual void on_key(GLFWwindow* window, int key, int scancode, int action, int mods);
 	virtual void on_scroll(GLFWwindow* window, double xoffset, double yoffset);
@@ -78,19 +71,24 @@ class Object {
 	virtual void on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY);
 	virtual void on_mouse_button(GLFWwindow* window, int button, int action, int mods);
 	virtual void on_mouse_enter(GLFWwindow* window, int entered);
-	virtual void on_delete();
 	virtual void on_loop(double delta);
+	friend Engine;
+	public:
+	bool initialized=false;
+	Object() : engine(nullptr) {}
+	Object(Engine* _engine);
+	virtual ~Object();
 };
 class Texture;
 class Shader : public Object {
 	protected:
 	unsigned int program=0;
-	void on_delete() override;
 	std::vector<Texture*> textures;
 	std::vector<int> textureIndexes;
 	public:
 	Shader() : Object() {}
 	Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath);
+	virtual ~Shader();
 	void use();
 	void setBool(const std::string& name, bool value);
 	void setInt(const std::string& name, int value);
@@ -103,7 +101,6 @@ class Shader : public Object {
 	void bindTextures();
 };
 class Camera : public Object {
-	protected:
 	std::vector<Shader*> shaders;
 	public:
 	Mat4x4 projection;
@@ -134,6 +131,11 @@ class FreeCam : public Camera {
 	float SPEED=2.5f;
 	float pitch=0.0f;
 	float yaw=-90.0f;
+	void on_loop(double delta) override;
+	int inputs[6]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
+	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods) override;
+	void on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY) override;
+	void on_scroll(GLFWwindow* window, double xoffset, double yoffset) override;
 	public:
 	float fov=45;
 	float SENSITIVITY=0.1f;
@@ -141,11 +143,6 @@ class FreeCam : public Camera {
 	FreeCam() : Camera(), aspect(0.0f), position(Vector3()), forward(Vector3()), up(Vector3()) {}
 	FreeCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _forward, Vector3 _up);
 	void update();
-	void on_loop(double delta) override;
-	int inputs[6]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
-	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods) override;
-	void on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY) override;
-	void on_scroll(GLFWwindow* window, double xoffset, double yoffset) override;
 };
 class OrthoCam : public Camera {
 	public:
@@ -156,10 +153,10 @@ class OrthoCam : public Camera {
 	void update();
 };
 class Texture : public Object {
-	public:
+	protected:
 	unsigned int ID;
-	public:
 	std::string path;
+	public:
 	int width;
 	int height;
 	Texture() : Object(), ID(0), path(""), width(0), height(0) {}
@@ -172,10 +169,11 @@ class Renderer : public Object {
 	unsigned int VAO;
 	unsigned int VBO;
 	unsigned int EBO;
-	void on_delete() override;
 	public:
 	Renderer() : Object(), shader(nullptr), VAO(0), VBO(0), EBO(0) {}
 	Renderer(Engine* _engine, Shader* _shader);
+	virtual ~Renderer();
+	void setShader(Shader* _shader);
 	virtual void draw();
 };
 class CubeRenderer : public Renderer {
@@ -188,6 +186,8 @@ class CubeRenderer : public Renderer {
 	void draw() override;
 };
 class Renderer2D : public Renderer {
+	protected:
+	static bool AABBOverlap(Vector2 aPos, Vector2 aSize, Vector2 bPos, Vector2 bSize);
 	public:
 	bool hasBoundingBox;
 	Renderer2D() : Renderer(), hasBoundingBox(false) {}
@@ -204,9 +204,9 @@ class SpriteRenderer : public Renderer2D {
 	float zIndex=0;
 	float rotAngle;
 	SpriteRenderer() : Renderer2D(), position(Vector2()), scale(Vector2()), rotAngle(0.0f) {}
-	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale);
-	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _zIndex);
 	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _zIndex, float _rotAngle);
+	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _zIndex);
+	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale);
 	void draw() override;
 	bool shouldDraw(Vector2 viewer, Vector2 viewRange) override;
 };
@@ -222,18 +222,19 @@ class TextRenderer : public Renderer2D {
 	void draw() override;
 };
 class LineRenderer : public Renderer2D {
-	public:
+	protected:
 	std::vector<Vector2> positions;
-	float width;
-	Vector2 position;
 	Vector2 boundingBoxPos=Vector2(0.0f, 0.0f);
 	Vector2 boundingBoxSize=Vector2(0.0f, 0.0f);
+	public:
+	float width;
+	Vector2 position;
 	bool loop;
 	LineRenderer() : Renderer2D(), positions {}, width(1.0f), position(Vector2()), loop(false) {}
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position, bool _loop);
-	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width);
-	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop);
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position);
+	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop);
+	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width);
 	void draw() override;
 	bool shouldDraw(Vector2 viewer, Vector2 viewRange) override;
 };
@@ -246,6 +247,7 @@ class StencilSimple {
 	void Compare();
 };
 
+#pragma region Shader Embedded Code
 #define vsShader "#version 330 core\n\
 layout(location=0) in vec3 vecPos;\n\
 layout(location=1) in vec2 vecUV;\n\
@@ -295,4 +297,5 @@ void main() {\n\
 	if(sampled.a <= 0.05) discard; \n\
 	outColor=vec4(textColor, 1.0) * sampled; \n\
 }\0"
+#pragma endregion
 #endif
