@@ -36,6 +36,7 @@ Vector2 Vector2::normalized() {
 	float len=length();
 	return len!=0 ? (Vector2(x, y)/len) : Vector2(x, y);
 }
+Vector2 Vector2::abs() { return Vector2(std::abs(x), std::abs(y)); }
 Vector2 Vector2::operator+(Vector2 b) { return Vector2(x+b.x, y+b.y); }
 Vector2 Vector2::operator-(Vector2 b) { return Vector2(x-b.x, y-b.y); }
 Vector2 Vector2::operator-() { return Vector2(-x, -y); }
@@ -51,6 +52,8 @@ float Vector2::operator[](int i) {
 	else { Log("Vector2: Index out of range");exit(0); }
 }
 bool Vector2::operator==(Vector2 b) { return (x==b.x)&&(y==b.y); }
+bool Vector2::operator!=(Vector2 b) { return !(*this==b); }
+bool Vector2::operator<(const Vector2& b) const { return (y*100+x)<(b.y*1000+b.x); }
 std::string Vector2::to_string() {
 	return "("+std::to_string(x)+", "+std::to_string(y)+")";
 }
@@ -74,6 +77,7 @@ Vector3 Vector3::normalized() {
 	float len=length();
 	return len!=0 ? (Vector3(x, y, z)/len) : Vector3(x, y, z);
 }
+Vector3 Vector3::abs() { return Vector3(std::abs(x), std::abs(y), std::abs(z)); }
 Vector3 Vector3::operator+(Vector3 b) { return Vector3(x+b.x, y+b.y, z+b.z); }
 Vector3 Vector3::operator-(Vector3 b) { return Vector3(x-b.x, y-b.y, z-b.z); }
 Vector3 Vector3::operator-() { return Vector3(-x, -y, -z); }
@@ -90,6 +94,7 @@ float Vector3::operator[](int i) {
 	else { Log("Vector3: Index out of range");exit(0); }
 }
 bool Vector3::operator==(Vector3 b) { return (x==b.x)&&(y==b.y)&&(z==b.z); }
+bool Vector3::operator!=(Vector3 b) { return !(*this==b); }
 std::string Vector3::to_string() {
 	return "("+std::to_string(x)+", "+std::to_string(y)+", "+std::to_string(z)+")";
 }
@@ -107,6 +112,7 @@ Vector4 Vector4::normalized() {
 	float len=length();
 	return len!=0 ? (Vector4(x, y, z, w)/len) : Vector4(x, y, z, w);
 }
+Vector4 Vector4::abs() { return Vector4(std::abs(x), std::abs(y), std::abs(z), std::abs(w)); }
 Vector4 Vector4::operator+(Vector4 b) { return Vector4(x+b.x, y+b.y, z+b.z, w+b.w); }
 Vector4 Vector4::operator-(Vector4 b) { return Vector4(x-b.x, y-b.y, z-b.z, w-b.w); }
 Vector4 Vector4::operator-() { return Vector4(-x, -y, -z, -w); }
@@ -124,6 +130,7 @@ float Vector4::operator[](int i) {
 	else { Log("Vector4: Index out of range");exit(0); }
 }
 bool Vector4::operator==(Vector4 b) { return (x==b.x)&&(y==b.y)&&(z==b.z)&&(w==b.w); }
+bool Vector4::operator!=(Vector4 b) { return !(*this==b); }
 std::string Vector4::to_string() {
 	return "("+std::to_string(x)+", "+std::to_string(y)+", "+std::to_string(z)+", "+std::to_string(w)+")";
 }

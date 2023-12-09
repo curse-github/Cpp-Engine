@@ -59,10 +59,10 @@ Engine::Engine(Vector2 size, const char* title, bool vsync) : window(nullptr), s
 	initialized=true;
 }
 Engine::~Engine() {
-	if (!initialized) return;
+	if(!initialized) return;
 	//Todo: upper bound?
 	while(objects.size()>0) {
-		Object* ptr = objects[0];
+		Object* ptr=objects[0];
 		if(ptr) delete ptr;
 	}
 }
@@ -198,23 +198,23 @@ Object::Object(Engine* _engine) : engine(_engine) {
 }
 template <typename T> void vecRemoveValue(std::vector<T>& vec, const T& value) {
 	for(unsigned int i=0; i<vec.size(); i++) {
-		if (vec[i]==value) vec.erase(vec.begin()+i);
+		if(vec[i]==value) vec.erase(vec.begin()+i);
 	}
 }
 Object::~Object() {
-	vecRemoveValue(engine->objects,this);
-	vecRemoveValue(engine->onResize,this);
-	vecRemoveValue(engine->onKey,this);
-	vecRemoveValue(engine->onScroll,this);
-	vecRemoveValue(engine->onMouse,this);
-	vecRemoveValue(engine->onMouseDelta,this);
-	vecRemoveValue(engine->onMouseButton,this);
-	vecRemoveValue(engine->onMouseEnter,this);
-	vecRemoveValue(engine->onLoop,this);
+	vecRemoveValue(engine->objects, this);
+	vecRemoveValue(engine->onResize, this);
+	vecRemoveValue(engine->onKey, this);
+	vecRemoveValue(engine->onScroll, this);
+	vecRemoveValue(engine->onMouse, this);
+	vecRemoveValue(engine->onMouseDelta, this);
+	vecRemoveValue(engine->onMouseButton, this);
+	vecRemoveValue(engine->onMouseEnter, this);
+	vecRemoveValue(engine->onLoop, this);
 }
 
 void Object::on_resize(GLFWwindow* window, int width, int height) {}
-void Object::on_key(GLFWwindow* window, int key, int scancode, int action, int mods) { }
+void Object::on_key(GLFWwindow* window, int key, int scancode, int action, int mods) {}
 void Object::on_scroll(GLFWwindow* window, double xoffset, double yoffset) {}
 void Object::on_mouse(GLFWwindow* window, double mouseX, double mouseY) {}
 void Object::on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY) {}

@@ -30,6 +30,7 @@ std::string flashlightTexPath;
 Vector3 flashlightColor;
 float flashlightRange;
 
+float enemySpeed=3.5f;
 std::string enemyTexPath;
 Vector3 enemyModulate;
 
@@ -37,7 +38,7 @@ std::string instanceUnlitTexPath;
 std::string instanceWorkingTexPath;
 std::string instanceBrokenTexPath;
 float instanceBrokenChance;
-std::vector<std::vector<int>> instanceData;
+std::vector<std::array<int, 5>> instanceData;
 
 std::vector<Vector3> horizontalWallData;
 std::vector<Vector3> verticalWallData;
@@ -147,7 +148,7 @@ void loadMapData(const std::string& mapName) {
 				cutEmptySpace(&data);
 				if(!startsWith(data, "]")) return;
 				stringCut(&data, 1);
-				std::vector<int> tmp={ one, two, three, four, five };
+				std::array<int, 5> tmp={ one, two, three, four, five };
 				instanceData.push_back(tmp);
 				if(!startsWith(data, ",")) break;
 				stringCut(&data, 1);

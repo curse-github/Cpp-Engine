@@ -34,6 +34,7 @@ class Vector2 {
 	float length();
 	float dot(Vector2 b);
 	Vector2 normalized();
+	Vector2 abs();
 	Vector2 operator+(Vector2 b);
 	Vector2 operator-(Vector2 b);
 	Vector2 operator-();
@@ -45,6 +46,8 @@ class Vector2 {
 	Vector2 operator/(int b);
 	float operator[](int i);
 	bool operator==(Vector2 b);
+	bool operator!=(Vector2 b);
+	bool operator<(const Vector2& b) const;
 	std::string to_string();
 };
 
@@ -63,6 +66,7 @@ class Vector3 {
 	float length();
 	float dot(Vector3 b);
 	Vector3 normalized();
+	Vector3 abs();
 	Vector3 operator+(Vector3 b);
 	Vector3 operator-(Vector3 b);
 	Vector3 operator-();
@@ -74,6 +78,7 @@ class Vector3 {
 	Vector3 operator/(int b);
 	float operator[](int i);
 	bool operator==(Vector3 b);
+	bool operator!=(Vector3 b);
 	std::string to_string();
 };
 class Vector4 {
@@ -92,6 +97,7 @@ class Vector4 {
 	float length();
 	float dot(Vector4 b);
 	Vector4 normalized();
+	Vector4 abs();
 	Vector4 operator+(Vector4 b);
 	Vector4 operator-(Vector4 b);
 	Vector4 operator-();
@@ -103,6 +109,7 @@ class Vector4 {
 	Vector4 operator/(int b);
 	float operator[](int i);
 	bool operator==(Vector4 b);
+	bool operator!=(Vector4 b);
 	std::string to_string();
 };
 class Mat4x4 {

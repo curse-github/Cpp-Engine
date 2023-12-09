@@ -98,16 +98,16 @@ Player::Player(Engine* _engine, OrthoCam* _sceneCam, Vector2 _position, Shader* 
 	renderer=new SpriteRenderer(engine, playerShader, position, playerSize*mapScale, 1);
 	sceneRenderers.push_back(renderer);
 	collider=new BoxCollider(engine, position, playerHitbox*playerSize*mapScale, lineShader);
-	instanceColliders.push_back(collider);
+	colliders.push_back(collider);
 	flashlightRenderer=new SpriteRenderer(engine, flashlightShader, position, flashlightRange*mapScale, 1.0f);
-	iconRenderer=new SpriteRenderer(engine, iconShader, gridToMinimap(worldToGrid(position)), Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), 1.0f);
+	iconRenderer=new SpriteRenderer(engine, iconShader, gridToMinimap(WorldToGrid(position)), Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), 1.0f);
 	uiRenderers.push_back(iconRenderer);
 
 	resolveCollitions();
 	renderer->position=position;
 	flashlightRenderer->position=position;
 	sceneCam->position=position;
-	iconRenderer->position=gridToMinimap(worldToGrid(position));
+	iconRenderer->position=gridToMinimap(WorldToGrid(position));
 	sceneCam->update();
 	sceneCam->use();
 
@@ -134,7 +134,7 @@ void Player::on_loop(double delta) {
 	renderer->position=position;
 	flashlightRenderer->position=position;
 	sceneCam->position=position;
-	iconRenderer->position=gridToMinimap(worldToGrid(position));
+	iconRenderer->position=gridToMinimap(WorldToGrid(position));
 	sceneCam->update();
 	sceneCam->use();
 }
@@ -142,8 +142,8 @@ void Player::resolveCollitions() {
 	if(engine->ended||!initialized) return;
 	//if (inputs[4]) return;// noclip when left shift
 	collider->position=position;
-	for(unsigned int i=0; i<instanceColliders.size(); i++) {
-		CollitionData collition=instanceColliders[i]->checkCollision(collider);
+	for(unsigned int i=0; i<colliders.size(); i++) {
+		CollitionData collition=colliders[i]->checkCollision(collider);
 		collider->position+=collition.normal*collition.dist;
 	}
 	position=collider->position;
@@ -167,43 +167,210 @@ void Player::setPos(Vector2 _position) {
 	renderer->position=position;
 	flashlightRenderer->position=position;
 	sceneCam->position=position;
-	iconRenderer->position=gridToMinimap(worldToGrid(position));
+	iconRenderer->position=gridToMinimap(WorldToGrid(position));
 	sceneCam->update();
 	sceneCam->use();
 }
 #pragma endregion// Player
 
+#pragma region Pathfinder
+template <typename T, std::size_t N> bool arryHas(std::array<T, N> arry, T value) { for(T aryValue : arry) if(aryValue==value) return true; return false; }
+template <typename T> unsigned int vectorFind(std::vector<T> vec, T value) { for(unsigned int i=0; i<vec.size(); i++) if(vec[i]==value) return (int)i; return -1; }
+
+Pathfinder::Pathfinder() {
+	wallMap.resize(MaxIndex());
+	wallMap.assign(wallMap.size(), false);
+	for(const std::array<int, 5>&data:instanceData) {
+		for(float x=0; x<3; x++) {
+			for(float y=0; y<3; y++) {
+				wallMap[Pathfinder::GridToIndex(Vector2(((float)data[0])*2.0f+x, ((float)data[1])*2.0f+y))]=true;
+			}
+		}
+	}
+	for(const Vector3& line:horizontalWallData) {
+		for(float x=line.y*2.0f; x<line.z*2.0f+1; x++) {
+			wallMap[Pathfinder::GridToIndex(Vector2(x, line.x*2.0f))]=true;
+		}
+	}
+	for(const Vector3& line:verticalWallData) {
+		for(float y=line.y*2.0f; y<line.z*2.0f+1; y++) {
+			wallMap[Pathfinder::GridToIndex(Vector2(line.x*2.0f, y))]=true;
+		}
+	}
+}
+bool Pathfinder::isWall(Vector2 pos) {
+	if(pos.x<0||pos.y<0||pos.x>(mapSize.x*2-1)||pos.y>(mapSize.y*2-1)) return true;// dont bother checking if its out of range;
+	return wallMap[Pathfinder::GridToIndex(pos)]==true;
+}
+bool Pathfinder::isValid(Vector2 pos) {
+	return !isWall(pos);
+}
+float Pathfinder::calcH(Vector2 a, Vector2 b) {
+	Vector2 vec=(a-b).abs();
+	if(allowDiagonals) return std::min(vec.x, vec.y)*sqrtf(2)+abs(vec.x-vec.y);
+	else return vec.x+vec.y;
+}
+bool Pathfinder::isValidMove(Vector2 pos, Vector2 dir) {
+	if(!arryHas(movements, dir)) return false;
+	for(unsigned int i=0; i<((unsigned int)((sizeof obstructions)/(sizeof obstructions[0]))); i++) {
+		std::tuple<Vector2, std::vector<Vector2>> obstructionObj=obstructions[i];
+		if(dir!=std::get<0>(obstructionObj)) continue;
+		std::vector<Vector2> obstructionsLst=std::get<1>(obstructionObj);
+		for(Vector2 obstruction : obstructionsLst) if(!isValid(pos+obstruction)) return false;
+	}
+	return true;
+}
+struct PathfinderData {
+	Vector2 Pos;
+	unsigned int FromKey;
+	float G;
+	float F;
+	bool open;
+	bool initialized;
+	PathfinderData() :
+		Pos(Vector2()), FromKey(Pathfinder::MaxIndex()), G(FLT_MAX), F(FLT_MAX), open(false), initialized(false) {}
+	PathfinderData(Vector2 _Pos, unsigned int _FromKey, float _G, float _F, bool _open) :
+		Pos(_Pos), FromKey(_FromKey), G(_G), F(_F), open(_open), initialized(true) {}
+};
+std::vector<Vector2> Pathfinder::pathfind(Vector2 A, Vector2 B) {
+	if(A==B||!isValid(A)||!isValid(B)||isWall(B)) return {};
+	unsigned int maxKey=Pathfinder::MaxIndex();
+	std::vector<PathfinderData> dataMap;
+	std::vector<unsigned int> openIndices;
+	dataMap.resize(maxKey);
+	unsigned int tmp=Pathfinder::GridToIndex(A);
+	dataMap[tmp]=PathfinderData(A, -1, 0, calcH(A, B), true);
+	openIndices.push_back(tmp);
+	std::vector<unsigned int> successorKeys;
+	while(true) {
+		// find the square with the lowest F cost
+		unsigned int lowestKey=maxKey;
+		//double testTime=glfwGetTime();
+		if(successorKeys.size()>0) {
+			lowestKey=successorKeys.back();
+			successorKeys.pop_back();
+		} else {
+			float lowestF=-1.0f;
+			for(unsigned int i=0; i<openIndices.size(); i++) {
+				unsigned int key=openIndices[i];
+				PathfinderData data=dataMap[key];
+				if(data.open) {//if open
+					float F=data.F;
+					if((F<lowestF)||(lowestKey==maxKey)) {
+						lowestKey=key;
+						lowestF=F;
+						successorKeys.clear();
+					} else if(F==lowestF) {
+						successorKeys.push_back(key);
+					}
+				}
+			}
+		}
+		//Log("Test Time: "+std::to_string((glfwGetTime()-testTime)*1000.0)+"ms");
+		// return if there are no more unevaluated positions
+		if(lowestKey==maxKey) return {};
+		// close current position
+		PathfinderData* lowestData=&dataMap[lowestKey];
+		lowestData->open=false;
+		openIndices.erase(openIndices.begin()+vectorFind(openIndices, lowestKey));
+		Vector2 lowestPos=lowestData->Pos;
+		// if reached the goal, return the path to get to there from point A
+		if(lowestPos==B) {
+			std::vector<Vector2> path={ Pathfinder::GridToWorld(lowestData->Pos) };
+			PathfinderData data=dataMap[lowestData->FromKey];
+			while(data.FromKey!=-1) {
+				path.push_back(Pathfinder::GridToWorld(data.Pos));
+				data=dataMap[data.FromKey];
+			}
+			path.shrink_to_fit();
+			return path;
+		}
+		// evaluate squares around the currentSquare for their F cost
+		for(Vector2 movement : movements) {
+			if(!isValidMove(lowestPos, movement)) continue;
+			Vector2 pos=lowestPos+movement;
+			if(!isValid(pos)) continue;
+			unsigned int key=Pathfinder::GridToIndex(pos);
+			PathfinderData* oldData=&dataMap[key];
+			if(oldData->initialized&&!oldData->open) continue;
+			float G=lowestData->G+movement.length();
+			PathfinderData newData=PathfinderData(pos, lowestKey, G, G+calcH(pos, B), true);
+			if(newData.F<oldData->F) {
+				openIndices.push_back(key);
+				*oldData=newData;
+			}
+		}
+	}
+	return {};
+}
+#pragma endregion// Pathfinder
+
 #pragma region Enemy
-Enemy::Enemy(Engine* _engine, Vector2 _position, Shader* enemyShader, Shader* iconShader)
-	: Object(_engine), position(_position), renderer(nullptr), collider(nullptr), iconRenderer(nullptr) {
+Enemy::Enemy(Engine* _engine, Vector2 _position, Shader* enemyShader, Shader* iconShader, Shader* _lineShader, Pathfinder* _pathfinder, Player* _target)
+	: Object(_engine), position(_position), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), lineShader(_lineShader), pathfinder(_pathfinder), target(_target) {
 	if(!initialized) return;
 
 	renderer=new SpriteRenderer(engine, enemyShader, position, playerSize*mapScale, 1);
 	sceneRenderers.push_back(renderer);
 	collider=new BoxCollider(engine, position, playerHitbox*playerSize*mapScale, lineShader);
-	instanceColliders.push_back(collider);
-	iconRenderer=new SpriteRenderer(engine, iconShader, gridToMinimap(worldToGrid(position)), Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), 1.0f);
+	colliders.push_back(collider);
+	iconRenderer=new SpriteRenderer(engine, iconShader, gridToMinimap(WorldToGrid(position)), Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), 1.0f);
 	uiRenderers.push_back(iconRenderer);
 
 	resolveCollitions();
 	renderer->position=position;
-	iconRenderer->position=gridToMinimap(worldToGrid(position));
+	iconRenderer->position=gridToMinimap(WorldToGrid(position));
 
 	engine->sub_key(this);
 	engine->sub_loop(this);
 }
+void Enemy::updateDebugLine() {
+	delete debugRen;
+	if(path.size()>0) {
+		std::vector<Vector2> line;
+		for(const Vector2& pos:path) line.push_back(pos);
+		line.push_back(position);
+		debugRen=new LineRenderer(engine, lineShader, line, 3, false);
+	} else debugRen=nullptr;
+}
 void Enemy::on_loop(double delta) {
 	if(engine->ended||!initialized) return;
-	position+=Vector2(1.0f, 0.0f)*((float)delta)*mapScale*(1+spacing);
-	resolveCollitions();
+	Vector2 targetPos=Pathfinder::WorldToGrid(target->position);
+	if(targetLastPos!=targetPos) {
+		//double startTime=glfwGetTime();
+		path=pathfinder->pathfind(Pathfinder::WorldToGrid(position), targetPos);
+		//Log("Final Time: "+std::to_string((glfwGetTime()-startTime)*1000.0)+"ms");
+		targetLastPos=targetPos;
+	}
+	float travelDist=enemySpeed*((float)delta)*mapScale*(1+spacing);
+	while(path.size()>0) {
+		if((position-target->position).length()<=mapScale*(1+spacing)) { path.clear();break; }
+		Vector2 dir=path.back()-position;
+		float dist=dir.length();
+		if(travelDist==dist) {
+			position+=dir;
+			path.pop_back();
+			break;
+		} else if(travelDist<dist) {
+			position+=dir.normalized()*travelDist;
+			break;
+		} else {// travelDist>dist
+			position+=dir;
+			travelDist-=dist;
+			path.pop_back();
+			continue;
+		}
+	}
+	updateDebugLine();
 	renderer->position=position;
-	iconRenderer->position=gridToMinimap(worldToGrid(position));
+	collider->position=position;
+	iconRenderer->position=gridToMinimap(WorldToGrid(position));
 }
 void Enemy::resolveCollitions() {
 	if(engine->ended||!initialized) return;
 	collider->position=position;
-	for(unsigned int i=0; i<instanceColliders.size(); i++) {
-		CollitionData collition=instanceColliders[i]->checkCollision(collider);
+	for(unsigned int i=0; i<colliders.size(); i++) {
+		CollitionData collition=colliders[i]->checkCollision(collider);
 		collider->position+=collition.normal*collition.dist;
 	}
 	position=collider->position;
@@ -213,21 +380,28 @@ void Enemy::setPos(Vector2 _position) {
 	position=_position;
 	resolveCollitions();
 	renderer->position=position;
-	iconRenderer->position=gridToMinimap(worldToGrid(position));
+	iconRenderer->position=gridToMinimap(WorldToGrid(position));
 }
 #pragma endregion// Enemy
 
-Vector2 HD1080P(1920.0, 1080.0);
-Vector2 viewRange(480.0f, 270.0f);
 int main(int argc, char** argv) {
+#pragma region setup
+
+	// load map data
+	loadMapData("map");
+	if(!parsedMap) {
+		Log("Map data failed to load.");
+		return 0;
+	}
 	// setup engine
 	engine=new Engine(HD1080P, "Ghost Game", false);
 	if(!engine->initialized||engine->ended) {
 		Log("Engine failed to init.");
 		return 0;
 	}
-	// setup fps tracker
+	// setup other stuff
 	tracker=new FpsTracker(engine);
+	finder=std::make_unique<Pathfinder>();
 	// setup cameras
 	cam=new OrthoCam(engine, Vector2(), viewRange);
 	uiCam=new OrthoCam(engine, Vector2(480.0f, 270.0f), Vector2(960.0f, 540.0f));
@@ -236,19 +410,15 @@ int main(int argc, char** argv) {
 		engine->Delete();
 		return 0;
 	}
-	// load map data
-	loadMapData("map");
-	if(!parsedMap) {
-		Log("Map data failed to load.");
-		engine->Delete();
-		return 0;
-	}
 	// setup textures
 	Texture* playerTex=new Texture(engine, playerTexPath);
-	Texture* enemyTex=new Texture(engine, enemyTexPath);
 	Texture* flashlightTex=new Texture(engine, flashlightTexPath);
+
+	Texture* enemyTex=new Texture(engine, enemyTexPath);
+
 	Texture* backgroundTex=new Texture(engine, mapTexPath);
 	Texture* minimapTex=new Texture(engine, minimapTexPath);
+
 	Texture* instanceUnlitTex=new Texture(engine, instanceUnlitTexPath);
 	Texture* instanceWorkingTex=new Texture(engine, instanceWorkingTexPath);
 	Texture* instanceBrokenTex=new Texture(engine, instanceBrokenTexPath);
@@ -294,10 +464,11 @@ int main(int argc, char** argv) {
 	uiCam->bindShaders({ minimapShader, playerIconShader, enemyIconShader, textShader });
 	cam->use();
 	uiCam->use();
+#pragma endregion// setup
+
 	// player object
-	enemy=new Enemy(engine, gridToWorld(playerOffset+Vector2(0.0f, 2.0f)), enemyShader, enemyIconShader);
-	delete enemy;
-	player=new Player(engine, cam, gridToWorld(playerOffset), playerShader, flashlightShader, playerIconShader);
+	player=new Player(engine, cam, GridToWorld(playerOffset), playerShader, flashlightShader, playerIconShader);
+	enemy=new Enemy(engine, GridToWorld(playerOffset+Vector2(0.0f, 2.0f)), enemyShader, enemyIconShader, lineShader, finder.get(), player);
 	// map and minimap
 	sceneRenderers.push_back(new SpriteRenderer(engine, backgroundShader, fullMapSize/2.0f, fullMapSize));// background
 	uiRenderers.push_back(new SpriteRenderer(engine, minimapShader, Vector2(minimapSize.x/2.0f, 540.0f-minimapSize.y/2.0f), minimapSize));// minimap
@@ -310,23 +481,20 @@ int main(int argc, char** argv) {
 	}
 	//ColliderDebug=true;// make hitboxes visible
 	// create instances
-	for(unsigned int i=0; i<instanceData.size(); i++) {
-		std::vector<int> dat=instanceData[i];
-		Vector2 pos=gridToWorld(Vector2(((float)dat[0]+0.5f), ((float)dat[1]+0.5f)));
+	for(const std::array<int, 5>&dat:instanceData) {
+		Vector2 pos=GridToWorld(Vector2(((float)dat[0]+0.5f), ((float)dat[1]+0.5f)));
 		sceneRenderers.push_back(new SpriteRenderer(engine, instanceUnlitShader, pos, Vector2(mapScale, mapScale), 2.0f));
 		bool broken=((float)std::rand())/((float)RAND_MAX)<=(instanceBrokenChance/100.0f);
 		instanceStateRenderers.push_back(new SpriteRenderer(engine, broken ? instanceBrokenShader : instanceWorkingShader, pos, Vector2(mapScale, mapScale), 3.0f));
-		instanceColliders.push_back(new BoxCollider(engine, pos, Vector2(mapScale, mapScale), lineShader));
+		colliders.push_back(new BoxCollider(engine, pos, Vector2(mapScale, mapScale), lineShader));
 	}
 	// create horizontal wall colliders
-	for(unsigned int i=0; i<horizontalWallData.size(); i++) {
-		Vector3 line=horizontalWallData[i];
-		instanceColliders.push_back(new BoxCollider(engine, gridToWorld(Vector2((line.z+line.y)/2, line.x)), Vector2(((line.z-line.y)*(1.0f+spacing)+spacing*3)*mapScale, spacing*3*mapScale), lineShader));
+	for(const Vector3& line:horizontalWallData) {
+		colliders.push_back(new BoxCollider(engine, GridToWorld(Vector2((line.z+line.y)/2, line.x)), Vector2(((line.z-line.y)*(1.0f+spacing)+spacing*3)*mapScale, spacing*3*mapScale), lineShader));
 	}
 	// create vertical wall colliders
-	for(unsigned int i=0; i<verticalWallData.size(); i++) {
-		Vector3 line=verticalWallData[i];
-		instanceColliders.push_back(new BoxCollider(engine, gridToWorld(Vector2(line.x, (line.z+line.y)/2)), Vector2(spacing*3*mapScale, ((line.z-line.y)*(1.0f+spacing)+spacing*3)*mapScale), lineShader));
+	for(const Vector3& line:verticalWallData) {
+		colliders.push_back(new BoxCollider(engine, GridToWorld(Vector2(line.x, (line.z+line.y)/2)), Vector2(spacing*3*mapScale, ((line.z-line.y)*(1.0f+spacing)+spacing*3)*mapScale), lineShader));
 	}
 	// run main loop
 	engine->renderLoop=Loop;
@@ -338,7 +506,7 @@ int main(int argc, char** argv) {
 	instanceStateRenderers.clear();
 	uiRenderers.clear();
 	debugText.clear();
-	instanceColliders.clear();
+	colliders.clear();
 	return 1;
 }
 void Loop(double delta) {
@@ -352,8 +520,9 @@ void Loop(double delta) {
 	player->flashlightStencilOn();
 	for(Renderer2D* ren:instanceStateRenderers) if(ren->shouldDraw(playerPos, flashlightRange*mapScale)) ren->draw();
 	player->flashlightStencilOff();
+	if(enemy->debugRen) enemy->debugRen->draw();
 
-	for(BoxCollider* col:instanceColliders) if(col->shouldDraw(playerPos, viewRange)) col->draw();
+	for(BoxCollider* col:colliders) if(col->shouldDraw(playerPos, viewRange)) col->draw();
 	// draw ui
 	glClear(GL_DEPTH_BUFFER_BIT);
 	for(Renderer* ren:uiRenderers) ren->draw();

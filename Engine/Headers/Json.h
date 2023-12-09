@@ -2,6 +2,7 @@
 #define _JSONH
 #include "Lib.h"
 #include <vector>
+#include <array>
 
 extern Vector2 mapSize;
 extern float mapScale;
@@ -21,6 +22,7 @@ extern std::string flashlightTexPath;
 extern Vector3 flashlightColor;
 extern float flashlightRange;
 
+extern float enemySpeed;
 extern std::string enemyTexPath;
 extern Vector3 enemyModulate;
 
@@ -28,7 +30,7 @@ extern std::string instanceUnlitTexPath;
 extern std::string instanceWorkingTexPath;
 extern std::string instanceBrokenTexPath;
 extern float instanceBrokenChance;
-extern std::vector<std::vector<int>> instanceData;
+extern std::vector<std::array<int, 5>> instanceData;
 
 extern std::vector<Vector3> horizontalWallData;
 extern std::vector<Vector3> verticalWallData;
