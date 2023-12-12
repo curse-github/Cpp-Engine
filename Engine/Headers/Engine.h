@@ -193,12 +193,14 @@ class SpriteRenderer : public Renderer2D {
 	public:
 	Vector2 position;
 	Vector2 scale;
+	Vector2 anchor;
 	Vector3 rotAxis=Vector3(0.0f, 0.0f, 1.0f);
 	float zIndex=0;
 	float rotAngle;
-	SpriteRenderer() : Renderer2D(), position(Vector2()), scale(Vector2()), rotAngle(0.0f) {}
-	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _zIndex, float _rotAngle);
-	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _zIndex);
+	SpriteRenderer() : Renderer2D(), position(Vector2()), scale(Vector2()), anchor(Vector2()), rotAngle(0.0f) {}
+	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, Vector2 _anchor, float _zIndex, float _rotAngle);
+	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, Vector2 _anchor, float _zIndex);
+	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, Vector2 _anchor);
 	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale);
 	void draw() override;
 	bool shouldDraw(Vector2 viewer, Vector2 viewRange) override;

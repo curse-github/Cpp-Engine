@@ -126,7 +126,6 @@ class BoxCollider : public LineRenderer {
 	void draw();
 	CollitionData checkCollision(BoxCollider* other);
 };
-
 class Player : public Object {
 	protected:
 	StencilSimple flashlightStencil;
@@ -147,7 +146,6 @@ class Player : public Object {
 	void flashlightStencilOff();
 	void setPos(Vector2 pos);
 };
-
 class Enemy : public Object {
 	protected:
 	SpriteRenderer* renderer;

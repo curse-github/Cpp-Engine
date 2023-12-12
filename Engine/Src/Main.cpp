@@ -95,12 +95,12 @@ Player::Player(Engine* _engine, OrthoCam* _sceneCam, Vector2 _position, Shader* 
 	: Object(_engine), position(_position), flashlightStencil(StencilSimple()), sceneCam(_sceneCam), renderer(nullptr), collider(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {
 	if(!initialized) return;
 
-	renderer=new SpriteRenderer(engine, playerShader, position, playerSize*mapScale, 1);
+	renderer=new SpriteRenderer(engine, playerShader, position, playerSize*mapScale, Vector2(), 1);
 	sceneRenderers.push_back(renderer);
 	collider=new BoxCollider(engine, position, playerHitbox*playerSize*mapScale, lineShader);
 	colliders.push_back(collider);
-	flashlightRenderer=new SpriteRenderer(engine, flashlightShader, position, flashlightRange*mapScale, 1.0f);
-	iconRenderer=new SpriteRenderer(engine, iconShader, gridToMinimap(WorldToGrid(position)), Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), 1.0f);
+	flashlightRenderer=new SpriteRenderer(engine, flashlightShader, position, flashlightRange*mapScale, Vector2(), 1.0f);
+	iconRenderer=new SpriteRenderer(engine, iconShader, gridToMinimap(WorldToGrid(position)), Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), Vector2(), 1.0f);
 	uiRenderers.push_back(iconRenderer);
 
 	resolveCollitions();
@@ -310,11 +310,11 @@ Enemy::Enemy(Engine* _engine, Vector2 _position, Shader* enemyShader, Shader* ic
 	: Object(_engine), position(_position), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), lineShader(_lineShader), pathfinder(_pathfinder), target(_target) {
 	if(!initialized) return;
 
-	renderer=new SpriteRenderer(engine, enemyShader, position, playerSize*mapScale, 1);
+	renderer=new SpriteRenderer(engine, enemyShader, position, playerSize*mapScale, Vector2(), 1.0f);
 	sceneRenderers.push_back(renderer);
 	collider=new BoxCollider(engine, position, playerHitbox*playerSize*mapScale, lineShader);
 	colliders.push_back(collider);
-	iconRenderer=new SpriteRenderer(engine, iconShader, gridToMinimap(WorldToGrid(position)), Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), 1.0f);
+	iconRenderer=new SpriteRenderer(engine, iconShader, gridToMinimap(WorldToGrid(position)), Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), Vector2(), 1.0f);
 	uiRenderers.push_back(iconRenderer);
 
 	resolveCollitions();
@@ -464,12 +464,13 @@ int main(int argc, char** argv) {
 	cam->use();
 	uiCam->use();
 #pragma endregion// Setup
+
 	// player object
 	player=new Player(engine, cam, GridToWorld(playerOffset), playerShader, flashlightShader, playerIconShader);
 	enemy=new Enemy(engine, GridToWorld(playerOffset+Vector2(0.0f, 2.0f)), enemyShader, enemyIconShader, lineShader, finder.get(), player);
 	// map and minimap
-	sceneRenderers.push_back(new SpriteRenderer(engine, backgroundShader, fullMapSize/2.0f, fullMapSize));// background
-	uiRenderers.push_back(new SpriteRenderer(engine, minimapShader, Vector2(minimapSize.x/2.0f, 540.0f-minimapSize.y/2.0f), minimapSize));// minimap
+	sceneRenderers.push_back(new SpriteRenderer(engine, backgroundShader, Vector2(), fullMapSize, Vector2(-0.5,-0.5)));// background
+	uiRenderers.push_back(new SpriteRenderer(engine, minimapShader, Vector2(0.0f,540.0f), minimapSize, Vector2(-0.5f,0.5f)));// minimap
 	// setup text renderers
 	debugText.push_back(new TextRenderer(engine, textShader, "Pos:\nGrid Pos:\nFps Avg:\nTime:", Vector2(1.0f, 13.0f*4+1.0f), 2.0f, Vector3(0.75f, 0.75f, 0.75f)));
 	if(engine->ended||!characterMapInitialized) {
@@ -481,9 +482,9 @@ int main(int argc, char** argv) {
 	// create instances
 	for(const std::array<int, 5>&dat:instanceData) {
 		Vector2 pos=GridToWorld(Vector2(((float)dat[0]+0.5f), ((float)dat[1]+0.5f)));
-		sceneRenderers.push_back(new SpriteRenderer(engine, instanceUnlitShader, pos, Vector2(mapScale, mapScale), 2.0f));
+		sceneRenderers.push_back(new SpriteRenderer(engine, instanceUnlitShader, pos, Vector2(mapScale, mapScale), Vector2(), 2.0f));
 		bool broken=((float)std::rand())/((float)RAND_MAX)<=(instanceBrokenChance/100.0f);
-		instanceStateRenderers.push_back(new SpriteRenderer(engine, broken ? instanceBrokenShader : instanceWorkingShader, pos, Vector2(mapScale, mapScale), 3.0f));
+		instanceStateRenderers.push_back(new SpriteRenderer(engine, broken ? instanceBrokenShader : instanceWorkingShader, pos, Vector2(mapScale, mapScale), Vector2(), 3.0f));
 		colliders.push_back(new BoxCollider(engine, pos, Vector2(mapScale, mapScale), lineShader));
 	}
 	// create horizontal wall colliders
@@ -494,7 +495,6 @@ int main(int argc, char** argv) {
 	for(const Vector3& line:verticalWallData) {
 		colliders.push_back(new BoxCollider(engine, GridToWorld(Vector2(line.x, (line.z+line.y)/2)), Vector2(spacing*3*mapScale, ((line.z-line.y)*(1.0f+spacing)+spacing*3)*mapScale), lineShader));
 	}
-
 	// run main loop
 	engine->renderLoop=Loop;
 	Log("Engine initialized successfully.");
@@ -521,7 +521,6 @@ void Loop(double delta) {
 	for(Renderer2D* ren:instanceStateRenderers) if(ren->shouldDraw(playerPos, flashlightRange*mapScale)) ren->draw();
 	player->flashlightStencilOff();
 	if(enemy->debugRen) enemy->debugRen->draw();
-
 	for(BoxCollider* col:colliders) if(col->shouldDraw(playerPos, viewRange)) col->draw();
 	// draw ui
 	glClear(GL_DEPTH_BUFFER_BIT);

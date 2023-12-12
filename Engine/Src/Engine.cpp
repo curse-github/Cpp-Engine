@@ -618,8 +618,8 @@ int quadindices[]={
 	0, 1, 3,
 	1, 2, 3
 };
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _zIndex, float _rotAngle) :
-	Renderer2D(_engine, _shader, _position, _scale), position(_position), scale(_scale), zIndex(_zIndex), rotAngle(_rotAngle) {
+SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, Vector2 _anchor, float _zIndex, float _rotAngle) :
+	Renderer2D(_engine, _shader, _position, _scale), position(_position), scale(_scale), anchor(_anchor), zIndex(_zIndex), rotAngle(_rotAngle) {
 	if(!initialized) return;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -638,17 +638,18 @@ SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _positi
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, float _zIndex) : SpriteRenderer(_engine, _shader, _position, _scale, _zIndex, 0.0f) {}
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale) : SpriteRenderer(_engine, _shader, _position, _scale, 0.0f, 0.0f) {}
+SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, Vector2 _anchor, float _zIndex) : SpriteRenderer(_engine, _shader, _position, _scale, _anchor, _zIndex, 0.0f) {}
+SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, Vector2 _anchor) : SpriteRenderer(_engine, _shader, _position, _scale, _anchor, 0.0f, 0.0f) {}
+SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale) : SpriteRenderer(_engine, _shader, _position, _scale, Vector2(0.0f, 0.0f), 0.0f, 0.0f) {}
 void SpriteRenderer::draw() {
 	if(engine->ended||!initialized) return;
-	Mat4x4 model=scaleMat(Vector3(scale, 1.0f))*axisRotMat(rotAxis, deg_to_rad(rotAngle))*translate(Vector3(position, zIndex-100));
+	Mat4x4 model=translate(Vector3(-anchor, 0.0f))*axisRotMat(rotAxis, deg_to_rad(rotAngle))*scaleMat(Vector3(scale, 1.0f))*translate(Vector3(position, zIndex-100.0f));
 	shader->bindTextures();
 	shader->setMat4x4("model", model);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
-bool SpriteRenderer::shouldDraw(Vector2 viewer, Vector2 viewRange) { return AABBOverlap(position, scale, viewer, viewRange); }
+bool SpriteRenderer::shouldDraw(Vector2 viewer, Vector2 viewRange) { return AABBOverlap(Vector2(-anchor.x*scale.x, -anchor.y*scale.y)+position, scale, viewer, viewRange); }
 
 struct Character {
 	unsigned int TextureID=0;// ID handle of the glyph texture
