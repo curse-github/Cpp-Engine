@@ -12,9 +12,9 @@
 const float minimapScale=0.15f;
 Vector2 minimapSize;
 
-Vector2 gridToMinimap(Vector2 grid) { return Vector2(grid.x/mapSize.x*minimapSize.x, 540-grid.y/mapSize.y*minimapSize.y); }
-Vector2 WorldToGrid(Vector2 world) { return Vector2(world.x/mapScale/(1.0f+spacing), mapSize.y-world.y/mapScale/(1.0f+spacing)); }
-Vector2 GridToWorld(Vector2 grid) { return Vector2(grid.x*mapScale*(1.0f+spacing), (mapSize.y-grid.y)*mapScale*(1.0f+spacing)); }
+Vector2 gridToMinimap(Vector2 grid) { return Vector2(grid.x/mapSize.x*minimapSize.x, 540+(grid.y/mapSize.y-1)*minimapSize.y); }
+Vector2 WorldToGrid(Vector2 world) { return Vector2(world.x/mapScale/(1.0f+spacing), world.y/mapScale/(1.0f+spacing)); }
+Vector2 GridToWorld(Vector2 grid) { return Vector2(grid.x*mapScale*(1.0f+spacing), grid.y*mapScale*(1.0f+spacing)); }
 
 struct PathfinderData;
 class Pathfinder {
@@ -45,8 +45,8 @@ class Pathfinder {
 		} };
 	std::vector<bool> wallMap;
 	public:
-	static Vector2 GridToWorld(Vector2 grid) { return Vector2(grid.x/2.0f*mapScale*(1.0f+spacing), (mapSize.y-grid.y/2.0f)*mapScale*(1.0f+spacing)); }
-	static Vector2 WorldToGrid(Vector2 world) { return Vector2(std::round(world.x/mapScale/(1.0f+spacing)*2.0f), std::round(mapSize.y*2.0f-world.y/mapScale/(1.0f+spacing)*2.0f)); }
+	static Vector2 GridToWorld(Vector2 grid) { return Vector2(grid.x/2.0f*mapScale*(1.0f+spacing), grid.y/2.0f*mapScale*(1.0f+spacing)); }
+	static Vector2 WorldToGrid(Vector2 world) { return Vector2(std::round(world.x/mapScale/(1.0f+spacing)*2.0f), std::round(world.y/mapScale/(1.0f+spacing)*2.0f)); }
 	Pathfinder();
 	std::vector<Vector2> pathfind(Vector2 a, Vector2 b);
 	bool allowDiagonals=true;

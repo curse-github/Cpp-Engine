@@ -37,6 +37,9 @@ Vector2 Vector2::normalized() {
 	return len!=0 ? (Vector2(x, y)/len) : Vector2(x, y);
 }
 Vector2 Vector2::abs() { return Vector2(std::abs(x), std::abs(y)); }
+Vector2 Vector2::floor() { return Vector2(std::floor(x), std::floor(y)); }
+Vector2 Vector2::round() { return Vector2(std::round(x), std::round(y)); }
+Vector2 Vector2::ceil() { return Vector2(std::ceil(x), std::ceil(y)); }
 Vector2 Vector2::operator+(Vector2 b) { return Vector2(x+b.x, y+b.y); }
 Vector2 Vector2::operator-(Vector2 b) { return Vector2(x-b.x, y-b.y); }
 Vector2 Vector2::operator-() { return Vector2(-x, -y); }

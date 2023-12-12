@@ -35,6 +35,9 @@ class Vector2 {
 	float dot(Vector2 b);
 	Vector2 normalized();
 	Vector2 abs();
+	Vector2 floor();
+	Vector2 round();
+	Vector2 ceil();
 	Vector2 operator+(Vector2 b);
 	Vector2 operator-(Vector2 b);
 	Vector2 operator-();

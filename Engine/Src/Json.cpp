@@ -247,7 +247,7 @@ float parseFloat(std::string* json) {
 		startsWith(*json, "4")||startsWith(*json, "5")||
 		startsWith(*json, "6")||startsWith(*json, "7")||
 		startsWith(*json, "8")||startsWith(*json, "9")||
-		startsWith(*json, ".")) {
+		startsWith(*json, ".")||startsWith(*json, "-")) {
 		str+=stringCut(json, 1);
 	}
 	return std::stof(str);

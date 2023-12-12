@@ -385,8 +385,7 @@ void Enemy::setPos(Vector2 _position) {
 #pragma endregion// Enemy
 
 int main(int argc, char** argv) {
-#pragma region setup
-
+#pragma region Setup
 	// load map data
 	loadMapData("map");
 	if(!parsedMap) {
@@ -464,8 +463,7 @@ int main(int argc, char** argv) {
 	uiCam->bindShaders({ minimapShader, playerIconShader, enemyIconShader, textShader });
 	cam->use();
 	uiCam->use();
-#pragma endregion// setup
-
+#pragma endregion// Setup
 	// player object
 	player=new Player(engine, cam, GridToWorld(playerOffset), playerShader, flashlightShader, playerIconShader);
 	enemy=new Enemy(engine, GridToWorld(playerOffset+Vector2(0.0f, 2.0f)), enemyShader, enemyIconShader, lineShader, finder.get(), player);
@@ -473,7 +471,7 @@ int main(int argc, char** argv) {
 	sceneRenderers.push_back(new SpriteRenderer(engine, backgroundShader, fullMapSize/2.0f, fullMapSize));// background
 	uiRenderers.push_back(new SpriteRenderer(engine, minimapShader, Vector2(minimapSize.x/2.0f, 540.0f-minimapSize.y/2.0f), minimapSize));// minimap
 	// setup text renderers
-	debugText.push_back(new TextRenderer(engine, textShader, "Pos:\nFps Avg:\nTime:", Vector2(1.0f, 36.0f), 2.0f, Vector3(0.75f, 0.75f, 0.75f)));
+	debugText.push_back(new TextRenderer(engine, textShader, "Pos:\nGrid Pos:\nFps Avg:\nTime:", Vector2(1.0f, 13.0f*4+1.0f), 2.0f, Vector3(0.75f, 0.75f, 0.75f)));
 	if(engine->ended||!characterMapInitialized) {
 		Log("Fonts failed to init.");
 		engine->Delete();
@@ -496,6 +494,7 @@ int main(int argc, char** argv) {
 	for(const Vector3& line:verticalWallData) {
 		colliders.push_back(new BoxCollider(engine, GridToWorld(Vector2(line.x, (line.z+line.y)/2)), Vector2(spacing*3*mapScale, ((line.z-line.y)*(1.0f+spacing)+spacing*3)*mapScale), lineShader));
 	}
+
 	// run main loop
 	engine->renderLoop=Loop;
 	Log("Engine initialized successfully.");
@@ -513,6 +512,7 @@ void Loop(double delta) {
 	// set debug text
 	Vector2 playerPos=player->position;
 	debugText[0]->text="Pos: "+playerPos.to_string()+"\n";
+	debugText[0]->text+="Grid Pos: "+WorldToGrid(playerPos).floor().to_string()+"\n";
 	debugText[0]->text+="Fps Avg: "+std::to_string(tracker->getAvgFps())+", high: "+std::to_string(tracker->getHighFps())+", low: "+std::to_string(tracker->getLowFps())+"\n";
 	debugText[0]->text+="Time: "+std::to_string(glfwGetTime());
 	// draw scene
