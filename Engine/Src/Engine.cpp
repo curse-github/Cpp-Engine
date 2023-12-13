@@ -702,8 +702,8 @@ int initCharacterMap() {
 	characterMapInitialized=true;
 	return 1;
 }
-TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector2 _position, float _scale, Vector3 _color) :
-	Renderer2D(_engine, _shader), text(_text), position(_position), scale(_scale), color(_color) {
+TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, Vector2 _anchor, float _zIndex) :
+	Renderer2D(_engine, _shader), text(_text), color(_color), position(_position), scale(_scale), anchor(_anchor), zIndex(_zIndex) {
 	if(!initialized) return;
 	if(!characterMapInitialized) {
 		if(!initCharacterMap()) {
@@ -733,21 +733,38 @@ TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, 
 
 	shader->setFloat("text", 0);
 }
+TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, Vector2 _anchor) : TextRenderer(_engine, _shader, _text, _color, _position, _scale, _anchor, 0.0f) {}
+TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale) : TextRenderer(_engine, _shader, _text, _color, _position, _scale, Vector2(), 0.0f) {}
 void TextRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	shader->setFloat3("textColor", color);
 	glActiveTexture(GL_TEXTURE0);
 	glBindVertexArray(VAO);
-
-	// iterate through all characters
-	float x=position.x;
-	float y=position.y;
+	// iterate through all characters to find final scale
+	float x=0.0f;
+	float maxX=0.0f;
+	float y=0.0f;
 	std::string::const_iterator c;
+	for(c=text.begin(); c!=text.end(); c++) {
+		if(*c=='\n') {
+			if(x>maxX)maxX=x;
+			x=0.0f;
+			y-=(8*scale+1);
+			continue;
+		}
+		Character ch=Characters[*c];
+		x+=(ch.Advance>>6)*scale; // bitshift by 6 to get value in pixels (2^6 = 64)
+	}
+	if(x>maxX)maxX=x;
+	Vector2 size(maxX, y);
+	// iterate through all characters and render each
+	x=position.x;
+	y=position.y;
 	for(c=text.begin(); c!=text.end(); c++) {
 		if(*c=='\n') { x=position.x;y-=(8*scale+1); continue; }
 		Character ch=Characters[*c];
-		float xpos=x+ch.Bearing.x*scale;
-		float ypos=y-(ch.Size.y-ch.Bearing.y)*scale;
+		float xpos=(size.x*(-anchor.x-0.5f))+x+ch.Bearing.x*scale;
+		float ypos=(size.y*(anchor.y-0.5f))+y-(ch.Size.y-ch.Bearing.y)*scale;
 		float w=ch.Size.x*scale;
 		float h=ch.Size.y*scale;
 		// update VBO for each character

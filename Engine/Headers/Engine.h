@@ -209,11 +209,15 @@ extern bool characterMapInitialized;
 class TextRenderer : public Renderer2D {
 	public:
 	std::string text;
+	Vector3 color;
 	Vector2 position;
 	float scale;
-	Vector3 color;
-	TextRenderer() : Renderer2D(), text(""), position(Vector2()), scale(0), color(Vector3()) {}
-	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector2 _position, float _scale, Vector3 _color);
+	Vector2 anchor;
+	float zIndex;
+	TextRenderer() : Renderer2D(), text(""), color(Vector3()), position(Vector2()), scale(0), anchor(Vector2()), zIndex(0) {}
+	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, Vector2 _anchor, float _zIndex);
+	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, Vector2 _anchor);
+	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale);
 	void draw() override;
 };
 class LineRenderer : public Renderer2D {

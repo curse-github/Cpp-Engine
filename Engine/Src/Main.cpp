@@ -403,7 +403,7 @@ int main(int argc, char** argv) {
 	finder=std::make_unique<Pathfinder>();
 	// setup cameras
 	cam=new OrthoCam(engine, Vector2(), viewRange);
-	uiCam=new OrthoCam(engine, Vector2(480.0f, 270.0f), Vector2(960.0f, 540.0f));
+	uiCam=new OrthoCam(engine, viewRange, viewRange*2.0f);
 	if(engine->ended||!cam->initialized||!uiCam->initialized) {
 		Log("Cameras failed to init.");
 		engine->Delete();
@@ -468,11 +468,11 @@ int main(int argc, char** argv) {
 	// player object
 	player=new Player(engine, cam, GridToWorld(playerOffset), playerShader, flashlightShader, playerIconShader);
 	enemy=new Enemy(engine, GridToWorld(playerOffset+Vector2(0.0f, 2.0f)), enemyShader, enemyIconShader, lineShader, finder.get(), player);
-	// map and minimap
-	sceneRenderers.push_back(new SpriteRenderer(engine, backgroundShader, Vector2(), fullMapSize, Vector2(-0.5,-0.5)));// background
-	uiRenderers.push_back(new SpriteRenderer(engine, minimapShader, Vector2(0.0f,540.0f), minimapSize, Vector2(-0.5f,0.5f)));// minimap
+	// map and minimap4
+	sceneRenderers.push_back(new SpriteRenderer(engine, backgroundShader, Vector2(), fullMapSize, Vector2(-0.5, -0.5)));// background
+	uiRenderers.push_back(new SpriteRenderer(engine, minimapShader, Vector2(0.0f, HD1080P.y/2.0f), minimapSize, Vector2(-0.5f, 0.5f)));// minimap
 	// setup text renderers
-	debugText.push_back(new TextRenderer(engine, textShader, "Pos:\nGrid Pos:\nFps Avg:\nTime:", Vector2(1.0f, 13.0f*4+1.0f), 2.0f, Vector3(0.75f, 0.75f, 0.75f)));
+	debugText.push_back(new TextRenderer(engine, textShader, "Pos:\nGrid Pos:\nFps Avg:\nTime:", Vector3(0.75f, 0.75f, 0.75f), Vector2(1.0f, 1.0f), 2.0f, Vector2(-0.5f, -0.5f)));
 	if(engine->ended||!characterMapInitialized) {
 		Log("Fonts failed to init.");
 		engine->Delete();
