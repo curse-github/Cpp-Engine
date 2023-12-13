@@ -223,6 +223,17 @@ void Object::on_mouse_enter(GLFWwindow* window, int entered) {}
 void Object::on_loop(double delta) {}
 #pragma endregion// Object
 
+#pragma region Transform
+Transform::Transform(Vector3 _position, Vector3 _scale, Vector3 _rotAxis, float _rotAngle) :
+	position(_position), scale(_scale), rotAxis(_rotAxis), rotAngle(_rotAngle) {
+
+}
+Transform2D::Transform2D(Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle) :
+	position(_position), zIndex(_zIndex), scale(_scale), anchor(_anchor), rotAngle(_rotAngle) {
+
+}
+#pragma endregion// Transform
+
 #pragma region Shader
 Shader::Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath) : Object(_engine) {
 	if(!initialized) return;
@@ -396,7 +407,7 @@ void Camera::use() {
 }
 
 LookAtCam::LookAtCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _focus) :
-	Camera(_engine), aspect(_aspect), position(_position), focus(_focus) {
+	Camera(_engine), Transform(_position, Vector3(), Vector3(), 0.0f), aspect(_aspect), focus(_focus) {
 	if(!initialized) return;
 	update();
 }
@@ -407,7 +418,7 @@ void LookAtCam::update() {
 }
 
 FreeCam::FreeCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _forward, Vector3 _up) :
-	Camera(_engine), aspect(_aspect), position(_position), forward(_forward), up(_up) {
+	Camera(_engine), Transform(_position, Vector3(), Vector3(), 0.0f), aspect(_aspect), forward(_forward), up(_up) {
 	if(!initialized) return;
 	glfwSetInputMode(engine->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	engine->sub_key(this);
@@ -468,14 +479,14 @@ void FreeCam::on_loop(double delta) {
 	update();
 }
 
-OrthoCam::OrthoCam(Engine* _engine, Vector2 _position, Vector2 _size) :
-	Camera(_engine), position(_position), size(_size) {
+OrthoCam::OrthoCam(Engine* _engine, Vector2 _position, Vector2 _scale) :
+	Camera(_engine), Transform2D(_position, 0.0f, _scale, Vector2(), 0.0f) {
 	if(!initialized) return;
 	update();
 }
 void OrthoCam::update() {
 	if(engine->ended||!initialized) return;
-	projection=ortho(-size.x/2.0f, size.x/2.0f, -size.y/2.0f, size.y/2.0f, 0.0f, 1000.0f);
+	projection=ortho(-scale.x/2.0f, scale.x/2.0f, -scale.y/2.0f, scale.y/2.0f, 0.0f, 1000.0f);
 	view=translate(Vector3(-position, 0));
 }
 #pragma endregion// Camera
@@ -562,8 +573,8 @@ int cubeindices[]={
 	8, 13, 16, 16, 17, 8,
 	18, 19, 14, 14, 11, 18
 };
-CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _rotAxis, float _rotAngle) :
-	Renderer(_engine, _shader), position(_position), rotAxis(_rotAxis), rotAngle(_rotAngle) {
+CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _scale, Vector3 _rotAxis, float _rotAngle) :
+	Renderer(_engine, _shader), Transform(_position, _scale, _rotAxis, _rotAngle) {
 	if(!initialized) return;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -581,6 +592,7 @@ CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, 
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));// get vertex uv data
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
 }
+CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _scale) : CubeRenderer(_engine, _shader, _position, _scale, Vector3::UP, 0.0f) {}
 void CubeRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	Mat4x4 model=axisRotMat(rotAxis, deg_to_rad(rotAngle))*translate(position);
@@ -602,10 +614,13 @@ bool Renderer2D::AABBOverlap(Vector2 aPos, Vector2 aSize, Vector2 bPos, Vector2 
 	return collisionX1>0&&collisionX2>0&&collisionY1>0&&collisionY2>0;
 }
 bool Renderer2D::shouldDraw(Vector2 viewer, Vector2 viewRange) {
-	return true;
+	return AABBOverlap(Vector2(-anchor.x*scale.x, -anchor.y*scale.y)+position, scale, viewer, viewRange);
 }
 bool Renderer2D::shouldDraw(Vector2 viewer, float viewRange) {
 	return shouldDraw(viewer, Vector2(viewRange, viewRange));
+}
+bool Renderer2D::shouldDraw(OrthoCam* viewer) {
+	return shouldDraw(viewer->position, viewer->scale);
 }
 
 float quadvertices[]={
@@ -618,8 +633,8 @@ int quadindices[]={
 	0, 1, 3,
 	1, 2, 3
 };
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, Vector2 _anchor, float _zIndex, float _rotAngle) :
-	Renderer2D(_engine, _shader, _position, _scale), position(_position), scale(_scale), anchor(_anchor), zIndex(_zIndex), rotAngle(_rotAngle) {
+SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle) :
+	Object(_engine), Renderer2D(_engine, _shader), Transform2D(_position, _zIndex, _scale, _anchor, _rotAngle) {
 	if(!initialized) return;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -638,9 +653,10 @@ SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _positi
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, Vector2 _anchor, float _zIndex) : SpriteRenderer(_engine, _shader, _position, _scale, _anchor, _zIndex, 0.0f) {}
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, Vector2 _anchor) : SpriteRenderer(_engine, _shader, _position, _scale, _anchor, 0.0f, 0.0f) {}
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale) : SpriteRenderer(_engine, _shader, _position, _scale, Vector2::ZERO, 0.0f, 0.0f) {}
+SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor) : SpriteRenderer(_engine, _shader, _position, _zIndex, _scale, _anchor, 0.0f) {}
+SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale) : SpriteRenderer(_engine, _shader, _position, _zIndex, _scale, Vector2::Center, 0.0f) {}
+SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex) : SpriteRenderer(_engine, _shader, _position, _zIndex, Vector2::ZERO, Vector2::Center, 0.0f) {}
+SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position) : SpriteRenderer(_engine, _shader, _position, 0.0f, Vector2::ZERO, Vector2::Center, 0.0f) {}
 void SpriteRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	Mat4x4 model=translate(Vector3(-anchor, 0.0f))*axisRotMat(rotAxis, deg_to_rad(rotAngle))*scaleMat(Vector3(scale, 1.0f))*translate(Vector3(position, zIndex-100.0f));
@@ -649,7 +665,6 @@ void SpriteRenderer::draw() {
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
-bool SpriteRenderer::shouldDraw(Vector2 viewer, Vector2 viewRange) { return AABBOverlap(Vector2(-anchor.x*scale.x, -anchor.y*scale.y)+position, scale, viewer, viewRange); }
 
 struct Character {
 	unsigned int TextureID=0;// ID handle of the glyph texture
@@ -702,8 +717,8 @@ int initCharacterMap() {
 	characterMapInitialized=true;
 	return 1;
 }
-TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, Vector2 _anchor, float _zIndex) :
-	Renderer2D(_engine, _shader), text(_text), color(_color), position(_position), scale(_scale), anchor(_anchor), zIndex(_zIndex) {
+TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _zIndex, float _scale, Vector2 _anchor) :
+	Object(_engine), Renderer2D(_engine, _shader), text(_text), color(_color), scale(_scale), Transform2D(_position, _zIndex, _scale, _anchor, 0.0f) {
 	if(!initialized) return;
 	if(!characterMapInitialized) {
 		if(!initCharacterMap()) {
@@ -733,8 +748,7 @@ TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, 
 
 	shader->setFloat("text", 0);
 }
-TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, Vector2 _anchor) : TextRenderer(_engine, _shader, _text, _color, _position, _scale, _anchor, 0.0f) {}
-TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale) : TextRenderer(_engine, _shader, _text, _color, _position, _scale, Vector2::ZERO, 0.0f) {}
+TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _zIndex, float _scale) : TextRenderer(_engine, _shader, _text, _color, _position, _zIndex, _scale, Vector2::Center) {}
 void TextRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	shader->setFloat3("textColor", color);
@@ -756,23 +770,23 @@ void TextRenderer::draw() {
 		x+=(ch.Advance>>6)*scale; // bitshift by 6 to get value in pixels (2^6 = 64)
 	}
 	if(x>maxX)maxX=x;
-	Vector2 size(maxX, y);
+	Transform2D::scale = (maxX, y);
 	// iterate through all characters and render each
 	x=position.x;
 	y=position.y;
 	for(c=text.begin(); c!=text.end(); c++) {
 		if(*c=='\n') { x=position.x;y-=(8*scale+1); continue; }
 		Character ch=Characters[*c];
-		float xpos=(size.x*(-anchor.x-0.5f))+x+ch.Bearing.x*scale;
-		float ypos=(size.y*(anchor.y-0.5f))+y-(ch.Size.y-ch.Bearing.y)*scale;
+		float xpos=(Transform2D::scale.x*(-anchor.x-0.5f))+x+ch.Bearing.x*scale;
+		float ypos=(Transform2D::scale.y*(anchor.y-0.5f))+y-(ch.Size.y-ch.Bearing.y)*scale;
 		float w=ch.Size.x*scale;
 		float h=ch.Size.y*scale;
 		// update VBO for each character
 		float vertices[4][5]={
-			{ xpos+w, ypos+h, -1.0f, 1.0f, 0.0f },
-			{ xpos, ypos+h, -1.0f, 0.0f, 0.0f },
-			{ xpos, ypos, -1.0f, 0.0f, 1.0f },
-			{ xpos+w, ypos, -1.0f, 1.0f, 1.0f }
+			{ xpos+w, ypos+h, zIndex-100.0f, 1.0f, 0.0f },
+			{ xpos, ypos+h, zIndex-100.0f, 0.0f, 0.0f },
+			{ xpos, ypos, zIndex-100.0f, 0.0f, 1.0f },
+			{ xpos+w, ypos, zIndex-100.0f, 1.0f, 1.0f }
 		};
 		// render glyph texture over quad
 		glBindTexture(GL_TEXTURE_2D, ch.TextureID);
@@ -790,7 +804,7 @@ void TextRenderer::draw() {
 }
 
 LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position, bool _loop) :
-	Renderer2D(_engine, _shader), positions(_positions), width(_width), position(_position), loop(_loop) {
+	Object(_engine), Renderer2D(_engine, _shader), positions(_positions), width(_width), Transform2D(_position,0.0f,Vector2(),Vector2(),0.0f), loop(_loop) {
 	if(!initialized) return;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -798,22 +812,20 @@ LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);// bind buffer so that following code will assign the VBO buffer
-	float leftMostX=std::numeric_limits<float>::max();
-	float rightMostX=std::numeric_limits<float>::lowest();
-	float bottomMostY=std::numeric_limits<float>::max();
-	float topMostY=std::numeric_limits<float>::lowest();
+	float farthestX=0.0f;
+	float farthestY=0.0f;
 	std::vector<float> verts;
 	for(Vector2 pos : positions) {
-		if(pos.x<leftMostX) leftMostX=pos.x;
-		else if(pos.x>rightMostX) rightMostX=pos.x;
-		if(pos.y<bottomMostY) bottomMostY=pos.y;
-		else if(pos.y>topMostY) topMostY=pos.y;
+		Vector2 absPos = pos.abs();
+		if(absPos.x>farthestX) farthestX=absPos.x;
+		if(absPos.y>farthestY) farthestY=absPos.y;
 		verts.push_back(pos.x);
 		verts.push_back(pos.y);
 		verts.push_back(0.0f);
 		verts.push_back(0.0f);
 		verts.push_back(0.0f);
 	}
+	scale=Vector2(farthestX*2.0f,farthestY*2.0f);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*verts.size(), &verts[0], GL_STATIC_DRAW);// fill VBO buffer with vertex data
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
@@ -821,10 +833,6 @@ LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));// get vertex uv data
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	if(positions.size()>0) {
-		boundingBoxPos=Vector2(rightMostX+leftMostX, topMostY+bottomMostY)/2.0f;
-		boundingBoxSize=Vector2(rightMostX-leftMostX, topMostY-bottomMostY);
-	}
 }
 LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position) : LineRenderer(_engine, _shader, _positions, _width, _position, false) {}
 LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop) : LineRenderer(_engine, _shader, _positions, _width, Vector2::ZERO, _loop) {}
@@ -837,7 +845,6 @@ void LineRenderer::draw() {
 	glLineWidth(width);
 	glDrawArrays(loop ? GL_LINE_LOOP : GL_LINE_STRIP, 0, positions.size());
 }
-bool LineRenderer::shouldDraw(Vector2 viewer, Vector2 viewRange) { return AABBOverlap(position+boundingBoxPos, boundingBoxSize, viewer, viewRange); }
 #pragma endregion// Renderers
 
 #pragma region Stencil

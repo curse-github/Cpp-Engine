@@ -72,6 +72,26 @@ class Object {
 	Object(Engine* _engine);
 	virtual ~Object();
 };
+class Transform {
+	public:
+	Vector3 position;
+	Vector3 scale;
+	Vector3 rotAxis;
+	float rotAngle;
+	Transform() : position(Vector3()), scale(Vector3()), rotAxis(Vector3()), rotAngle(0.0f) {};
+	Transform(Vector3 _position, Vector3 _scale, Vector3 _rotAxis, float _rotAngle);
+};
+class Transform2D {
+	public:
+	Vector2 position;
+	float zIndex;
+	Vector2 scale;
+	Vector2 anchor;
+	Vector3 rotAxis=Vector3(0.0f, 0.0f, 1.0f);
+	float rotAngle;
+	Transform2D() : position(Vector2()), zIndex(0.0f), scale(Vector2()), anchor(Vector2()), rotAngle(0.0f) {};
+	Transform2D(Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle);
+};
 class Texture;
 class Shader : public Object {
 	protected:
@@ -105,20 +125,20 @@ class Camera : public Object {
 	void bindShaders(std::vector<Shader*> shaders);
 	void use();
 };
-class LookAtCam : public Camera {
+class LookAtCam : public Camera, private Transform {
 	public:
+	using Transform::position;
 	float fov=45;
 	float aspect;
-	Vector3 position;
 	Vector3 focus;
-	LookAtCam() : Camera(), aspect(0.0f), position(Vector3()), focus(Vector3()) {}
+	LookAtCam() : Camera(), Transform(), aspect(0.0f), focus(Vector3()) {}
 	LookAtCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _focus);
 	void update();
 };
-class FreeCam : public Camera {
+class FreeCam : public Camera, private Transform {
 	protected:
 	float aspect;
-	Vector3 position;
+	using Transform::position;
 	Vector3 forward;
 	Vector3 up;
 	float SPEED=2.5f;
@@ -133,15 +153,15 @@ class FreeCam : public Camera {
 	float fov=45;
 	float SENSITIVITY=0.1f;
 	bool paused=false;
-	FreeCam() : Camera(), aspect(0.0f), position(Vector3()), forward(Vector3()), up(Vector3()) {}
+	FreeCam() : Camera(), Transform(), aspect(0.0f), forward(Vector3()), up(Vector3()) {}
 	FreeCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _forward, Vector3 _up);
 	void update();
 };
-class OrthoCam : public Camera {
+class OrthoCam : public Camera, private Transform2D {
 	public:
-	Vector2 position;
-	Vector2 size;
-	OrthoCam() : Camera(), position(Vector2()), size(Vector2()) {}
+	using Transform2D::position;
+	using Transform2D::scale;
+	OrthoCam() : Camera(), Transform2D() {}
 	OrthoCam(Engine* _engine, Vector2 _position, Vector2 _size);
 	void update();
 };
@@ -156,7 +176,7 @@ class Texture : public Object {
 	Texture(Engine* _engine, std::string _path);
 	void Bind(Shader* shader, unsigned int location);
 };
-class Renderer : public Object {
+class Renderer : virtual public Object {
 	protected:
 	Shader* shader;
 	unsigned int VAO;
@@ -169,73 +189,60 @@ class Renderer : public Object {
 	void setShader(Shader* _shader);
 	virtual void draw();
 };
-class CubeRenderer : public Renderer {
+class CubeRenderer : public Renderer, public Transform {
 	public:
-	Vector3 position;
-	Vector3 rotAxis;
-	float rotAngle;
-	CubeRenderer() : Renderer(), position(Vector3()), rotAxis(Vector3()), rotAngle(0.0f) {}
-	CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _rotAxis, float _rotAngle);
+	CubeRenderer() : Renderer(), Transform() {}
+	CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _scale, Vector3 _rotAxis, float _rotAngle);
+	CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _scale);
 	void draw() override;
 };
-class Renderer2D : public Renderer {
+class Renderer2D : public Renderer, virtual public Transform2D {
 	protected:
 	static bool AABBOverlap(Vector2 aPos, Vector2 aSize, Vector2 bPos, Vector2 bSize);
 	public:
-	bool hasBoundingBox;
-	Renderer2D() : Renderer(), hasBoundingBox(false) {}
-	Renderer2D(Engine* _engine, Shader* _shader) : Renderer(_engine, _shader), hasBoundingBox(false) {}
-	Renderer2D(Engine* _engine, Shader* _shader, Vector2 _boundingBoxPos, Vector2 _boundingBoxSize) : Renderer(_engine, _shader), hasBoundingBox(true) {}
-	virtual bool shouldDraw(Vector2 viewer, Vector2 viewRange);
+	Renderer2D() : Renderer(), Transform2D() {};
+	Renderer2D(Engine* _engine, Shader* _shader) : Renderer(_engine, _shader), Transform2D() {};
+	bool shouldDraw(Vector2 viewer, Vector2 viewRange);
 	bool shouldDraw(Vector2 viewer, float viewRange);
+	bool shouldDraw(OrthoCam* viewer);
 };
-class SpriteRenderer : public Renderer2D {
+class SpriteRenderer : virtual public Object, public Renderer2D, virtual public Transform2D {
 	public:
-	Vector2 position;
-	Vector2 scale;
-	Vector2 anchor;
-	Vector3 rotAxis=Vector3(0.0f, 0.0f, 1.0f);
-	float zIndex=0;
-	float rotAngle;
-	SpriteRenderer() : Renderer2D(), position(Vector2()), scale(Vector2()), anchor(Vector2()), rotAngle(0.0f) {}
-	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, Vector2 _anchor, float _zIndex, float _rotAngle);
-	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, Vector2 _anchor, float _zIndex);
-	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, Vector2 _anchor);
-	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale);
+	SpriteRenderer() : Object(), Renderer2D(), Transform2D() {}
+	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle);
+	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor);
+	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale);
+	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex);
+	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position);
 	void draw() override;
-	bool shouldDraw(Vector2 viewer, Vector2 viewRange) override;
 };
 extern bool characterMapInitialized;
-class TextRenderer : public Renderer2D {
+class TextRenderer : virtual public Object, public Renderer2D, virtual protected Transform2D {
 	public:
 	std::string text;
 	Vector3 color;
-	Vector2 position;
+	using Transform2D::position;
+	using Transform2D::zIndex;
 	float scale;
-	Vector2 anchor;
-	float zIndex;
-	TextRenderer() : Renderer2D(), text(""), color(Vector3()), position(Vector2()), scale(0), anchor(Vector2()), zIndex(0) {}
-	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, Vector2 _anchor, float _zIndex);
-	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, Vector2 _anchor);
-	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale);
+	using Transform2D::anchor;
+	TextRenderer() : Object(), Renderer2D(), text(""), color(Vector3()), scale(0.0f), Transform2D() {}
+	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _zIndex, float _scale, Vector2 _anchor);
+	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _zIndex, float _scale);
 	void draw() override;
 };
-class LineRenderer : public Renderer2D {
+class LineRenderer : virtual public Object, public Renderer2D, virtual protected Transform2D {
 	protected:
 	std::vector<Vector2> positions;
-	Vector2 boundingBoxPos=Vector2(0.0f, 0.0f);
-	Vector2 boundingBoxSize=Vector2(0.0f, 0.0f);
 	public:
+	using Transform2D::position;
 	float width;
-	Vector2 position;
 	bool loop;
-	LineRenderer() : Renderer2D(), positions {}, width(1.0f), position(Vector2()), loop(false) {}
+	LineRenderer() : Object(), Renderer2D(), positions {}, width(1.0f), Transform2D(), loop(false) {}
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position, bool _loop);
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position);
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop);
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width);
 	void draw() override;
-	bool shouldDraw(Vector2 viewer, Vector2 viewRange) override;
 };
 class StencilSimple {
 	public:

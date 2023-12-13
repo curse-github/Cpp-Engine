@@ -117,21 +117,19 @@ struct CollitionData {
 	float dist;
 	CollitionData(Vector2 _normal, float _dist) : normal(_normal), dist(_dist) {}
 };
-class BoxCollider : public LineRenderer {
+class BoxCollider : virtual public Object, public LineRenderer {
 	public:
-	Vector2 size;
 	float boundingRadius;
-	BoxCollider() : LineRenderer(), size(Vector2(0)), boundingRadius(0.0f) {}
-	BoxCollider(Engine* _engine, Vector2 _pos, Vector2 _size, Shader* _debugLineShader);
-	void draw();
+	BoxCollider() : Object(), Transform2D(), boundingRadius(0.0f) {}
+	BoxCollider(Engine* _engine, Vector2 _position, Vector2 _scale, Shader* _debugLineShader);
+	void draw() override;
 	CollitionData checkCollision(BoxCollider* other);
 };
 class Player : public Object {
 	protected:
+	SpriteRenderer* renderer;
 	StencilSimple flashlightStencil;
 	OrthoCam* sceneCam;
-	SpriteRenderer* renderer;
-	BoxCollider* collider;
 	SpriteRenderer* flashlightRenderer;
 	SpriteRenderer* iconRenderer;
 	int inputs[5]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
@@ -139,8 +137,9 @@ class Player : public Object {
 	void on_loop(double delta) override;
 	void resolveCollitions();
 	public:
+	BoxCollider* collider;
 	Vector2 position;
-	Player() : Object(), position(Vector2()), flashlightStencil(StencilSimple()), sceneCam(nullptr), renderer(nullptr), collider(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {}
+	Player() : Object(), renderer(nullptr), collider(nullptr), position(Vector2()), flashlightStencil(StencilSimple()), sceneCam(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {}
 	Player(Engine* _engine, OrthoCam* _sceneCam, Vector2 _position, Shader* playerShader, Shader* flashlightShader, Shader* iconShader);
 	void flashlightStencilOn();
 	void flashlightStencilOff();
