@@ -640,7 +640,7 @@ SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _positi
 }
 SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, Vector2 _anchor, float _zIndex) : SpriteRenderer(_engine, _shader, _position, _scale, _anchor, _zIndex, 0.0f) {}
 SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale, Vector2 _anchor) : SpriteRenderer(_engine, _shader, _position, _scale, _anchor, 0.0f, 0.0f) {}
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale) : SpriteRenderer(_engine, _shader, _position, _scale, Vector2(0.0f, 0.0f), 0.0f, 0.0f) {}
+SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, Vector2 _scale) : SpriteRenderer(_engine, _shader, _position, _scale, Vector2::ZERO, 0.0f, 0.0f) {}
 void SpriteRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	Mat4x4 model=translate(Vector3(-anchor, 0.0f))*axisRotMat(rotAxis, deg_to_rad(rotAngle))*scaleMat(Vector3(scale, 1.0f))*translate(Vector3(position, zIndex-100.0f));
@@ -734,7 +734,7 @@ TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, 
 	shader->setFloat("text", 0);
 }
 TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, Vector2 _anchor) : TextRenderer(_engine, _shader, _text, _color, _position, _scale, _anchor, 0.0f) {}
-TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale) : TextRenderer(_engine, _shader, _text, _color, _position, _scale, Vector2(), 0.0f) {}
+TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale) : TextRenderer(_engine, _shader, _text, _color, _position, _scale, Vector2::ZERO, 0.0f) {}
 void TextRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	shader->setFloat3("textColor", color);
@@ -827,8 +827,8 @@ LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2
 	}
 }
 LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position) : LineRenderer(_engine, _shader, _positions, _width, _position, false) {}
-LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop) : LineRenderer(_engine, _shader, _positions, _width, Vector2(0.0f, 0.0f), _loop) {}
-LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width) : LineRenderer(_engine, _shader, _positions, _width, Vector2(0.0f, 0.0f), false) {}
+LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop) : LineRenderer(_engine, _shader, _positions, _width, Vector2::ZERO, _loop) {}
+LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width) : LineRenderer(_engine, _shader, _positions, _width, Vector2::ZERO, false) {}
 void LineRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	shader->bindTextures();

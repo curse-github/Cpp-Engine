@@ -50,8 +50,17 @@ class Vector2 {
 	float operator[](int i);
 	bool operator==(Vector2 b);
 	bool operator!=(Vector2 b);
-	bool operator<(const Vector2& b) const;
 	std::string to_string();
+	operator std::string() const;
+	static const Vector2 ZERO;
+	static const Vector2 ONE;
+	static const Vector2 RIGHT;
+	static const Vector2 UP;
+	static const Vector2 Center;
+	static const Vector2 TopRight;
+	static const Vector2 TopLeft;
+	static const Vector2 BottomLeft;
+	static const Vector2 BottomRight;
 };
 
 class Vector3 {
@@ -63,6 +72,7 @@ class Vector3 {
 	Vector3(Vector2 v, float _z);
 	Vector3(float _x, float _y, float _z);
 	Vector3(float v);
+	Vector2 toXY();
 	Vector3 cross(Vector3 b);
 	void operator+=(Vector3 b);
 	void operator-=(Vector3 b);
@@ -70,6 +80,9 @@ class Vector3 {
 	float dot(Vector3 b);
 	Vector3 normalized();
 	Vector3 abs();
+	Vector3 floor();
+	Vector3 round();
+	Vector3 ceil();
 	Vector3 operator+(Vector3 b);
 	Vector3 operator-(Vector3 b);
 	Vector3 operator-();
@@ -83,6 +96,12 @@ class Vector3 {
 	bool operator==(Vector3 b);
 	bool operator!=(Vector3 b);
 	std::string to_string();
+	operator std::string() const;
+	static const Vector3 ZERO;
+	static const Vector3 ONE;
+	static const Vector3 RIGHT;
+	static const Vector3 UP;
+	static const Vector3 FORWARD;
 };
 class Vector4 {
 	public:
@@ -101,6 +120,9 @@ class Vector4 {
 	float dot(Vector4 b);
 	Vector4 normalized();
 	Vector4 abs();
+	Vector4 floor();
+	Vector4 round();
+	Vector4 ceil();
 	Vector4 operator+(Vector4 b);
 	Vector4 operator-(Vector4 b);
 	Vector4 operator-();
@@ -114,6 +136,13 @@ class Vector4 {
 	bool operator==(Vector4 b);
 	bool operator!=(Vector4 b);
 	std::string to_string();
+	operator std::string() const;
+	static const Vector4 ZERO;
+	static const Vector4 ONE;
+	static const Vector4 RIGHT;
+	static const Vector4 UP;
+	static const Vector4 FORWARD;
+	static const Vector4 ANA;
 };
 class Mat4x4 {
 	public:

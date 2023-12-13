@@ -56,15 +56,25 @@ float Vector2::operator[](int i) {
 }
 bool Vector2::operator==(Vector2 b) { return (x==b.x)&&(y==b.y); }
 bool Vector2::operator!=(Vector2 b) { return !(*this==b); }
-bool Vector2::operator<(const Vector2& b) const { return (y*100+x)<(b.y*1000+b.x); }
 std::string Vector2::to_string() {
 	return "("+std::to_string(x)+", "+std::to_string(y)+")";
 }
+Vector2::operator std::string() const { return "("+std::to_string(x)+", "+std::to_string(y)+")"; }
+const Vector2 Vector2::ZERO=Vector2(0.0f, 0.0f);
+const Vector2 Vector2::ONE=Vector2(1.0f, 1.0f);
+const Vector2 Vector2::RIGHT=Vector2(1.0f, 0.0f);
+const Vector2 Vector2::UP=Vector2(0.0f, 1.0f);
+const Vector2 Vector2::Center=Vector2(0.0f, 0.0f);
+const Vector2 Vector2::TopRight=Vector2(0.5f, 0.5f);
+const Vector2 Vector2::TopLeft=Vector2(-0.5f, 0.5f);
+const Vector2 Vector2::BottomLeft=Vector2(-0.5f, -0.5f);
+const Vector2 Vector2::BottomRight=Vector2(0.5f, -0.5f);
 
 Vector3::Vector3() { x=0; y=0; z=0; }
 Vector3::Vector3(Vector2 v, float _z) { x=v.x; y=v.y; z=_z; }
 Vector3::Vector3(float _x, float _y, float _z) { x=_x; y=_y; z=_z; }
 Vector3::Vector3(float v) { x=v; y=v; z=v; }// from a single value
+Vector2 Vector3::toXY() { return Vector2(x, y); }
 Vector3 Vector3::cross(Vector3 b) {
 	return Vector3(
 		y*b.z-z*b.y,
@@ -76,6 +86,9 @@ void Vector3::operator+=(Vector3 b) { x+=b.x; y+=b.y; z+=b.z; }
 void Vector3::operator-=(Vector3 b) { x-=b.x; y-=b.y; z-=b.z; }
 float Vector3::length() { return sqrt(x*x+y*y+z*z); }
 float Vector3::dot(Vector3 b) { return (x*b.x)+(y*b.y)+(z*b.z); }
+Vector3 Vector3::floor() { return Vector3(std::floor(x), std::floor(y), std::floor(z)); }
+Vector3 Vector3::round() { return Vector3(std::round(x), std::round(y), std::round(z)); }
+Vector3 Vector3::ceil() { return Vector3(std::ceil(x), std::ceil(y), std::ceil(z)); }
 Vector3 Vector3::normalized() {
 	float len=length();
 	return len!=0 ? (Vector3(x, y, z)/len) : Vector3(x, y, z);
@@ -101,6 +114,12 @@ bool Vector3::operator!=(Vector3 b) { return !(*this==b); }
 std::string Vector3::to_string() {
 	return "("+std::to_string(x)+", "+std::to_string(y)+", "+std::to_string(z)+")";
 }
+Vector3::operator std::string() const { return "("+std::to_string(x)+", "+std::to_string(y)+", "+std::to_string(z)+")"; }
+const Vector3 Vector3::ZERO=Vector3(0.0f, 0.0f, 0.0f);
+const Vector3 Vector3::ONE=Vector3(1.0f, 1.0f, 1.0f);
+const Vector3 Vector3::RIGHT=Vector3(1.0f, 0.0f, 0.0f);
+const Vector3 Vector3::UP=Vector3(0.0f, 1.0f, 0.0f);
+const Vector3 Vector3::FORWARD=Vector3(0.0f, 0.0f, 1.0f);
 
 Vector4::Vector4() { x=0; y=0; z=0; w=0; }
 Vector4::Vector4(Vector3 v, float _w) { x=v.x; y=v.y; z=v.z; w=_w; }
@@ -116,6 +135,9 @@ Vector4 Vector4::normalized() {
 	return len!=0 ? (Vector4(x, y, z, w)/len) : Vector4(x, y, z, w);
 }
 Vector4 Vector4::abs() { return Vector4(std::abs(x), std::abs(y), std::abs(z), std::abs(w)); }
+Vector4 Vector4::floor() { return Vector4(std::floor(x), std::floor(y), std::floor(z), std::floor(w)); }
+Vector4 Vector4::round() { return Vector4(std::round(x), std::round(y), std::round(z), std::round(w)); }
+Vector4 Vector4::ceil() { return Vector4(std::ceil(x), std::ceil(y), std::ceil(z), std::ceil(w)); }
 Vector4 Vector4::operator+(Vector4 b) { return Vector4(x+b.x, y+b.y, z+b.z, w+b.w); }
 Vector4 Vector4::operator-(Vector4 b) { return Vector4(x-b.x, y-b.y, z-b.z, w-b.w); }
 Vector4 Vector4::operator-() { return Vector4(-x, -y, -z, -w); }
@@ -137,6 +159,13 @@ bool Vector4::operator!=(Vector4 b) { return !(*this==b); }
 std::string Vector4::to_string() {
 	return "("+std::to_string(x)+", "+std::to_string(y)+", "+std::to_string(z)+", "+std::to_string(w)+")";
 }
+Vector4::operator std::string() const { return "("+std::to_string(x)+", "+std::to_string(y)+", "+std::to_string(z)+", "+std::to_string(w)+")"; }
+const Vector4 Vector4::ZERO=Vector4(0.0f, 0.0f, 0.0f, 0.0f);
+const Vector4 Vector4::ONE=Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+const Vector4 Vector4::RIGHT=Vector4(1.0f, 0.0f, 0.0f, 0.0f);
+const Vector4 Vector4::UP=Vector4(0.0f, 1.0f, 0.0f, 0.0f);
+const Vector4 Vector4::FORWARD=Vector4(0.0f, 0.0f, 1.0f, 0.0f);
+const Vector4 Vector4::ANA=Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 
 Mat4x4::Mat4x4() { float _values[16]={ 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f }; for(int i=0; i<16; i++) { values[i]=_values[i]; } }
 Mat4x4::Mat4x4(float _values[16]) { for(int i=0; i<16; i++) { values[i]=_values[i]; } }
