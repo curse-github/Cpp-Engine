@@ -225,12 +225,14 @@ void Object::on_loop(double delta) {}
 
 #pragma region Transform
 Transform::Transform(Vector3 _position, Vector3 _scale, Vector3 _rotAxis, float _rotAngle) :
-	position(_position), scale(_scale), rotAxis(_rotAxis), rotAngle(_rotAngle) {
-
-}
+	position(_position), scale(_scale), rotAxis(_rotAxis), rotAngle(_rotAngle) {}
 Transform2D::Transform2D(Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle) :
-	position(_position), zIndex(_zIndex), scale(_scale), anchor(_anchor), rotAngle(_rotAngle) {
-
+	position(_position), zIndex(_zIndex), scale(_scale), anchor(_anchor), rotAngle(_rotAngle) {}
+Mat4x4 Transform2D::getTranslateMat() {
+	return translate(Vector3(position, zIndex-100.0f));
+}
+Mat4x4 Transform2D::getModel() {
+	return translate(Vector3(-anchor, 0.0f))*axisRotMat(rotAxis, deg_to_rad(rotAngle))*scaleMat(Vector3(scale, 1.0f))*translate(Vector3(position, zIndex-100.0f));
 }
 #pragma endregion// Transform
 
@@ -494,7 +496,7 @@ void OrthoCam::update() {
 #pragma region Texture
 int load_texture(unsigned int* texture, std::string path, int* width, int* height) {
 	int nrChannels;
-	stbi_set_flip_vertically_on_load(true);
+	//stbi_set_flip_vertically_on_load(true);
 	unsigned char* data=stbi_load(path.c_str(), width, height, &nrChannels, 0);//read raw image data from file
 	if(data) {
 		glGenTextures(1, texture);
@@ -536,13 +538,13 @@ void Texture::Bind(Shader* shader, unsigned int location) {
 #pragma region Renderers
 Renderer::Renderer(Engine* _engine, Shader* _shader) : Object(_engine), shader(_shader), VAO(0), VBO(0), EBO(0) { if(!initialized||!shader->initialized) initialized=false; }
 void Renderer::setShader(Shader* _shader) { shader=_shader; }
-void Renderer::draw() { if(engine->ended||!initialized) return; }
 Renderer::~Renderer() {
 	if(!initialized) return;
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
 }
+
 float cubevertices[]={
 	0.5f, -0.5f, -0.5f, 0.0f, 0.0f,//0
 	-0.5f, -0.5f, -0.5f, 1.0f, 0.0f,//1
@@ -614,27 +616,22 @@ bool Renderer2D::AABBOverlap(Vector2 aPos, Vector2 aSize, Vector2 bPos, Vector2 
 	return collisionX1>0&&collisionX2>0&&collisionY1>0&&collisionY2>0;
 }
 bool Renderer2D::shouldDraw(Vector2 viewer, Vector2 viewRange) {
-	return AABBOverlap(Vector2(-anchor.x*scale.x, -anchor.y*scale.y)+position, scale, viewer, viewRange);
+	return AABBOverlap(position-Vector2(anchor.x*scale.x, anchor.y*scale.y), scale, viewer, viewRange);
 }
-bool Renderer2D::shouldDraw(Vector2 viewer, float viewRange) {
-	return shouldDraw(viewer, Vector2(viewRange, viewRange));
-}
-bool Renderer2D::shouldDraw(OrthoCam* viewer) {
-	return shouldDraw(viewer->position, viewer->scale);
-}
+bool Renderer2D::shouldDraw(Vector2 viewer, float viewRange) { return shouldDraw(viewer, Vector2(viewRange, viewRange)); }
+bool Renderer2D::shouldDraw(OrthoCam* viewer) { return shouldDraw(viewer->position, viewer->scale); }
 
 float quadvertices[]={
-	0.5f, 0.5f, -1.0f, 1.0f, 1.0f,
-	-0.5f, 0.5f, -1.0f, 0.0f, 1.0f,
-	-0.5f, -0.5f, -1.0f, 0.0f, 0.0f,
-	0.5f, -0.5f, -1.0f, 1.0f, 0.0f
+	-0.5f, 0.5f, -1.0f, 0.0f, 0.0f,
+	-0.5f, -0.5f, -1.0f, 0.0f, 1.0f,
+	0.5f, 0.5f, -1.0f, 1.0f, 0.0f,
+	0.5f, -0.5f, -1.0f, 1.0f, 1.0f
 };
-int quadindices[]={
-	0, 1, 3,
-	1, 2, 3
-};
+//int quadindices[]={// wouldnt work anymore even if you wanted it to
+//	0,1,2,3
+//};
 SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle) :
-	Object(_engine), Renderer2D(_engine, _shader), Transform2D(_position, _zIndex, _scale, _anchor, _rotAngle) {
+	Renderer2D(_engine, _shader, _position, _zIndex, _scale, _anchor, _rotAngle) {
 	if(!initialized) return;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -644,8 +641,8 @@ SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _positi
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);// bind buffer so that following code will assign the VBO buffer
 	glBufferData(GL_ARRAY_BUFFER, sizeof(quadvertices), quadvertices, GL_STATIC_DRAW);// fill VBO buffer with vertex data
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);// bind buffer so that following code will assign the EBO buffer
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadindices), quadindices, GL_STATIC_DRAW);// fill EBO buffer with index data
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);// bind buffer so that following code will assign the EBO buffer
+	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadindices), quadindices, GL_STATIC_DRAW);// fill EBO buffer with index data
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
 	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
@@ -655,15 +652,15 @@ SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _positi
 }
 SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor) : SpriteRenderer(_engine, _shader, _position, _zIndex, _scale, _anchor, 0.0f) {}
 SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale) : SpriteRenderer(_engine, _shader, _position, _zIndex, _scale, Vector2::Center, 0.0f) {}
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex) : SpriteRenderer(_engine, _shader, _position, _zIndex, Vector2::ZERO, Vector2::Center, 0.0f) {}
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position) : SpriteRenderer(_engine, _shader, _position, 0.0f, Vector2::ZERO, Vector2::Center, 0.0f) {}
+SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex) : SpriteRenderer(_engine, _shader, _position, _zIndex, Vector2::ONE, Vector2::Center, 0.0f) {}
+SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position) : SpriteRenderer(_engine, _shader, _position, 0.0f, Vector2::ONE, Vector2::Center, 0.0f) {}
 void SpriteRenderer::draw() {
 	if(engine->ended||!initialized) return;
-	Mat4x4 model=translate(Vector3(-anchor, 0.0f))*axisRotMat(rotAxis, deg_to_rad(rotAngle))*scaleMat(Vector3(scale, 1.0f))*translate(Vector3(position, zIndex-100.0f));
 	shader->bindTextures();
-	shader->setMat4x4("model", model);
+	shader->setMat4x4("model", getModel());
 	glBindVertexArray(VAO);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	//glDrawElements(GL_TRIANGLE_STRIP, 6, GL_UNSIGNED_INT, 0);
+	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1);
 }
 
 struct Character {
@@ -671,6 +668,7 @@ struct Character {
 	Vector2   Size;		     // Size of glyph
 	Vector2   Bearing;       // Offset from baseline to left/top of glyph
 	unsigned int Advance=0;  // Offset to advance to next glyph
+	Mat4x4 model;
 };
 std::map<char, Character> Characters;
 bool characterMapInitialized=false;
@@ -703,11 +701,14 @@ int initCharacterMap() {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		// now store character for later use
+		Vector2 Size((float)face->glyph->bitmap.width, (float)face->glyph->bitmap.rows);
+		Vector2 Bearing((float)face->glyph->bitmap_left, (float)face->glyph->bitmap_top);
 		Character character={
 			texture,
-			Vector2((float)face->glyph->bitmap.width, (float)face->glyph->bitmap.rows),
-			Vector2((float)face->glyph->bitmap_left, (float)face->glyph->bitmap_top),
-			(unsigned int)face->glyph->advance.x
+			Size,
+			Bearing,
+			(unsigned int)face->glyph->advance.x,
+			translate(Vector3(0.5f, 0.5f, 0.0f))*scaleMat(Vector3(Size, 1.0f))
 		};
 		Characters.insert(std::pair<char, Character>(c, character));
 	}
@@ -717,8 +718,8 @@ int initCharacterMap() {
 	characterMapInitialized=true;
 	return 1;
 }
-TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _zIndex, float _scale, Vector2 _anchor) :
-	Object(_engine), Renderer2D(_engine, _shader), text(_text), color(_color), scale(_scale), Transform2D(_position, _zIndex, _scale, _anchor, 0.0f) {
+TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, float _zIndex, Vector2 _anchor) :
+	Renderer2D(_engine, _shader, _position, _zIndex, Vector2::ONE, _anchor, 0.0f), text(_text), color(_color), scale(_scale) {
 	if(!initialized) return;
 	if(!characterMapInitialized) {
 		if(!initCharacterMap()) {
@@ -731,14 +732,14 @@ TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, 
 	//setup buffers
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
+	//glGenBuffers(1, &EBO);
 
 	glBindVertexArray(VAO);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*4*5, NULL, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);// bind buffer so that following code will assign the EBO buffer
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadindices), quadindices, GL_STATIC_DRAW);// fill EBO buffer with index data
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);// bind buffer so that following code will assign the VBO buffer
+	glBufferData(GL_ARRAY_BUFFER, sizeof(quadvertices), quadvertices, GL_STATIC_DRAW);// fill VBO buffer with vertex data
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);// bind buffer so that following code will assign the EBO buffer
+	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadindices), quadindices, GL_STATIC_DRAW);// fill EBO buffer with index data
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
 	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
@@ -748,7 +749,8 @@ TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, 
 
 	shader->setFloat("text", 0);
 }
-TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _zIndex, float _scale) : TextRenderer(_engine, _shader, _text, _color, _position, _zIndex, _scale, Vector2::Center) {}
+TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, float _zIndex) : TextRenderer(_engine, _shader, _text, _color, _position, _scale, _zIndex, Vector2::Center) {}
+TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale) : TextRenderer(_engine, _shader, _text, _color, _position, _scale, 0.0f, Vector2::Center) {}
 void TextRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	shader->setFloat3("textColor", color);
@@ -758,44 +760,36 @@ void TextRenderer::draw() {
 	float x=0.0f;
 	float maxX=0.0f;
 	float y=0.0f;
-	std::string::const_iterator c;
-	for(c=text.begin(); c!=text.end(); c++) {
-		if(*c=='\n') {
+	std::string::const_iterator c2;
+	for(c2=text.begin(); c2!=text.end(); c2++) {
+		if(*c2=='\n') {
 			if(x>maxX)maxX=x;
 			x=0.0f;
 			y-=(8*scale+1);
 			continue;
 		}
-		Character ch=Characters[*c];
+		Character ch=Characters[*c2];
+		if(*c2==' ') { x+=(ch.Advance>>6)*scale; continue; }// skip one space and continue
+		else if(*c2=='\t') { x+=(ch.Advance>>6)*4*scale; continue; }//4 character spaces
 		x+=(ch.Advance>>6)*scale; // bitshift by 6 to get value in pixels (2^6 = 64)
 	}
 	if(x>maxX)maxX=x;
-	Transform2D::scale = (maxX, y);
+	Transform2D::scale=(maxX, y);
+	Mat4x4 modelMat = scaleMat(Vector3(scale,scale,1.0f))*translate(Vector3((Transform2D::scale.x*(-anchor.x-0.5f)),(Transform2D::scale.y*(anchor.y-0.5f)), zIndex-100.0f));
 	// iterate through all characters and render each
 	x=position.x;
 	y=position.y;
+	std::string::const_iterator c;
 	for(c=text.begin(); c!=text.end(); c++) {
-		if(*c=='\n') { x=position.x;y-=(8*scale+1); continue; }
+		if(*c=='\n') { x=position.x;y-=(8*scale+1); continue; } else if(*c=='\r') { x=position.x; continue; }
 		Character ch=Characters[*c];
-		float xpos=(Transform2D::scale.x*(-anchor.x-0.5f))+x+ch.Bearing.x*scale;
-		float ypos=(Transform2D::scale.y*(anchor.y-0.5f))+y-(ch.Size.y-ch.Bearing.y)*scale;
-		float w=ch.Size.x*scale;
-		float h=ch.Size.y*scale;
-		// update VBO for each character
-		float vertices[4][5]={
-			{ xpos+w, ypos+h, zIndex-100.0f, 1.0f, 0.0f },
-			{ xpos, ypos+h, zIndex-100.0f, 0.0f, 0.0f },
-			{ xpos, ypos, zIndex-100.0f, 0.0f, 1.0f },
-			{ xpos+w, ypos, zIndex-100.0f, 1.0f, 1.0f }
-		};
-		// render glyph texture over quad
+		if(*c==' ') { x+=(ch.Advance>>6)*scale; continue; }// skip one space and continue
+		else if(*c=='\t') { x+=(ch.Advance>>6)*4*scale; continue; }//4 character spaces
+		shader->setMat4x4("model", ch.model*modelMat*translate(Vector3(x+ch.Bearing.x*scale, y-(ch.Size.y-ch.Bearing.y)*scale, zIndex-100.0f)) );
 		glBindTexture(GL_TEXTURE_2D, ch.TextureID);
-		// update content of VBO memory
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		// render quad
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		//glDrawElements(GL_TRIANGLE_STRIP, 6, GL_UNSIGNED_INT, 0);
+		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1);
 		// now advance cursors for next glyph (note that advance is number of 1/64 pixels)
 		x+=(ch.Advance>>6)*scale; // bitshift by 6 to get value in pixels (2^6 = 64)
 	}
@@ -804,7 +798,7 @@ void TextRenderer::draw() {
 }
 
 LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position, bool _loop) :
-	Object(_engine), Renderer2D(_engine, _shader), positions(_positions), width(_width), Transform2D(_position,0.0f,Vector2(),Vector2(),0.0f), loop(_loop) {
+	Renderer2D(_engine, _shader, _position, 100.0f, Vector2::ONE, Vector2::Center, 0.0f), positions(_positions), width(_width), loop(_loop) {
 	if(!initialized) return;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -816,7 +810,7 @@ LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2
 	float farthestY=0.0f;
 	std::vector<float> verts;
 	for(Vector2 pos : positions) {
-		Vector2 absPos = pos.abs();
+		Vector2 absPos=pos.abs();
 		if(absPos.x>farthestX) farthestX=absPos.x;
 		if(absPos.y>farthestY) farthestY=absPos.y;
 		verts.push_back(pos.x);
@@ -825,7 +819,7 @@ LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2
 		verts.push_back(0.0f);
 		verts.push_back(0.0f);
 	}
-	scale=Vector2(farthestX*2.0f,farthestY*2.0f);
+	scale=Vector2(farthestX*2.0f, farthestY*2.0f);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*verts.size(), &verts[0], GL_STATIC_DRAW);// fill VBO buffer with vertex data
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
@@ -840,7 +834,7 @@ LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2
 void LineRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	shader->bindTextures();
-	shader->setMat4x4("model", translate(Vector3(position, 0.0f)));
+	shader->setMat4x4("model", getTranslateMat());
 	glBindVertexArray(VAO);
 	glLineWidth(width);
 	glDrawArrays(loop ? GL_LINE_LOOP : GL_LINE_STRIP, 0, positions.size());

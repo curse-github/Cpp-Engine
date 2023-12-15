@@ -37,11 +37,15 @@ class Pathfinder {
 		Vector2(-1.0f, 1.0f),
 		Vector2(-1.0f, 0.0f)
 	};
-	std::array<std::tuple<Vector2, std::vector<Vector2>>, 4> obstructions={ {
-		{ Vector2(-1.0f, -1.0f), { Vector2(0.0f, -1.0f), Vector2(-1.0f, 0.0f) } },
-		{ Vector2(1.0f, -1.0f), { Vector2(0.0f, -1.0f), Vector2(1.0f, 0.0f) } },
-		{ Vector2(1.0f, 1.0f), { Vector2(0.0f, 1.0f), Vector2(1.0f, 0.0f) } },
-		{ Vector2(-1.0f, 1.0f), { Vector2(0.0f, 1.0f), Vector2(-1.0f, 0.0f) } }
+	std::array<std::vector<Vector2>, 8> obstructions={ {
+		{ Vector2(0.0f, -1.0f), Vector2(-1.0f, 0.0f) },
+		{},
+		{ Vector2(0.0f, -1.0f), Vector2(1.0f, 0.0f) },
+		{},
+		{ Vector2(0.0f, 1.0f), Vector2(1.0f, 0.0f) },
+		{},
+		{ Vector2(0.0f, 1.0f), Vector2(-1.0f, 0.0f) },
+		{}
 		} };
 	std::vector<bool> wallMap;
 	public:
@@ -96,7 +100,7 @@ Shader* createTextShader();
 
 class FpsTracker : Object {
 	protected:
-	double lastFrames[60]={};
+	double lastFrames[500]={};
 	int avgFps=0;
 	int highFps=0;
 	int lowFps=0;
@@ -117,13 +121,17 @@ struct CollitionData {
 	float dist;
 	CollitionData(Vector2 _normal, float _dist) : normal(_normal), dist(_dist) {}
 };
-class BoxCollider : virtual public Object, public LineRenderer {
-	public:
+class BoxCollider : protected LineRenderer {
+	protected:
 	float boundingRadius;
-	BoxCollider() : Object(), Transform2D(), boundingRadius(0.0f) {}
+	public:
+	using Transform2D::position;
+	using Transform2D::scale;
+	BoxCollider() : LineRenderer(), boundingRadius(0.0f) {}
 	BoxCollider(Engine* _engine, Vector2 _position, Vector2 _scale, Shader* _debugLineShader);
-	void draw() override;
 	CollitionData checkCollision(BoxCollider* other);
+	using LineRenderer::draw;
+	using Renderer2D::shouldDraw;
 };
 class Player : public Object {
 	protected:

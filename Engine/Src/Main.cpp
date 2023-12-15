@@ -15,7 +15,7 @@ Shader* createColorShader(Vector4 color) {
 	return shader;
 }
 Shader* createTextShader() {
-	Shader* shader=new Shader(engine, "Shaders/textVs.glsl", "Shaders/textFrag.glsl");
+	Shader* shader=new Shader(engine, "Shaders/vs.glsl", "Shaders/textFrag.glsl");
 	return shader;
 }
 #pragma endregion// Shader creators
@@ -27,16 +27,16 @@ FpsTracker::FpsTracker(Engine* _engine) : Object(_engine) {
 }
 void FpsTracker::on_loop(double delta) {
 	if(engine->ended||!initialized) return;
-	for(unsigned int i=1; i<60; i++) { lastFrames[i-1]=lastFrames[i]; }// move values back
-	lastFrames[59]=delta;// put delta at the end
+	for(unsigned int i=1; i<500; i++) { lastFrames[i-1]=lastFrames[i]; }// move values back
+	lastFrames[499]=delta;// put delta at the end
 	double sum=0.0f;
-	for(unsigned int i=0; i<60; i++) { sum+=lastFrames[i]; }// sum values
-	avgFps=(int)(60.0f/sum+0.5);
+	for(unsigned int i=0; i<500; i++) { sum+=lastFrames[i]; }// sum values
+	avgFps=(int)(500.0f/sum+0.5);
 	frameTime=(float)sum;//1000.0f*1000.0f;
 
 	highFps=0;
 	lowFps=100000;
-	for(unsigned int i=0; i<60; i++) {
+	for(unsigned int i=0; i<500; i++) {
 		if((1/lastFrames[i])>highFps) highFps=(int)((1/lastFrames[i])+0.5);
 		if((1/lastFrames[i])<lowFps) lowFps=(int)((1/lastFrames[i])+0.5);
 	}
@@ -61,12 +61,10 @@ float FpsTracker::getFrameTime() {
 
 #pragma region BoxCollider
 BoxCollider::BoxCollider(Engine* _engine, Vector2 _position, Vector2 _scale, Shader* _debugLineShader) :
-	Object(_engine), LineRenderer(_engine, _debugLineShader, { Vector2(-scale.x/2, scale.y/2), Vector2(scale.x/2, scale.y/2), Vector2(scale.x/2, -scale.y/2), Vector2(-scale.x/2, -scale.y/2) }, 2.0f, position, true),
-	Transform2D(_position,0.0f,_scale,Vector2::Center,0.0f), boundingRadius(sqrt(scale.x* scale.x+scale.y*scale.y)) {
-}
-void BoxCollider::draw() { if(ColliderDebug) LineRenderer::draw(); }
+	LineRenderer(_engine, _debugLineShader, { Vector2(-_scale.x/2, _scale.y/2), Vector2(_scale.x/2, _scale.y/2), Vector2(_scale.x/2, -_scale.y/2), Vector2(-_scale.x/2, -_scale.y/2) }, 2.0f, _position, true),
+	boundingRadius((_scale/2.0f).length()) {}
 CollitionData BoxCollider::checkCollision(BoxCollider* other) {
-	if((position-other->position).length()-boundingRadius-other->boundingRadius>=0) CollitionData(Vector2::ZERO, 0.0f);
+	if(((position-other->position).length()-(boundingRadius+other->boundingRadius))>=0) CollitionData(Vector2::ZERO, 0.0f);
 	if(position==other->position) return CollitionData(Vector2::ZERO, 0.0f);
 	// collision x-axis?
 	float collisionX1=((position.x+scale.x/2)-(other->position.x-other->scale.x/2));
@@ -174,6 +172,7 @@ void Player::setPos(Vector2 _position) {
 
 #pragma region Pathfinder
 template <typename T, std::size_t N> bool arryHas(std::array<T, N> arry, T value) { for(T aryValue : arry) if(aryValue==value) return true; return false; }
+template <typename T, std::size_t N> unsigned int arryFind(std::array<T, N> arry, T value) { for(unsigned int i=0; i<((unsigned int)((sizeof arry)/(sizeof value))); i++) if(arry[i]==value) return (int)i; return -1; }
 template <typename T> unsigned int vectorFind(std::vector<T> vec, T value) { for(unsigned int i=0; i<vec.size(); i++) if(vec[i]==value) return (int)i; return -1; }
 
 Pathfinder::Pathfinder() {
@@ -210,13 +209,10 @@ float Pathfinder::calcH(Vector2 a, Vector2 b) {
 	else return vec.x+vec.y;
 }
 bool Pathfinder::isValidMove(Vector2 pos, Vector2 dir) {
-	if(!arryHas(movements, dir)) return false;
-	for(unsigned int i=0; i<((unsigned int)((sizeof obstructions)/(sizeof obstructions[0]))); i++) {
-		std::tuple<Vector2, std::vector<Vector2>> obstructionObj=obstructions[i];
-		if(dir!=std::get<0>(obstructionObj)) continue;
-		std::vector<Vector2> obstructionsLst=std::get<1>(obstructionObj);
-		for(Vector2 obstruction : obstructionsLst) if(!isValid(pos+obstruction)) return false;
-	}
+	unsigned int index=arryFind(movements, dir);
+	if(index==-1) return false;
+	std::vector<Vector2> obstructionsLst=obstructions[index];
+	for(Vector2 obstruction : obstructionsLst) if(!isValid(pos+obstruction)) return false;
 	return true;
 }
 struct PathfinderData {
@@ -467,12 +463,11 @@ int main(int argc, char** argv) {
 	// player object
 	player=new Player(engine, cam, GridToWorld(playerOffset), playerShader, flashlightShader, playerIconShader);
 	enemy=new Enemy(engine, GridToWorld(playerOffset-Vector2(0.0f, 2.0f)), enemyShader, enemyIconShader, lineShader, finder.get(), player);
-	// map and minimap4
+	// map and minimap
 	sceneRenderers.push_back(new SpriteRenderer(engine, backgroundShader, Vector2::ZERO, 0.0f, fullMapSize, Vector2::BottomLeft));// background
-	Log(sceneRenderers[0]->initialized);
 	uiRenderers.push_back(new SpriteRenderer(engine, minimapShader, Vector2(0.0f, HD1080P.y/2.0f), 0.0f, minimapSize, Vector2::TopLeft));// minimap
 	// setup text renderers
-	debugText.push_back(new TextRenderer(engine, textShader, "Pos:\nGrid Pos:\nFps Avg:\nTime:", Vector3(0.75f, 0.75f, 0.75f), Vector2(1.0f, 1.0f), 0.0f, 2.0f, Vector2::BottomLeft));
+	debugText.push_back(new TextRenderer(engine, textShader, "Pos:\nFps Avg:\nTime:", Vector3(0.75f, 0.75f, 0.75f), Vector2(1.0f, 1.0f), 2.0f, 0.0f, Vector2::BottomLeft));
 	if(engine->ended||!characterMapInitialized) {
 		Log("Fonts failed to init.");
 		engine->Delete();
@@ -511,8 +506,7 @@ int main(int argc, char** argv) {
 void Loop(double delta) {
 	// set debug text
 	Vector2 playerPos=player->position;
-	debugText[0]->text="Pos: "+(std::string)playerPos+"\n";
-	debugText[0]->text+="Grid Pos: "+(std::string)WorldToGrid(playerPos).floor()+"\n";
+	debugText[0]->text="Pos: "+(std::string)WorldToGrid(playerPos).floor()+"\n";
 	debugText[0]->text+="Fps Avg: "+std::to_string(tracker->getAvgFps())+", high: "+std::to_string(tracker->getHighFps())+", low: "+std::to_string(tracker->getLowFps())+"\n";
 	debugText[0]->text+="Time: "+std::to_string(glfwGetTime());
 	// draw scene
@@ -521,8 +515,10 @@ void Loop(double delta) {
 	for(Renderer2D* ren:instanceStateRenderers) if(ren->shouldDraw(playerPos, flashlightRange*mapScale)) ren->draw();
 	player->flashlightStencilOff();
 	if(enemy->debugRen) enemy->debugRen->draw();
-	for(BoxCollider* col:colliders) if(col->shouldDraw(playerPos, viewRange)) col->draw();
-	player->collider->draw();
+	if(ColliderDebug) {
+		for(BoxCollider* col:colliders) if(col->shouldDraw(playerPos, viewRange)) col->draw();
+		player->collider->draw();
+	}
 	// draw ui
 	glClear(GL_DEPTH_BUFFER_BIT);
 	for(Renderer* ren:uiRenderers) ren->draw();

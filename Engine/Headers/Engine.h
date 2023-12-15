@@ -91,6 +91,8 @@ class Transform2D {
 	float rotAngle;
 	Transform2D() : position(Vector2()), zIndex(0.0f), scale(Vector2()), anchor(Vector2()), rotAngle(0.0f) {};
 	Transform2D(Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle);
+	Mat4x4 getTranslateMat();
+	Mat4x4 getModel();
 };
 class Texture;
 class Shader : public Object {
@@ -125,7 +127,7 @@ class Camera : public Object {
 	void bindShaders(std::vector<Shader*> shaders);
 	void use();
 };
-class LookAtCam : public Camera, private Transform {
+class LookAtCam : public Camera, protected Transform {
 	public:
 	using Transform::position;
 	float fov=45;
@@ -135,7 +137,7 @@ class LookAtCam : public Camera, private Transform {
 	LookAtCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _focus);
 	void update();
 };
-class FreeCam : public Camera, private Transform {
+class FreeCam : public Camera, protected Transform {
 	protected:
 	float aspect;
 	using Transform::position;
@@ -157,7 +159,7 @@ class FreeCam : public Camera, private Transform {
 	FreeCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _forward, Vector3 _up);
 	void update();
 };
-class OrthoCam : public Camera, private Transform2D {
+class OrthoCam : public Camera, protected Transform2D {
 	public:
 	using Transform2D::position;
 	using Transform2D::scale;
@@ -176,7 +178,7 @@ class Texture : public Object {
 	Texture(Engine* _engine, std::string _path);
 	void Bind(Shader* shader, unsigned int location);
 };
-class Renderer : virtual public Object {
+class Renderer : public Object {
 	protected:
 	Shader* shader;
 	unsigned int VAO;
@@ -187,7 +189,7 @@ class Renderer : virtual public Object {
 	Renderer(Engine* _engine, Shader* _shader);
 	virtual ~Renderer();
 	void setShader(Shader* _shader);
-	virtual void draw();
+	virtual void draw()=0;
 };
 class CubeRenderer : public Renderer, public Transform {
 	public:
@@ -196,28 +198,30 @@ class CubeRenderer : public Renderer, public Transform {
 	CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _scale);
 	void draw() override;
 };
-class Renderer2D : public Renderer, virtual public Transform2D {
+class Renderer2D : public Renderer, public Transform2D {
 	protected:
 	static bool AABBOverlap(Vector2 aPos, Vector2 aSize, Vector2 bPos, Vector2 bSize);
 	public:
 	Renderer2D() : Renderer(), Transform2D() {};
-	Renderer2D(Engine* _engine, Shader* _shader) : Renderer(_engine, _shader), Transform2D() {};
+	Renderer2D(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle) :
+		Renderer(_engine, _shader), Transform2D(_position, _zIndex, _scale, _anchor, _rotAngle) {};
 	bool shouldDraw(Vector2 viewer, Vector2 viewRange);
 	bool shouldDraw(Vector2 viewer, float viewRange);
 	bool shouldDraw(OrthoCam* viewer);
 };
-class SpriteRenderer : virtual public Object, public Renderer2D, virtual public Transform2D {
+class SpriteRenderer : public Renderer2D {
 	public:
-	SpriteRenderer() : Object(), Renderer2D(), Transform2D() {}
+	SpriteRenderer() : Renderer2D() {}
 	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle);
 	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor);
 	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale);
 	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex);
 	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position);
 	void draw() override;
+	using Renderer2D::shouldDraw;
 };
 extern bool characterMapInitialized;
-class TextRenderer : virtual public Object, public Renderer2D, virtual protected Transform2D {
+class TextRenderer : protected Renderer2D {
 	public:
 	std::string text;
 	Vector3 color;
@@ -225,24 +229,27 @@ class TextRenderer : virtual public Object, public Renderer2D, virtual protected
 	using Transform2D::zIndex;
 	float scale;
 	using Transform2D::anchor;
-	TextRenderer() : Object(), Renderer2D(), text(""), color(Vector3()), scale(0.0f), Transform2D() {}
-	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _zIndex, float _scale, Vector2 _anchor);
-	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _zIndex, float _scale);
+	TextRenderer() : Renderer2D(), text(""), color(Vector3()), scale(0.0f) {}
+	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, float _zIndex, Vector2 _anchor);
+	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, float _zIndex);
+	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale);
 	void draw() override;
+	using Renderer2D::shouldDraw;
 };
-class LineRenderer : virtual public Object, public Renderer2D, virtual protected Transform2D {
+class LineRenderer : protected Renderer2D {
 	protected:
 	std::vector<Vector2> positions;
 	public:
 	using Transform2D::position;
 	float width;
 	bool loop;
-	LineRenderer() : Object(), Renderer2D(), positions {}, width(1.0f), Transform2D(), loop(false) {}
+	LineRenderer() : Renderer2D(), positions {}, width(1.0f), loop(false) {}
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position, bool _loop);
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position);
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop);
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width);
 	void draw() override;
+	using Renderer2D::shouldDraw;
 };
 class StencilSimple {
 	public:
