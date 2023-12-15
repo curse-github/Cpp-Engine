@@ -91,8 +91,16 @@ class Transform2D {
 	float rotAngle;
 	Transform2D() : position(Vector2()), zIndex(0.0f), scale(Vector2()), anchor(Vector2()), rotAngle(0.0f) {};
 	Transform2D(Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle);
-	Mat4x4 getTranslateMat();
-	Mat4x4 getModel();
+	Transform2D operator*(const Transform2D& b) const;
+	static Mat4x4 createModelMat(Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle);
+	Mat4x4 getModelMat();
+	private:
+	Mat4x4 lastModelMat=Mat4x4();
+	Vector2 lastPosition=Vector2::ZERO;
+	float lastZIndex=0.0f;
+	Vector2 lastScale=Vector2::ONE;
+	Vector2 lastAnchor=Vector2::Center;
+	float lastRotAngle=0.0f;
 };
 class Texture;
 class Shader : public Object {
@@ -105,14 +113,14 @@ class Shader : public Object {
 	Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath);
 	virtual ~Shader();
 	void use();
-	void setBool(const std::string& name, bool value);
-	void setInt(const std::string& name, int value);
-	void setFloat(const std::string& name, float value);
-	void setFloat2(const std::string& name, Vector2 value);
-	void setFloat3(const std::string& name, Vector3 value);
-	void setFloat4(const std::string& name, Vector4 value);
-	void setMat4x4(const std::string& name, Mat4x4 value);
-	void setTexture(const std::string& name, Texture* tex, unsigned int location);
+	void setBool(const char* name, const bool& value);
+	void setInt(const char* name, const int& value);
+	void setFloat(const char* name, const float& value);
+	void setFloat2(const char* name, const Vector2& value);
+	void setFloat3(const char* name, const Vector3& value);
+	void setFloat4(const char* name, const Vector4& value);
+	void setMat4x4(const char* name, const Mat4x4& value);
+	void setTexture(const char* name, Texture* tex, const unsigned int& location);
 	void bindTextures();
 };
 class Camera : public Object {
@@ -171,12 +179,13 @@ class Texture : public Object {
 	protected:
 	unsigned int ID;
 	std::string path;
+	void Bind(const unsigned int& location);
+	friend Shader;
 	public:
 	int width;
 	int height;
 	Texture() : Object(), ID(0), path(""), width(0), height(0) {}
 	Texture(Engine* _engine, std::string _path);
-	void Bind(Shader* shader, unsigned int location);
 };
 class Renderer : public Object {
 	protected:
@@ -200,13 +209,13 @@ class CubeRenderer : public Renderer, public Transform {
 };
 class Renderer2D : public Renderer, public Transform2D {
 	protected:
-	static bool AABBOverlap(Vector2 aPos, Vector2 aSize, Vector2 bPos, Vector2 bSize);
+	static bool AABBOverlap(const Vector2& aPos, const Vector2& aSize, const Vector2& bPos, const Vector2& bSize);
 	public:
 	Renderer2D() : Renderer(), Transform2D() {};
 	Renderer2D(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle) :
 		Renderer(_engine, _shader), Transform2D(_position, _zIndex, _scale, _anchor, _rotAngle) {};
-	bool shouldDraw(Vector2 viewer, Vector2 viewRange);
-	bool shouldDraw(Vector2 viewer, float viewRange);
+	bool shouldDraw(const Vector2& viewer, const Vector2& viewRange);
+	bool shouldDraw(const Vector2& viewer, const float& viewRange);
 	bool shouldDraw(OrthoCam* viewer);
 };
 class SpriteRenderer : public Renderer2D {

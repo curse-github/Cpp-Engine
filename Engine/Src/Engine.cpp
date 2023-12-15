@@ -227,12 +227,21 @@ void Object::on_loop(double delta) {}
 Transform::Transform(Vector3 _position, Vector3 _scale, Vector3 _rotAxis, float _rotAngle) :
 	position(_position), scale(_scale), rotAxis(_rotAxis), rotAngle(_rotAngle) {}
 Transform2D::Transform2D(Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle) :
-	position(_position), zIndex(_zIndex), scale(_scale), anchor(_anchor), rotAngle(_rotAngle) {}
-Mat4x4 Transform2D::getTranslateMat() {
-	return translate(Vector3(position, zIndex-100.0f));
+	position(_position), zIndex(_zIndex), scale(_scale), anchor(_anchor), rotAngle(_rotAngle) {
+	lastModelMat=translate(Vector3(-anchor, 0.0f))*axisRotMat(rotAxis, deg_to_rad(rotAngle))*scaleMat(Vector3(scale, 1.0f))*translate(Vector3(position, zIndex-100.0f));
 }
-Mat4x4 Transform2D::getModel() {
-	return translate(Vector3(-anchor, 0.0f))*axisRotMat(rotAxis, deg_to_rad(rotAngle))*scaleMat(Vector3(scale, 1.0f))*translate(Vector3(position, zIndex-100.0f));
+Mat4x4 Transform2D::createModelMat(Vector2 _position=Vector2::ZERO, float _zIndex=0.0f, Vector2 _scale=Vector2::ONE, Vector2 _anchor=Vector2::Center, float _rotAngle=0.0f) {
+	return translate(Vector3(-_anchor, 0.0f))*axisRotMat(Vector3(0.0f, 0.0f, 1.0f), deg_to_rad(_rotAngle))*scaleMat(Vector3(_scale, 1.0f))*translate(Vector3(_position, _zIndex-100.0f));
+}
+Mat4x4 Transform2D::getModelMat() {
+	bool changed=false;
+	if(lastPosition!=position) { lastPosition=position;changed=true; }
+	if(lastZIndex!=zIndex) { lastZIndex=zIndex; }
+	if(lastScale!=scale) { lastScale=scale; }
+	if(lastAnchor!=anchor) { lastAnchor=anchor; }
+	if(lastRotAngle!=rotAngle) { lastRotAngle=rotAngle; }
+	if(changed) { lastModelMat=translate(Vector3(-anchor, 0.0f))*axisRotMat(rotAxis, deg_to_rad(rotAngle))*scaleMat(Vector3(scale, 1.0f))*translate(Vector3(position, zIndex-100.0f)); }
+	return lastModelMat;
 }
 #pragma endregion// Transform
 
@@ -330,49 +339,49 @@ Shader::~Shader() {
 	glDeleteProgram(program);
 }
 // uniform utility functions
-void Shader::setBool(const std::string& name, bool value) {
+void Shader::setBool(const char* name, const bool& value) {
 	if(engine->ended||!initialized) return;
 	use();
-	int uniformLocation=glGetUniformLocation(program, name.c_str());
+	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform1i(uniformLocation, (bool)value);
 }
-void Shader::setInt(const std::string& name, int value) {
+void Shader::setInt(const char* name, const int& value) {
 	if(engine->ended||!initialized) return;
 	use();
-	int uniformLocation=glGetUniformLocation(program, name.c_str());
+	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform1i(uniformLocation, value);
 }
-void Shader::setFloat(const std::string& name, float value) {
+void Shader::setFloat(const char* name, const float& value) {
 	if(engine->ended||!initialized) return;
 	use();
-	int uniformLocation=glGetUniformLocation(program, name.c_str());
+	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform1f(uniformLocation, value);
 }
-void Shader::setFloat2(const std::string& name, Vector2 value) {
+void Shader::setFloat2(const char* name, const Vector2& value) {
 	if(engine->ended||!initialized) return;
 	use();
-	int uniformLocation=glGetUniformLocation(program, name.c_str());
+	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform2f(uniformLocation, value.x, value.y);
 }
-void Shader::setFloat3(const std::string& name, Vector3 value) {
+void Shader::setFloat3(const char* name, const Vector3& value) {
 	if(engine->ended||!initialized) return;
 	use();
-	int uniformLocation=glGetUniformLocation(program, name.c_str());
+	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform3f(uniformLocation, value.x, value.y, value.z);
 }
-void Shader::setFloat4(const std::string& name, Vector4 value) {
+void Shader::setFloat4(const char* name, const Vector4& value) {
 	if(engine->ended||!initialized) return;
 	use();
-	int uniformLocation=glGetUniformLocation(program, name.c_str());
+	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform4f(uniformLocation, value.x, value.y, value.z, value.w);
 }
-void Shader::setMat4x4(const std::string& name, Mat4x4 value) {
+void Shader::setMat4x4(const char* name, const Mat4x4& value) {
 	if(engine->ended||!initialized) return;
 	use();
-	int uniformLocation=glGetUniformLocation(program, name.c_str());
+	int uniformLocation=glGetUniformLocation(program, name);
 	glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, &value.values[0]);
 }
-void Shader::setTexture(const std::string& name, Texture* tex, unsigned int location) {
+void Shader::setTexture(const char* name, Texture* tex, const unsigned int& location) {
 	if(engine->ended||!initialized||!tex->initialized) return;
 	setInt(name, location);
 	textures.push_back(tex);
@@ -380,9 +389,8 @@ void Shader::setTexture(const std::string& name, Texture* tex, unsigned int loca
 }
 void Shader::bindTextures() {
 	if(engine->ended||!initialized) return;
-	for(unsigned int i=0; i<std::min(textures.size(), textureIndexes.size()); i++) {
-		textures[i]->Bind(this, textureIndexes[i]);
-	}
+	use();
+	for(unsigned int i=0; i<std::min(textures.size(), textureIndexes.size()); i++) textures[i]->Bind(textureIndexes[i]);
 }
 #pragma endregion// Shader
 
@@ -527,9 +535,8 @@ Texture::Texture(Engine* _engine, std::string _path) :
 		return;
 	}
 }
-void Texture::Bind(Shader* shader, unsigned int location) {
-	if(engine->ended||!initialized||!shader->initialized) return;
-	shader->use();
+void Texture::Bind(const unsigned int& location) {
+	if(engine->ended||!initialized) return;
 	glActiveTexture(GL_TEXTURE0+location);
 	glBindTexture(GL_TEXTURE_2D, ID);
 }
@@ -604,7 +611,7 @@ void CubeRenderer::draw() {
 	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
 
-bool Renderer2D::AABBOverlap(Vector2 aPos, Vector2 aSize, Vector2 bPos, Vector2 bSize) {
+bool Renderer2D::AABBOverlap(const Vector2& aPos, const Vector2& aSize, const Vector2& bPos, const Vector2& bSize) {
 	if(aPos==bPos) return true;// guaranteed collition
 	// collision x-axis?
 	float collisionX1=((aPos.x+aSize.x/2)-(bPos.x-bSize.x/2));
@@ -615,10 +622,10 @@ bool Renderer2D::AABBOverlap(Vector2 aPos, Vector2 aSize, Vector2 bPos, Vector2 
 	// collision only if on both axes
 	return collisionX1>0&&collisionX2>0&&collisionY1>0&&collisionY2>0;
 }
-bool Renderer2D::shouldDraw(Vector2 viewer, Vector2 viewRange) {
+bool Renderer2D::shouldDraw(const Vector2& viewer, const Vector2& viewRange) {
 	return AABBOverlap(position-Vector2(anchor.x*scale.x, anchor.y*scale.y), scale, viewer, viewRange);
 }
-bool Renderer2D::shouldDraw(Vector2 viewer, float viewRange) { return shouldDraw(viewer, Vector2(viewRange, viewRange)); }
+bool Renderer2D::shouldDraw(const Vector2& viewer, const float& viewRange) { return shouldDraw(viewer, Vector2(viewRange, viewRange)); }
 bool Renderer2D::shouldDraw(OrthoCam* viewer) { return shouldDraw(viewer->position, viewer->scale); }
 
 float quadvertices[]={
@@ -657,7 +664,7 @@ SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _positi
 void SpriteRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	shader->bindTextures();
-	shader->setMat4x4("model", getModel());
+	shader->setMat4x4("model", getModelMat());
 	glBindVertexArray(VAO);
 	//glDrawElements(GL_TRIANGLE_STRIP, 6, GL_UNSIGNED_INT, 0);
 	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1);
@@ -667,8 +674,7 @@ struct Character {
 	unsigned int TextureID=0;// ID handle of the glyph texture
 	Vector2   Size;		     // Size of glyph
 	Vector2   Bearing;       // Offset from baseline to left/top of glyph
-	unsigned int Advance=0;  // Offset to advance to next glyph
-	Mat4x4 model;
+	int Advance=0;  // Offset to advance to next glyph
 };
 std::map<char, Character> Characters;
 bool characterMapInitialized=false;
@@ -707,8 +713,7 @@ int initCharacterMap() {
 			texture,
 			Size,
 			Bearing,
-			(unsigned int)face->glyph->advance.x,
-			translate(Vector3(0.5f, 0.5f, 0.0f))*scaleMat(Vector3(Size, 1.0f))
+			((int)face->glyph->advance.x)>>6// bitshift by 6 to get value in pixels (2^6 = 64)
 		};
 		Characters.insert(std::pair<char, Character>(c, character));
 	}
@@ -757,41 +762,43 @@ void TextRenderer::draw() {
 	glActiveTexture(GL_TEXTURE0);
 	glBindVertexArray(VAO);
 	// iterate through all characters to find final scale
-	float x=0.0f;
-	float maxX=0.0f;
-	float y=0.0f;
+	int x=0;
+	int maxX=0;
+	int y=0;
 	std::string::const_iterator c2;
 	for(c2=text.begin(); c2!=text.end(); c2++) {
 		if(*c2=='\n') {
 			if(x>maxX)maxX=x;
-			x=0.0f;
-			y-=(8*scale+1);
+			x=0;
+			y-=9;
 			continue;
 		}
 		Character ch=Characters[*c2];
-		if(*c2==' ') { x+=(ch.Advance>>6)*scale; continue; }// skip one space and continue
-		else if(*c2=='\t') { x+=(ch.Advance>>6)*4*scale; continue; }//4 character spaces
-		x+=(ch.Advance>>6)*scale; // bitshift by 6 to get value in pixels (2^6 = 64)
+		if(*c2==' ') { x+=ch.Advance; continue; }// skip one space and continue
+		else if(*c2=='\t') { x+=ch.Advance*4; continue; }//4 character spaces
+		x+=ch.Advance; // bitshift by 6 to get value in pixels (2^6 = 64)
 	}
 	if(x>maxX)maxX=x;
-	Transform2D::scale=(maxX, y);
-	Mat4x4 modelMat = scaleMat(Vector3(scale,scale,1.0f))*translate(Vector3((Transform2D::scale.x*(-anchor.x-0.5f)),(Transform2D::scale.y*(anchor.y-0.5f)), zIndex-100.0f));
+	Transform2D::scale=Vector2(maxX, y)*scale;
+	Mat4x4 casheMat=translate(Vector3(-anchor, 0.0f))*scaleMat(Vector3(scale, scale, 1.0f));
+	Vector2 offset=position+Vector2((Transform2D::scale.x*(-anchor.x-0.5f)), (Transform2D::scale.y*(anchor.y-0.5f)));
 	// iterate through all characters and render each
-	x=position.x;
-	y=position.y;
+	x=0;
+	y=0;
 	std::string::const_iterator c;
 	for(c=text.begin(); c!=text.end(); c++) {
-		if(*c=='\n') { x=position.x;y-=(8*scale+1); continue; } else if(*c=='\r') { x=position.x; continue; }
+		if(*c=='\n') { x=0;y-=9; continue; } else if(*c=='\r') { x=0; continue; }
 		Character ch=Characters[*c];
-		if(*c==' ') { x+=(ch.Advance>>6)*scale; continue; }// skip one space and continue
-		else if(*c=='\t') { x+=(ch.Advance>>6)*4*scale; continue; }//4 character spaces
-		shader->setMat4x4("model", ch.model*modelMat*translate(Vector3(x+ch.Bearing.x*scale, y-(ch.Size.y-ch.Bearing.y)*scale, zIndex-100.0f)) );
+		if(*c==' ') { x+=ch.Advance; continue; }// skip one space and continue
+		else if(*c=='\t') { x+=ch.Advance*4; continue; }//4 character spaces
+		Mat4x4 model=casheMat*scaleMat(Vector3(ch.Size, 1.0f))*translate(Vector3(offset+Vector2(((float)x)+ch.Bearing.x, ((float)y)-(ch.Size.y-ch.Bearing.y))*scale, zIndex-100.0f));
+		shader->setMat4x4("model", model);
 		glBindTexture(GL_TEXTURE_2D, ch.TextureID);
 		// render quad
 		//glDrawElements(GL_TRIANGLE_STRIP, 6, GL_UNSIGNED_INT, 0);
-		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1);
-		// now advance cursors for next glyph (note that advance is number of 1/64 pixels)
-		x+=(ch.Advance>>6)*scale; // bitshift by 6 to get value in pixels (2^6 = 64)
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		// now advance cursors for next glyph
+		x+=ch.Advance;
 	}
 	glBindVertexArray(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -834,7 +841,7 @@ LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2
 void LineRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	shader->bindTextures();
-	shader->setMat4x4("model", getTranslateMat());
+	shader->setMat4x4("model", createModelMat(position, zIndex));
 	glBindVertexArray(VAO);
 	glLineWidth(width);
 	glDrawArrays(loop ? GL_LINE_LOOP : GL_LINE_STRIP, 0, positions.size());
