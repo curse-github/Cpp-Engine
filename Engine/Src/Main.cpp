@@ -18,6 +18,13 @@ Shader* createTextShader() {
 	Shader* shader=new Shader(engine, "Shaders/vs.glsl", "Shaders/textFrag.glsl");
 	return shader;
 }
+Shader* createBatchedShader(std::vector<Texture*> textures) {
+	Shader* shader=new Shader(engine, "Shaders/batchVs.glsl", "Shaders/batchFrag.glsl");
+	if(!shader->initialized) return shader;
+	shader->setTextureArray("_textures");
+	for(unsigned int i=0; i<textures.size(); i++) shader->setTexture("_", textures[i], (int)i);
+	return shader;
+}
 #pragma endregion// Shader creators
 
 #pragma region FpsTracker
@@ -379,7 +386,7 @@ void Enemy::setPos(Vector2 _position) {
 }
 #pragma endregion// Enemy
 
-int main(int argc, char** argv) {
+int Run() {
 #pragma region Setup
 	// load map data
 	loadMapData("map");
@@ -434,28 +441,27 @@ int main(int argc, char** argv) {
 	enemyShader=createTexShader(enemyTex, Vector4(enemyModulate, 1.0f));
 	enemyIconShader=createTexShader(enemyTex, Vector4(enemyModulate, 0.75f));
 
-	backgroundShader=createTexShader(backgroundTex, Vector4());
+	backgroundShader=createTexShader(backgroundTex, Vector4::ZERO);
 	minimapShader=createTexShader(minimapTex, Vector4(1.0f, 1.0f, 1.0f, 0.75f));
 
-	instanceUnlitShader=createTexShader(instanceUnlitTex, Vector4(0.5f, 0.5f, 0.5f, 1.0f));
-	instanceWorkingShader=createTexShader(instanceWorkingTex, Vector4());
-	instanceBrokenShader=createTexShader(instanceBrokenTex, Vector4());
+	instanceShader=createBatchedShader({instanceUnlitTex});
+	instanceStateShader=createBatchedShader({instanceWorkingTex, instanceBrokenTex});
 
 	lineShader=createColorShader(Vector4(0.0f, 0.0f, 1.0f, 1.0f));
 	textShader=createTextShader();
 	if(engine->ended||
 		!playerShader->initialized||!flashlightShader->initialized||
 		!playerIconShader->initialized||!backgroundShader->initialized||
-		!minimapShader->initialized||!instanceUnlitShader->initialized||
-		!instanceWorkingShader->initialized||!instanceBrokenShader->initialized||
-		!lineShader->initialized||!textShader->initialized
+		!minimapShader->initialized||!instanceShader->initialized||
+		!instanceStateShader->initialized||!lineShader->initialized||
+		!textShader->initialized
 		) {
 		Log("Shaders failed to init.");
 		engine->Delete();
 		return 0;
 	}
-	cam->bindShaders({ playerShader, flashlightShader, backgroundShader, enemyShader, instanceUnlitShader, instanceWorkingShader, instanceBrokenShader, lineShader });
-	uiCam->bindShaders({ minimapShader, playerIconShader, enemyIconShader, textShader });
+	cam->bindShaders({ playerShader, flashlightShader, enemyShader, backgroundShader, instanceShader, instanceStateShader, lineShader });
+	uiCam->bindShaders({ playerIconShader, enemyIconShader, minimapShader, textShader });
 	cam->use();
 	uiCam->use();
 #pragma endregion// Setup
@@ -466,22 +472,19 @@ int main(int argc, char** argv) {
 	// map and minimap
 	sceneRenderers.push_back(new SpriteRenderer(engine, backgroundShader, Vector2::ZERO, 0.0f, fullMapSize, Vector2::BottomLeft));// background
 	uiRenderers.push_back(new SpriteRenderer(engine, minimapShader, Vector2(0.0f, HD1080P.y/2.0f), 0.0f, minimapSize, Vector2::TopLeft));// minimap
-	// setup text renderers
-	debugText.push_back(new TextRenderer(engine, textShader, "Pos:\nFps Avg:\nTime:", Vector3(0.75f, 0.75f, 0.75f), Vector2(1.0f, 1.0f), 2.0f, 0.0f, Vector2::BottomLeft));
-	if(engine->ended||!characterMapInitialized) {
-		Log("Fonts failed to init.");
-		engine->Delete();
-		return 0;
-	}
 	//ColliderDebug=true;// make hitboxes visible
 	// create instances
+	instanceRenderer=new StaticBatchedSpriteRenderer(engine, instanceShader);
+	instanceStateRenderer=new BatchedSpriteRenderer(engine, instanceStateShader);
 	for(const std::array<int, 5>&dat:instanceData) {
-		Vector2 pos=GridToWorld(Vector2((float)dat[0], (float)dat[1])+Vector2(0.5f));
-		sceneRenderers.push_back(new SpriteRenderer(engine, instanceUnlitShader, pos, 2.0f, Vector2(mapScale), Vector2::Center));
+		Vector2 pos=GridToWorld(Vector2((float)dat[0], (float)dat[1])+Vector2(0.5f, 0.5f));
 		bool broken=((float)std::rand())/((float)RAND_MAX)<=(instanceBrokenChance/100.0f);
-		instanceStateRenderers.push_back(new SpriteRenderer(engine, broken ? instanceBrokenShader : instanceWorkingShader, pos, 3.0f, Vector2(mapScale), Vector2::Center));
+		instanceRenderer->addQuad(pos, 2.0f, Vector2(mapScale), Vector4(0.5f, 0.5f, 0.5f, 1.0f), 0.0f);
+		instanceStateRenderer->addQuad(pos, 3.0f, Vector2(mapScale), Vector4::ONE, broken ? 1.0f : 0.0f);
+		if(broken) Log(pos);
 		colliders.push_back(new BoxCollider(engine, pos, Vector2(mapScale), lineShader));
 	}
+	instanceRenderer->bind();
 	// create horizontal wall colliders
 	for(const Vector3& line:horizontalWallData) {
 		colliders.push_back(new BoxCollider(engine, GridToWorld(Vector2((line.z+line.y)/2.0f, line.x)), Vector2(((line.z-line.y)*(1.0f+spacing)+spacing*3.0f)*mapScale, spacing*3.0f*mapScale), lineShader));
@@ -490,6 +493,13 @@ int main(int argc, char** argv) {
 	for(const Vector3& line:verticalWallData) {
 		colliders.push_back(new BoxCollider(engine, GridToWorld(Vector2(line.x, (line.z+line.y)/2.0f)), Vector2(spacing*3.0f, ((line.z-line.y)*(1.0f+spacing)+spacing*3.0f))*mapScale, lineShader));
 	}
+	// setup text renderers
+	debugText.push_back(new TextRenderer(engine, textShader, "Pos:\nFps Avg:\nTime:", Vector3(0.75f, 0.75f, 0.75f), Vector2(1.0f, 1.0f), 2.0f, 0.0f, Vector2::BottomLeft));
+	if(engine->ended||!characterMapInitialized) {
+		Log("Fonts failed to init.");
+		engine->Delete();
+		return 0;
+	}
 	// run main loop
 	engine->renderLoop=Loop;
 	Log("Engine initialized successfully.");
@@ -497,22 +507,26 @@ int main(int argc, char** argv) {
 	//destruction
 	delete engine;
 	sceneRenderers.clear();
-	instanceStateRenderers.clear();
 	uiRenderers.clear();
 	debugText.clear();
 	colliders.clear();
 	return 1;
 }
 void Loop(double delta) {
-	// set debug text
 	Vector2 playerPos=player->position;
-	debugText[0]->text="Pos: "+(std::string)WorldToGrid(playerPos).floor()+"\n";
+	// set debug text
+#ifdef _DEBUG
+	debugText[0]->text="Pos: "+playerPos.to_string()+"\n";
 	debugText[0]->text+="Fps Avg: "+std::to_string(tracker->getAvgFps())+", high: "+std::to_string(tracker->getHighFps())+", low: "+std::to_string(tracker->getLowFps())+"\n";
 	debugText[0]->text+="Time: "+std::to_string(glfwGetTime());
+#else// _DEBUG
+	debugText[0]->text=std::to_string(tracker->getAvgFps());
+#endif// _DEBUG
 	// draw scene
 	for(Renderer2D* ren:sceneRenderers) if(ren->shouldDraw(playerPos, viewRange)) ren->draw();
+	instanceRenderer->draw();
 	player->flashlightStencilOn();
-	for(Renderer2D* ren:instanceStateRenderers) if(ren->shouldDraw(playerPos, flashlightRange*mapScale)) ren->draw();
+	instanceStateRenderer->draw();
 	player->flashlightStencilOff();
 	if(enemy->debugRen) enemy->debugRen->draw();
 	if(ColliderDebug) {
@@ -523,4 +537,13 @@ void Loop(double delta) {
 	glClear(GL_DEPTH_BUFFER_BIT);
 	for(Renderer* ren:uiRenderers) ren->draw();
 	for(TextRenderer* ren:debugText) ren->draw();
+}
+
+int main(int argc, char** argv) {
+	int value = Run();
+#ifdef _DEBUG
+	Log("Press enter to close . . .");
+	std::cin.get();
+#endif// _DEBUG
+	return value;
 }

@@ -67,5 +67,11 @@
     <None Include="Data\map.json">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="Shaders\batchVs.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\batchFrag.glsl">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

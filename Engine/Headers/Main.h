@@ -80,23 +80,24 @@ Shader* enemyIconShader;
 Shader* backgroundShader;
 Shader* minimapShader;
 
-Shader* instanceUnlitShader;
-Shader* instanceWorkingShader;
-Shader* instanceBrokenShader;
+Shader* instanceShader;
+Shader* instanceStateShader;
 
 Shader* lineShader;
 Shader* textShader;
 
 std::vector<Renderer2D*> sceneRenderers;
-std::vector<Renderer2D*> instanceStateRenderers;
 std::vector<Renderer*> uiRenderers;
 std::vector<TextRenderer*> debugText;
+StaticBatchedSpriteRenderer* instanceRenderer;
+BatchedSpriteRenderer* instanceStateRenderer;
 
 std::vector<BoxCollider*> colliders;
 
 Shader* createTexShader(Texture* tex, Vector4 modulate);
 Shader* createColorShader(Vector4 color);
 Shader* createTextShader();
+Shader* createBatchedShader(std::vector<Texture*> textures);
 
 class FpsTracker : Object {
 	protected:

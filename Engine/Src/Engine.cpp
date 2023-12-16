@@ -189,7 +189,6 @@ void Engine::sub_loop(Object* obj) {
 #pragma endregion// subFuncs
 
 #pragma endregion// Engine
-
 #pragma region Object
 Object::Object(Engine* _engine) : engine(_engine) {
 	if(!engine->initialized||engine->ended) { initialized=false; return; }
@@ -223,7 +222,7 @@ void Object::on_mouse_enter(GLFWwindow* window, int entered) {}
 void Object::on_loop(double delta) {}
 #pragma endregion// Object
 
-#pragma region Transform
+#pragma region Transforms
 Transform::Transform(Vector3 _position, Vector3 _scale, Vector3 _rotAxis, float _rotAngle) :
 	position(_position), scale(_scale), rotAxis(_rotAxis), rotAngle(_rotAngle) {}
 Transform2D::Transform2D(Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle) :
@@ -243,7 +242,7 @@ Mat4x4 Transform2D::getModelMat() {
 	if(changed) { lastModelMat=translate(Vector3(-anchor, 0.0f))*axisRotMat(rotAxis, deg_to_rad(rotAngle))*scaleMat(Vector3(scale, 1.0f))*translate(Vector3(position, zIndex-100.0f)); }
 	return lastModelMat;
 }
-#pragma endregion// Transform
+#pragma endregion// Transforms
 
 #pragma region Shader
 Shader::Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath) : Object(_engine) {
@@ -254,7 +253,8 @@ Shader::Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath
 	if(vertexShaderSourceStr.size()==0) {
 		Log("File \""+vertexPath+"\" failed to read.");//error
 		if(vertexPath=="Shaders/vs.glsl") vertexShaderSourceStr=vsShader;
-		if(vertexPath=="Shaders/textVs.glsl") vertexShaderSourceStr=textVsShader;
+		else if(vertexPath=="Shaders/textVs.glsl") vertexShaderSourceStr=textVsShader;
+		else if(vertexPath=="Shaders/batchVs.glsl") vertexShaderSourceStr=batchVsShader;
 		if(vertexShaderSourceStr.size()==0) {
 			engine->Delete();
 			return;
@@ -285,8 +285,9 @@ Shader::Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath
 	if(fragmentShaderSourceStr.size()==0) {
 		Log("File \""+fragmentPath+"\" failed to read.");//error
 		if(fragmentPath=="Shaders/colorFrag.glsl") fragmentShaderSourceStr=colorFragShader;
-		if(fragmentPath=="Shaders/texFrag.glsl") fragmentShaderSourceStr=texFragShader;
-		if(fragmentPath=="Shaders/textFrag.glsl") fragmentShaderSourceStr=textFragShader;
+		else if(fragmentPath=="Shaders/texFrag.glsl") fragmentShaderSourceStr=texFragShader;
+		else if(fragmentPath=="Shaders/textFrag.glsl") fragmentShaderSourceStr=textFragShader;
+		else if(fragmentPath=="Shaders/batchFrag.glsl") fragmentShaderSourceStr=batchFragShader;
 		if(fragmentShaderSourceStr.size()==0) {
 			glDeleteShader(vertexShader);
 			engine->Delete();
@@ -308,6 +309,7 @@ Shader::Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath
 	if(!fragmentSuccess) {// glGetShaderInfoLog(fragmentSuccess, 512, NULL, fragmentInfoLog);
 		glDeleteShader(vertexShader);
 		glDeleteShader(fragmentShader);
+		Log(fragmentShaderSource);
 		Log("Fragment shader \""+fragmentPath+"\" failed to init.");//error
 		engine->Delete();
 		return;
@@ -326,6 +328,8 @@ Shader::Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath
 	glGetProgramiv(program, GL_LINK_STATUS, &programSuccess);
 	if(!programSuccess) {// glGetProgramInfoLog(shaderProgram, 512, NULL, programInfoLog);
 		Log("Shader program failed to create.");//error
+		Log("OpenGL version is");
+		std::cout<<glGetString(GL_VERSION);
 		engine->Delete();
 		return;
 	}
@@ -383,18 +387,68 @@ void Shader::setMat4x4(const char* name, const Mat4x4& value) {
 }
 void Shader::setTexture(const char* name, Texture* tex, const unsigned int& location) {
 	if(engine->ended||!initialized||!tex->initialized) return;
-	setInt(name, location);
+	for(unsigned int i=0; i<textureIndexes.size(); i++) {
+		if(textureIndexes[i]==location) { textures[i]=tex; return; }// replace texture at location if there already is one there
+	}
+	if(name!="_") setInt(name, location);
 	textures.push_back(tex);
 	textureIndexes.push_back(location);
+}
+void Shader::setTextureArray(const std::string& name) {
+	if(engine->ended||!initialized) return;
+	for(int i=0; i<maxTextures; i++) {
+		setInt((name+"["+std::to_string(i)+"]").c_str(), i);
+	}
 }
 void Shader::bindTextures() {
 	if(engine->ended||!initialized) return;
 	use();
-	for(unsigned int i=0; i<std::min(textures.size(), textureIndexes.size()); i++) textures[i]->Bind(textureIndexes[i]);
+	unsigned int len=std::min(textures.size(), textureIndexes.size());
+	for(unsigned int i=0; i<len; i++) textures[i]->Bind(textureIndexes[i]);
 }
 #pragma endregion// Shader
+#pragma region Texture
+int load_texture(unsigned int* texture, std::string path, int* width, int* height) {
+	int nrChannels;
+	//stbi_set_flip_vertically_on_load(true);
+	unsigned char* data=stbi_load(path.c_str(), width, height, &nrChannels, 0);//read raw image data from file
+	if(data) {
+		glGenTextures(1, texture);
+		glBindTexture(GL_TEXTURE_2D, *texture);// bind texture so that following code will assign the texture
+		// texture wrapping
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		// texture filtering
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		// turn byte data into texture
+		unsigned int channelsEnum=((nrChannels==3) ? GL_RGB : GL_RGBA);
+		glTexImage2D(GL_TEXTURE_2D, 0, channelsEnum, *width, *height, 0, channelsEnum, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		stbi_image_free(data);// free the memory holding the image data
+		return 1;
+	} else {
+		return 0;
+	}
+}
+Texture::Texture(Engine* _engine, std::string _path) :
+	Object(_engine), ID(0), path(_path), width(0), height(0) {
+	if(!initialized) return;
+	if(!load_texture(&ID, path, &width, &height)) {
+		initialized=false;
+		Log("texture \""+path+"\" failed to load.");//error
+		engine->Delete();
+		return;
+	}
+}
+void Texture::Bind(const unsigned int& location) {
+	if(engine->ended||!initialized) return;
+	glActiveTexture(GL_TEXTURE0+location);
+	glBindTexture(GL_TEXTURE_2D, ID);
+}
+#pragma endregion// Texture
 
-#pragma region Camera
+#pragma region Cameras
 Camera::Camera(Engine* _engine) : Object(_engine), projection(Mat4x4()), view(Mat4x4()) {
 	if(!initialized) return;
 }
@@ -499,50 +553,9 @@ void OrthoCam::update() {
 	projection=ortho(-scale.x/2.0f, scale.x/2.0f, -scale.y/2.0f, scale.y/2.0f, 0.0f, 1000.0f);
 	view=translate(Vector3(-position, 0));
 }
-#pragma endregion// Camera
+#pragma endregion// Cameras
 
-#pragma region Texture
-int load_texture(unsigned int* texture, std::string path, int* width, int* height) {
-	int nrChannels;
-	//stbi_set_flip_vertically_on_load(true);
-	unsigned char* data=stbi_load(path.c_str(), width, height, &nrChannels, 0);//read raw image data from file
-	if(data) {
-		glGenTextures(1, texture);
-		glBindTexture(GL_TEXTURE_2D, *texture);// bind texture so that following code will assign the texture
-		// texture wrapping
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		// texture filtering
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		// turn byte data into texture
-		unsigned int channelsEnum=((nrChannels==3) ? GL_RGB : GL_RGBA);
-		glTexImage2D(GL_TEXTURE_2D, 0, channelsEnum, *width, *height, 0, channelsEnum, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-		stbi_image_free(data);// free the memory holding the image data
-		return 1;
-	} else {
-		return 0;
-	}
-}
-Texture::Texture(Engine* _engine, std::string _path) :
-	Object(_engine), ID(0), path(_path), width(0), height(0) {
-	if(!initialized) return;
-	if(!load_texture(&ID, path, &width, &height)) {
-		initialized=false;
-		Log("texture \""+path+"\" failed to load.");//error
-		engine->Delete();
-		return;
-	}
-}
-void Texture::Bind(const unsigned int& location) {
-	if(engine->ended||!initialized) return;
-	glActiveTexture(GL_TEXTURE0+location);
-	glBindTexture(GL_TEXTURE_2D, ID);
-}
-#pragma endregion// Texture
-
-#pragma region Renderers
+#pragma region Renderer
 Renderer::Renderer(Engine* _engine, Shader* _shader) : Object(_engine), shader(_shader), VAO(0), VBO(0), EBO(0) { if(!initialized||!shader->initialized) initialized=false; }
 void Renderer::setShader(Shader* _shader) { shader=_shader; }
 Renderer::~Renderer() {
@@ -551,7 +564,8 @@ Renderer::~Renderer() {
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
 }
-
+#pragma endregion// Renderer
+#pragma region CubeRenderer
 float cubevertices[]={
 	0.5f, -0.5f, -0.5f, 0.0f, 0.0f,//0
 	-0.5f, -0.5f, -0.5f, 1.0f, 0.0f,//1
@@ -610,7 +624,8 @@ void CubeRenderer::draw() {
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
-
+#pragma endregion// CubeRenderer
+#pragma region Renderer2D
 bool Renderer2D::AABBOverlap(const Vector2& aPos, const Vector2& aSize, const Vector2& bPos, const Vector2& bSize) {
 	if(aPos==bPos) return true;// guaranteed collition
 	// collision x-axis?
@@ -627,22 +642,23 @@ bool Renderer2D::shouldDraw(const Vector2& viewer, const Vector2& viewRange) {
 }
 bool Renderer2D::shouldDraw(const Vector2& viewer, const float& viewRange) { return shouldDraw(viewer, Vector2(viewRange, viewRange)); }
 bool Renderer2D::shouldDraw(OrthoCam* viewer) { return shouldDraw(viewer->position, viewer->scale); }
-
+#pragma endregion// Renderers2D
+#pragma region SpriteRenderer
 float quadvertices[]={
 	-0.5f, 0.5f, -1.0f, 0.0f, 0.0f,
 	-0.5f, -0.5f, -1.0f, 0.0f, 1.0f,
 	0.5f, 0.5f, -1.0f, 1.0f, 0.0f,
 	0.5f, -0.5f, -1.0f, 1.0f, 1.0f
 };
-//int quadindices[]={// wouldnt work anymore even if you wanted it to
-//	0,1,2,3
-//};
+int quadindices[]={
+	1, 3, 2, 2, 0, 1
+};
 SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle) :
 	Renderer2D(_engine, _shader, _position, _zIndex, _scale, _anchor, _rotAngle) {
 	if(!initialized) return;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
+	//glGenBuffers(1, &EBO);
 
 	glBindVertexArray(VAO);
 
@@ -666,10 +682,11 @@ void SpriteRenderer::draw() {
 	shader->bindTextures();
 	shader->setMat4x4("model", getModelMat());
 	glBindVertexArray(VAO);
-	//glDrawElements(GL_TRIANGLE_STRIP, 6, GL_UNSIGNED_INT, 0);
-	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, 1);
+	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
-
+#pragma endregion// SpriteRenderer
+#pragma region TextRenderer
 struct Character {
 	unsigned int TextureID=0;// ID handle of the glyph texture
 	Vector2   Size;		     // Size of glyph
@@ -779,7 +796,7 @@ void TextRenderer::draw() {
 		x+=ch.Advance; // bitshift by 6 to get value in pixels (2^6 = 64)
 	}
 	if(x>maxX)maxX=x;
-	Transform2D::scale=Vector2(maxX, y)*scale;
+	Transform2D::scale=Vector2((float)maxX, (float)y)*scale;
 	Mat4x4 casheMat=translate(Vector3(-anchor, 0.0f))*scaleMat(Vector3(scale, scale, 1.0f));
 	Vector2 offset=position+Vector2((Transform2D::scale.x*(-anchor.x-0.5f)), (Transform2D::scale.y*(anchor.y-0.5f)));
 	// iterate through all characters and render each
@@ -795,7 +812,7 @@ void TextRenderer::draw() {
 		shader->setMat4x4("model", model);
 		glBindTexture(GL_TEXTURE_2D, ch.TextureID);
 		// render quad
-		//glDrawElements(GL_TRIANGLE_STRIP, 6, GL_UNSIGNED_INT, 0);
+		//glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		// now advance cursors for next glyph
 		x+=ch.Advance;
@@ -803,7 +820,8 @@ void TextRenderer::draw() {
 	glBindVertexArray(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
-
+#pragma endregion// TextRenderer
+#pragma region LineRenderer
 LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position, bool _loop) :
 	Renderer2D(_engine, _shader, _position, 100.0f, Vector2::ONE, Vector2::Center, 0.0f), positions(_positions), width(_width), loop(_loop) {
 	if(!initialized) return;
@@ -846,10 +864,157 @@ void LineRenderer::draw() {
 	glLineWidth(width);
 	glDrawArrays(loop ? GL_LINE_LOOP : GL_LINE_STRIP, 0, positions.size());
 }
-#pragma endregion// Renderers
+#pragma endregion// LineRenderer
+#pragma region BatchedSpriteRenderer
+void BatchedSpriteRenderer::bufferQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex) {
+	if(numQuads>=maxQuadCount) renderBatch();// if out of room render and reset
+	for(unsigned int i=0; i<((unsigned int)4*5); i+=5) {
+		*dataBufferPtr=BatchedVertex {
+			position.x+quadvertices[i+0]*scale.x, position.y+quadvertices[i+1]*scale.y,
+			zIndex-100.0f,
+			quadvertices[i+3], quadvertices[i+4],
+			modulate.x, modulate.y, modulate.z, modulate.w,
+			texIndex
+		};
+		dataBufferPtr++;
+	}
+	numQuads++;
+}
+void BatchedSpriteRenderer::renderBatch() {
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, ((unsigned int)dataBufferPtr)-((unsigned int)dataBuffer), dataBuffer);
+	glBindVertexArray(VAO);
+	glDrawElements(GL_TRIANGLES, numQuads*6, GL_UNSIGNED_INT, nullptr);
+	//glDrawArrays(GL_TRIANGLE_STRIP, 0, numQuads*4);
+	drawCalls++;
+	dataBufferPtr=dataBuffer;
+	numQuads=0;
+}
+BatchedSpriteRenderer::BatchedSpriteRenderer(Engine* _engine, Shader* _shader) :
+	Renderer2D(_engine, _shader, Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f), dataBuffer(nullptr), dataBufferPtr(nullptr) {
+	if(!initialized) return;
+
+	dataBuffer=new BatchedVertex[maxQuadCount*4];
+	dataBufferPtr=dataBuffer;
+
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, maxQuadCount*4*sizeof(BatchedVertex), nullptr, GL_DYNAMIC_DRAW);
+	unsigned int* indices=new unsigned int[maxQuadCount*6];
+	for(int i=0; i<maxQuadCount; i++) {
+		indices[i*6+0]=((unsigned int)i*4+1);
+		indices[i*6+1]=((unsigned int)i*4+3);
+		indices[i*6+2]=((unsigned int)i*4+2);
+		indices[i*6+3]=((unsigned int)i*4+2);
+		indices[i*6+4]=((unsigned int)i*4+0);
+		indices[i*6+5]=((unsigned int)i*4+1);
+	}
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*maxQuadCount*6, indices, GL_STATIC_DRAW);
+	delete[] indices;
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)(3*sizeof(float)));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)(5*sizeof(float)));
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)(9*sizeof(float)));
+	glEnableVertexAttribArray(3);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+BatchedSpriteRenderer::~BatchedSpriteRenderer() { delete[] dataBuffer; }
+void BatchedSpriteRenderer::addQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex) {
+	quads.push_back(QuadData { position, zIndex, scale, texIndex, modulate });
+}
+void BatchedSpriteRenderer::draw() {
+	drawCalls=0;
+	shader->bindTextures();
+	for(const QuadData& quad:quads) bufferQuad(quad.position, quad.zIndex, quad.scale, quad.modulate, quad.texIndex);
+	renderBatch();
+}
+#pragma endregion// BatchedSpriteRenderer
+#pragma region StaticBatchedSpriteRenderer
+void StaticBatchedSpriteRenderer::bufferQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex) {
+	if(numQuads>=maxQuadCount) return;//dont try to add more than is possible, this should not occur though
+	for(unsigned int i=0; i<((unsigned int)4*5); i+=5) {
+		*dataBufferPtr=BatchedVertex {
+			position.x+quadvertices[i+0]*scale.x, position.y+quadvertices[i+1]*scale.y,
+			zIndex-100.0f,
+			quadvertices[i+3], quadvertices[i+4],
+			modulate.x, modulate.y, modulate.z, modulate.w,
+			texIndex
+		};
+		dataBufferPtr++;
+	}
+	numQuads++;
+}
+void StaticBatchedSpriteRenderer::renderBatch() {
+	glBindVertexArray(VAO);
+	glDrawElements(GL_TRIANGLES, numQuads*6, GL_UNSIGNED_INT, nullptr);
+	//glDrawArrays(GL_TRIANGLE_STRIP, 0, numQuads*4);
+}
+StaticBatchedSpriteRenderer::StaticBatchedSpriteRenderer(Engine* _engine, Shader* _shader) :
+	Renderer2D(_engine, _shader, Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f), dataBuffer(nullptr), dataBufferPtr(nullptr) {
+	if(!initialized) return;
+
+	dataBuffer=new BatchedVertex[maxQuadCount*4];
+	dataBufferPtr=dataBuffer;
+
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, maxQuadCount*4*sizeof(BatchedVertex), nullptr, GL_DYNAMIC_DRAW);
+	unsigned int* indices=new unsigned int[maxQuadCount*6];
+	for(int i=0; i<maxQuadCount; i++) {
+		indices[i*6+0]=((unsigned int)i*4+1);
+		indices[i*6+1]=((unsigned int)i*4+3);
+		indices[i*6+2]=((unsigned int)i*4+2);
+		indices[i*6+3]=((unsigned int)i*4+2);
+		indices[i*6+4]=((unsigned int)i*4+0);
+		indices[i*6+5]=((unsigned int)i*4+1);
+	}
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*maxQuadCount*6, indices, GL_STATIC_DRAW);
+	delete[] indices;
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)(3*sizeof(float)));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)(5*sizeof(float)));
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)(9*sizeof(float)));
+	glEnableVertexAttribArray(3);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+StaticBatchedSpriteRenderer::~StaticBatchedSpriteRenderer() { delete[] dataBuffer; }
+void StaticBatchedSpriteRenderer::addQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex) {
+	quads.push_back(QuadData { position, zIndex, scale, texIndex, modulate });
+}
+void StaticBatchedSpriteRenderer::bind() {
+	dataBufferPtr=dataBuffer;
+	numQuads=0;
+	for(const QuadData& quad:quads) bufferQuad(quad.position, quad.zIndex, quad.scale, quad.modulate, quad.texIndex);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, ((unsigned int)dataBufferPtr)-((unsigned int)dataBuffer), dataBuffer);
+}
+void StaticBatchedSpriteRenderer::draw() {
+	shader->bindTextures();
+	renderBatch();
+}
+#pragma endregion// StaticBatchedSpriteRenderer
 
 #pragma region Stencil
-
 void StencilSimple::Enable() {
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);

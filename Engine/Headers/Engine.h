@@ -72,6 +72,7 @@ class Object {
 	Object(Engine* _engine);
 	virtual ~Object();
 };
+
 class Transform {
 	public:
 	Vector3 position;
@@ -102,13 +103,14 @@ class Transform2D {
 	Vector2 lastAnchor=Vector2::Center;
 	float lastRotAngle=0.0f;
 };
+
 class Texture;
 class Shader : public Object {
 	protected:
 	unsigned int program=0;
+	public:
 	std::vector<Texture*> textures;
 	std::vector<int> textureIndexes;
-	public:
 	Shader() : Object() {}
 	Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath);
 	virtual ~Shader();
@@ -121,8 +123,22 @@ class Shader : public Object {
 	void setFloat4(const char* name, const Vector4& value);
 	void setMat4x4(const char* name, const Mat4x4& value);
 	void setTexture(const char* name, Texture* tex, const unsigned int& location);
+	void setTextureArray(const std::string& name);
 	void bindTextures();
 };
+class Texture : public Object {
+	protected:
+	std::string path;
+	void Bind(const unsigned int& location);
+	friend Shader;
+	public:
+	unsigned int ID;
+	int width;
+	int height;
+	Texture() : Object(), ID(0), path(""), width(0), height(0) {}
+	Texture(Engine* _engine, std::string _path);
+};
+
 class Camera : public Object {
 	std::vector<Shader*> shaders;
 	public:
@@ -175,18 +191,7 @@ class OrthoCam : public Camera, protected Transform2D {
 	OrthoCam(Engine* _engine, Vector2 _position, Vector2 _size);
 	void update();
 };
-class Texture : public Object {
-	protected:
-	unsigned int ID;
-	std::string path;
-	void Bind(const unsigned int& location);
-	friend Shader;
-	public:
-	int width;
-	int height;
-	Texture() : Object(), ID(0), path(""), width(0), height(0) {}
-	Texture(Engine* _engine, std::string _path);
-};
+
 class Renderer : public Object {
 	protected:
 	Shader* shader;
@@ -260,6 +265,65 @@ class LineRenderer : protected Renderer2D {
 	void draw() override;
 	using Renderer2D::shouldDraw;
 };
+
+const int maxTextures=32;
+struct BatchedVertex {
+	float X;
+	float Y;
+	float Z;
+
+	float U;
+	float V;
+
+	float R;
+	float G;
+	float B;
+	float A;
+
+	float I;
+};
+struct QuadData {
+	Vector2 position;
+	float zIndex;
+	Vector2 scale;
+	float texIndex;
+	Vector4 modulate;
+};
+class BatchedSpriteRenderer : protected Renderer2D {
+	protected:
+	BatchedVertex* dataBuffer;
+	BatchedVertex* dataBufferPtr;
+	void bufferQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex);
+	void renderBatch();
+	public:
+	std::vector<QuadData> quads;
+	int maxQuadCount=10000;
+	int drawCalls=0;
+	int numQuads=0;
+	BatchedSpriteRenderer() : Renderer2D(), dataBuffer(nullptr), dataBufferPtr(nullptr) {};
+	BatchedSpriteRenderer(Engine* _engine, Shader* _shader);
+	virtual ~BatchedSpriteRenderer();
+	void addQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex);
+	void draw() override;
+};
+class StaticBatchedSpriteRenderer : protected Renderer2D {
+	protected:
+	BatchedVertex* dataBuffer;
+	BatchedVertex* dataBufferPtr;
+	void bufferQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex);
+	void renderBatch();
+	public:
+	std::vector<QuadData> quads;
+	int maxQuadCount=10000;
+	int numQuads=0;
+	StaticBatchedSpriteRenderer() : Renderer2D(), dataBuffer(nullptr), dataBufferPtr(nullptr) {};
+	StaticBatchedSpriteRenderer(Engine* _engine, Shader* _shader);
+	virtual ~StaticBatchedSpriteRenderer();
+	void addQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex);
+	void bind();
+	void draw() override;
+};
+
 class StencilSimple {
 	public:
 	StencilSimple() {}
@@ -268,7 +332,6 @@ class StencilSimple {
 	void Write();
 	void Compare();
 };
-
 #pragma region Shader Embedded Code
 #define vsShader "#version 330 core\n\
 layout(location=0) in vec3 vecPos;\n\
@@ -315,9 +378,39 @@ out vec4 outColor;\n\
 uniform sampler2D text;\n\
 uniform vec3 textColor;\n\
 void main() {\n\
-	vec4 sampled=vec4(1.0, 1.0, 1.0, texture(text, uv).r); \n\
-	if(sampled.a <= 0.05) discard; \n\
-	outColor=vec4(textColor, 1.0) * sampled; \n\
+	vec4 sampled=vec4(1.0, 1.0, 1.0, texture(text, uv).r);\n\
+	if(sampled.a <= 0.05) discard;\n\
+	outColor=vec4(textColor, 1.0) * sampled;\n\
+}\0"
+#define batchVsShader "#version 450 core\n\
+layout (location = 0) in vec3 vecPos;\n\
+layout (location = 1) in vec2 vecUV;\n\
+layout (location = 2) in vec4 vecMod;\n\
+layout (location = 3) in float vecTexIndex;\n\
+uniform mat4 view;\n\
+uniform mat4 projection;\n\
+out vec2 uv;\n\
+out vec4 mod;\n\
+out float texIndex;\n\
+void main() {\n\
+	gl_Position = projection*view*vec4(vecPos, 1.0);\n\
+	uv = vecUV;\n\
+	mod=vecMod;\n\
+	texIndex=vecTexIndex;\n\
+}\0"
+#define batchFragShader "#version 450 core\n\
+in vec2 uv;\n\
+in vec4 mod;\n\
+in float texIndex;\n\
+out vec4 outColor;\n\
+uniform sampler2D _textures[32];\n\
+void main() {\n\
+	if (texIndex>=32||texIndex<0) outColor=mod;\n\
+	else {\n\
+		vec4 vertColor=texture(_textures[int(texIndex)],uv);\n\
+		if (vertColor.a<=0.05f) discard;\n\
+		outColor=vertColor*mod;\n\
+	}\n\
 }\0"
 #pragma endregion
 #endif

@@ -33,6 +33,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Data\map.json" />
+    <None Include="Shaders\batchFrag.glsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Shaders\batchVs.glsl" />
     <None Include="Shaders\colorFrag.glsl" />
     <None Include="Shaders\textVs.glsl" />
     <None Include="Shaders\texFrag.glsl" />
