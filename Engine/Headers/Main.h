@@ -90,7 +90,7 @@ std::vector<Renderer2D*> sceneRenderers;
 std::vector<Renderer*> uiRenderers;
 std::vector<TextRenderer*> debugText;
 StaticBatchedSpriteRenderer* instanceRenderer;
-BatchedSpriteRenderer* instanceStateRenderer;
+StaticBatchedSpriteRenderer* instanceStateRenderer;
 
 std::vector<BoxCollider*> colliders;
 
@@ -117,11 +117,6 @@ class FpsTracker : Object {
 };
 
 bool ColliderDebug=false;
-struct CollitionData {
-	Vector2 normal;
-	float dist;
-	CollitionData(Vector2 _normal, float _dist) : normal(_normal), dist(_dist) {}
-};
 class BoxCollider : protected LineRenderer {
 	protected:
 	float boundingRadius;
@@ -130,7 +125,24 @@ class BoxCollider : protected LineRenderer {
 	using Transform2D::scale;
 	BoxCollider() : LineRenderer(), boundingRadius(0.0f) {}
 	BoxCollider(Engine* _engine, Vector2 _position, Vector2 _scale, Shader* _debugLineShader);
+	struct CollitionData {
+		Vector2 normal;
+		float dist;
+		CollitionData(Vector2 _normal, float _dist) : normal(_normal), dist(_dist) {}
+	};
 	CollitionData checkCollision(BoxCollider* other);
+	struct RaycastHit {
+		bool hit;
+		float dist;
+		Vector2 point;
+		RaycastHit() : hit(false), dist(FLT_MAX), point(Vector2()) {};
+		RaycastHit(const float& _dist, const Vector2& _point) : hit(true), dist(_dist), point(_point) {};
+		operator bool() const;
+		RaycastHit operator||(const RaycastHit& b) const;
+	};
+	static RaycastHit lineLineIntersection(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4);
+	static bool lineLineCollide(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4);
+	RaycastHit LineBox(const Vector2& p1, const Vector2& p2);
 	using LineRenderer::draw;
 	using Renderer2D::shouldDraw;
 };
@@ -164,15 +176,14 @@ class Enemy : public Object {
 	Player* target;
 	Vector2 targetLastPos;
 	std::vector<Vector2> path;
-	void updateDebugLine();
+	void setDebugLine(std::vector<Vector2> line);
+	BoxCollider::RaycastHit raycast();
 	void on_loop(double delta) override;
-	void resolveCollitions();
 	public:
 	Vector2 position;
 	LineRenderer* debugRen=nullptr;
 	Enemy() : Object(), position(Vector2()), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), lineShader(nullptr), pathfinder(nullptr), target(nullptr) {}
 	Enemy(Engine* _engine, Vector2 _position, Shader* enemyShader, Shader* iconShader, Shader* _lineShader, Pathfinder* _pathfinder, Player* _target);
-	void setPos(Vector2 pos);
 };
 
 Vector2 HD1080P(1920.0, 1080.0);

@@ -70,7 +70,7 @@ float FpsTracker::getFrameTime() {
 BoxCollider::BoxCollider(Engine* _engine, Vector2 _position, Vector2 _scale, Shader* _debugLineShader) :
 	LineRenderer(_engine, _debugLineShader, { Vector2(-_scale.x/2, _scale.y/2), Vector2(_scale.x/2, _scale.y/2), Vector2(_scale.x/2, -_scale.y/2), Vector2(-_scale.x/2, -_scale.y/2) }, 2.0f, _position, true),
 	boundingRadius((_scale/2.0f).length()) {}
-CollitionData BoxCollider::checkCollision(BoxCollider* other) {
+BoxCollider::CollitionData BoxCollider::checkCollision(BoxCollider* other) {
 	if(((position-other->position).length()-(boundingRadius+other->boundingRadius))>=0) CollitionData(Vector2::ZERO, 0.0f);
 	if(position==other->position) return CollitionData(Vector2::ZERO, 0.0f);
 	// collision x-axis?
@@ -91,6 +91,57 @@ CollitionData BoxCollider::checkCollision(BoxCollider* other) {
 	} else {
 		return CollitionData(Vector2::ZERO, 0.0f);
 	}
+}
+BoxCollider::RaycastHit::operator bool() const { return hit; }
+BoxCollider::RaycastHit BoxCollider::RaycastHit::operator||(const BoxCollider::RaycastHit& b) const {
+	RaycastHit out;
+	switch(((int)hit)+((int)b.hit)*2) {
+		case 0://neither
+			out=RaycastHit();
+			break;
+		case 1://a&&!b
+			out=RaycastHit(*this);
+			break;
+		case 2://b&&!a
+			out=b;
+			break;
+		case 3://a&&b
+			if(dist<=b.dist) out=RaycastHit(*this);// return whichever is closer
+			else out=b;
+			break;
+	}
+	return out;
+}
+/*BoxCollider::RaycastHit BoxCollider::lineLineIntersection(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4) {
+	Vector2 d1=p2-p1; Vector2 d2=p4-p3;
+	float t=(((p3-p1).cross(d2))/(d1.cross(d2)));
+	if ((t>=0&&t<=1)) return RaycastHit(t, p1+d1*t);// im mostly sure this is correct
+	else return RaycastHit();
+
+}*/
+BoxCollider::RaycastHit BoxCollider::lineLineIntersection(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4) {
+	// calculate the direction of the lines
+	float uA=((p4.x-p3.x)*(p1.y-p3.y)-(p4.y-p3.y)*(p1.x-p3.x))/((p4.y-p3.y)*(p2.x-p1.x)-(p4.x-p3.x)*(p2.y-p1.y));
+	float uB=((p2.x-p1.x)*(p1.y-p3.y)-(p2.y-p1.y)*(p1.x-p3.x))/((p4.y-p3.y)*(p2.x-p1.x)-(p4.x-p3.x)*(p2.y-p1.y));
+	// if uA and uB are between 0-1, lines are colliding
+	if(uA>=0&&uA<=1&&uB>=0&&uB<=1) {
+		float intersectionX=p1.x+(uA*(p2.x-p1.x));
+		float intersectionY=p1.y+(uA*(p2.y-p1.y));
+		return RaycastHit(uA, Vector2(intersectionX, intersectionY));
+	}
+	return RaycastHit();
+}
+bool BoxCollider::lineLineCollide(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4) { return lineLineIntersection(p1, p2, p3, p4).hit; }
+BoxCollider::RaycastHit BoxCollider::LineBox(const Vector2& p1, const Vector2& p2) {
+	// check if the line has hit any of the rectangle's sides
+	RaycastHit collision=RaycastHit();
+	Vector2 halfScale=scale/2.0f;
+	collision=collision||BoxCollider::lineLineIntersection(p1, p2, position-halfScale, position+Vector2(-halfScale.x, halfScale.y));
+	collision=collision||BoxCollider::lineLineIntersection(p1, p2, position+Vector2(halfScale.x, -halfScale.y), position+halfScale);
+	collision=collision||BoxCollider::lineLineIntersection(p1, p2, position-halfScale, position+Vector2(halfScale.x, -halfScale.y));
+	collision=collision||BoxCollider::lineLineIntersection(p1, p2, position+Vector2(-halfScale.x, halfScale.y), position+halfScale);
+	// if ANY of the above are true, the line has hit the rectangle
+	return collision;
 }
 #pragma endregion// BoxCollider
 
@@ -124,7 +175,7 @@ void Player::resolveCollitions() {
 	if(engine->ended||!initialized) return;
 	//if (inputs[4]) return;// noclip when left shift
 	for(unsigned int i=0; i<colliders.size(); i++) {
-		CollitionData collition=colliders[i]->checkCollision(collider);
+		BoxCollider::CollitionData collition=colliders[i]->checkCollision(collider);
 		collider->position+=collition.normal*collition.dist;
 	}
 }
@@ -308,39 +359,35 @@ std::vector<Vector2> Pathfinder::pathfind(Vector2 A, Vector2 B) {
 #pragma endregion// Pathfinder
 
 #pragma region Enemy
-Enemy::Enemy(Engine* _engine, Vector2 _position, Shader* enemyShader, Shader* iconShader, Shader* _lineShader, Pathfinder* _pathfinder, Player* _target)
-	: Object(_engine), position(_position), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), lineShader(_lineShader), pathfinder(_pathfinder), target(_target) {
-	if(!initialized) return;
-
-	renderer=new SpriteRenderer(engine, enemyShader, position, 1.0f, playerSize*mapScale, Vector2::Center);
-	sceneRenderers.push_back(renderer);
-	collider=new BoxCollider(engine, position, playerHitbox*playerSize*mapScale, lineShader);
-	colliders.push_back(collider);
-	iconRenderer=new SpriteRenderer(engine, iconShader, gridToMinimap(WorldToGrid(position)), 1.0f, Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), Vector2::Center);
-	uiRenderers.push_back(iconRenderer);
-
-	resolveCollitions();
-	renderer->position=position;
-	iconRenderer->position=gridToMinimap(WorldToGrid(position));
-
-	engine->sub_key(this);
-	engine->sub_loop(this);
-}
-void Enemy::updateDebugLine() {
+void Enemy::setDebugLine(std::vector<Vector2> line) {
 	delete debugRen;
-	if(path.size()>0) {
-		std::vector<Vector2> line;
-		for(const Vector2& pos:path) line.push_back(pos);
-		line.push_back(position);
+	if(line.size()>0) {
 		debugRen=new LineRenderer(engine, lineShader, line, 3, false);
 	} else debugRen=nullptr;
 }
+BoxCollider::RaycastHit Enemy::raycast() {
+	if(engine->ended||!initialized) return BoxCollider::RaycastHit();
+	BoxCollider::RaycastHit out=BoxCollider::RaycastHit();
+	float boundingCircleRad=(position-target->position).length();
+	for(unsigned int i=0; i<colliders.size(); i++) {
+		if(colliders[i]==target->collider) continue;
+		else if(colliders[i]==collider) continue;
+		if(((position-colliders[i]->position).length()-colliders[i]->scale.length())>boundingCircleRad) continue;
+		BoxCollider::RaycastHit hit=colliders[i]->LineBox(position, target->position);
+		out=out||hit;
+	}
+	return out;
+}
 void Enemy::on_loop(double delta) {
 	if(engine->ended||!initialized) return;
+	BoxCollider::RaycastHit hit=raycast();
+	if(!((bool)hit)) setDebugLine({ position, target->position });
+	else setDebugLine({ position, hit.point });
+
 	Vector2 targetPos=Pathfinder::WorldToGrid(target->position);
 	if(targetLastPos!=targetPos) {
 		//double startTime=glfwGetTime();
-		path=pathfinder->pathfind(Pathfinder::WorldToGrid(position), targetPos);
+		//path=pathfinder->pathfind(Pathfinder::WorldToGrid(position), targetPos);
 		//Log("Final Time: "+std::to_string((glfwGetTime()-startTime)*1000.0)+"ms");
 		targetLastPos=targetPos;
 	}
@@ -363,26 +410,23 @@ void Enemy::on_loop(double delta) {
 			continue;
 		}
 	}
-	updateDebugLine();
+	//setDebugLine(path);
 	renderer->position=position;
 	collider->position=position;
 	iconRenderer->position=gridToMinimap(WorldToGrid(position));
 }
-void Enemy::resolveCollitions() {
-	if(engine->ended||!initialized) return;
-	collider->position=position;
-	for(unsigned int i=0; i<colliders.size(); i++) {
-		CollitionData collition=colliders[i]->checkCollision(collider);
-		collider->position+=collition.normal*collition.dist;
-	}
-	position=collider->position;
-}
-void Enemy::setPos(Vector2 _position) {
-	if(engine->ended||!initialized) return;
-	position=_position;
-	resolveCollitions();
-	renderer->position=position;
-	iconRenderer->position=gridToMinimap(WorldToGrid(position));
+Enemy::Enemy(Engine* _engine, Vector2 _position, Shader* enemyShader, Shader* iconShader, Shader* _lineShader, Pathfinder* _pathfinder, Player* _target)
+	: Object(_engine), position(_position), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), lineShader(_lineShader), pathfinder(_pathfinder), target(_target) {
+	if(!initialized) return;
+
+	renderer=new SpriteRenderer(engine, enemyShader, position, 1.0f, playerSize*mapScale, Vector2::Center);
+	sceneRenderers.push_back(renderer);
+	collider=new BoxCollider(engine, position, playerHitbox*playerSize*mapScale, lineShader);
+	colliders.push_back(collider);
+	iconRenderer=new SpriteRenderer(engine, iconShader, gridToMinimap(WorldToGrid(position)), 1.0f, Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), Vector2::Center);
+	uiRenderers.push_back(iconRenderer);
+
+	engine->sub_loop(this);
 }
 #pragma endregion// Enemy
 
@@ -444,8 +488,8 @@ int Run() {
 	backgroundShader=createTexShader(backgroundTex, Vector4::ZERO);
 	minimapShader=createTexShader(minimapTex, Vector4(1.0f, 1.0f, 1.0f, 0.75f));
 
-	instanceShader=createBatchedShader({instanceUnlitTex});
-	instanceStateShader=createBatchedShader({instanceWorkingTex, instanceBrokenTex});
+	instanceShader=createBatchedShader({ instanceUnlitTex });
+	instanceStateShader=createBatchedShader({ instanceWorkingTex, instanceBrokenTex });
 
 	lineShader=createColorShader(Vector4(0.0f, 0.0f, 1.0f, 1.0f));
 	textShader=createTextShader();
@@ -472,10 +516,10 @@ int Run() {
 	// map and minimap
 	sceneRenderers.push_back(new SpriteRenderer(engine, backgroundShader, Vector2::ZERO, 0.0f, fullMapSize, Vector2::BottomLeft));// background
 	uiRenderers.push_back(new SpriteRenderer(engine, minimapShader, Vector2(0.0f, HD1080P.y/2.0f), 0.0f, minimapSize, Vector2::TopLeft));// minimap
-	//ColliderDebug=true;// make hitboxes visible
 	// create instances
+	ColliderDebug=true;// make hitboxes visible
 	instanceRenderer=new StaticBatchedSpriteRenderer(engine, instanceShader);
-	instanceStateRenderer=new BatchedSpriteRenderer(engine, instanceStateShader);
+	instanceStateRenderer=new StaticBatchedSpriteRenderer(engine, instanceStateShader);
 	for(const std::array<int, 5>&dat:instanceData) {
 		Vector2 pos=GridToWorld(Vector2((float)dat[0], (float)dat[1])+Vector2(0.5f, 0.5f));
 		bool broken=((float)std::rand())/((float)RAND_MAX)<=(instanceBrokenChance/100.0f);
@@ -485,12 +529,11 @@ int Run() {
 		colliders.push_back(new BoxCollider(engine, pos, Vector2(mapScale), lineShader));
 	}
 	instanceRenderer->bind();
-	// create horizontal wall colliders
-	for(const Vector3& line:horizontalWallData) {
+	instanceStateRenderer->bind();
+	for(const Vector3& line:horizontalWallData) {// horizontal walls
 		colliders.push_back(new BoxCollider(engine, GridToWorld(Vector2((line.z+line.y)/2.0f, line.x)), Vector2(((line.z-line.y)*(1.0f+spacing)+spacing*3.0f)*mapScale, spacing*3.0f*mapScale), lineShader));
 	}
-	// create vertical wall colliders
-	for(const Vector3& line:verticalWallData) {
+	for(const Vector3& line:verticalWallData) {// vertical walls
 		colliders.push_back(new BoxCollider(engine, GridToWorld(Vector2(line.x, (line.z+line.y)/2.0f)), Vector2(spacing*3.0f, ((line.z-line.y)*(1.0f+spacing)+spacing*3.0f))*mapScale, lineShader));
 	}
 	// setup text renderers
@@ -523,14 +566,14 @@ void Loop(double delta) {
 	debugText[0]->text=std::to_string(tracker->getAvgFps());
 #endif// _DEBUG
 	// draw scene
-	for(Renderer2D* ren:sceneRenderers) if(ren->shouldDraw(playerPos, viewRange)) ren->draw();
+	for(Renderer2D* ren:sceneRenderers) if(ren->shouldDraw(cam)) ren->draw();
 	instanceRenderer->draw();
 	player->flashlightStencilOn();
 	instanceStateRenderer->draw();
 	player->flashlightStencilOff();
 	if(enemy->debugRen) enemy->debugRen->draw();
 	if(ColliderDebug) {
-		for(BoxCollider* col:colliders) if(col->shouldDraw(playerPos, viewRange)) col->draw();
+		for(BoxCollider* col:colliders) if(col->shouldDraw(cam)) col->draw();
 		player->collider->draw();
 	}
 	// draw ui
@@ -540,7 +583,7 @@ void Loop(double delta) {
 }
 
 int main(int argc, char** argv) {
-	int value = Run();
+	int value=Run();
 #ifdef _DEBUG
 	Log("Press enter to close . . .");
 	std::cin.get();

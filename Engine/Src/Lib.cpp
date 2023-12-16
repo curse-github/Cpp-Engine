@@ -31,6 +31,9 @@ Vector2::Vector2(float v) { x=v; y=v; }// from a single value
 void Vector2::operator+=(const Vector2& b) { x+=b.x; y+=b.y; }
 void Vector2::operator-=(const Vector2& b) { x-=b.x; y-=b.y; }
 float Vector2::length() const { return sqrt(x*x+y*y); }
+float Vector2::cross(const Vector2& b) const {
+	return x*b.y-y*b.x;
+}
 float Vector2::dot(const Vector2& b) const { return (x*b.x)+(y*b.y); }
 Vector2 Vector2::normalized() const {
 	float len=length();
@@ -75,6 +78,9 @@ Vector3::Vector3(Vector2 v, float _z) { x=v.x; y=v.y; z=_z; }
 Vector3::Vector3(float _x, float _y, float _z) { x=_x; y=_y; z=_z; }
 Vector3::Vector3(float v) { x=v; y=v; z=v; }// from a single value
 Vector2 Vector3::toXY() const { return Vector2(x, y); }
+void Vector3::operator+=(const Vector3& b) { x+=b.x; y+=b.y; z+=b.z; }
+void Vector3::operator-=(const Vector3& b) { x-=b.x; y-=b.y; z-=b.z; }
+float Vector3::length() const { return sqrt(x*x+y*y+z*z); }
 Vector3 Vector3::cross(const Vector3& b) const {
 	return Vector3(
 		y*b.z-z*b.y,
@@ -82,9 +88,6 @@ Vector3 Vector3::cross(const Vector3& b) const {
 		x*b.y-y*b.x
 	);
 }
-void Vector3::operator+=(const Vector3& b) { x+=b.x; y+=b.y; z+=b.z; }
-void Vector3::operator-=(const Vector3& b) { x-=b.x; y-=b.y; z-=b.z; }
-float Vector3::length() const { return sqrt(x*x+y*y+z*z); }
 float Vector3::dot(const Vector3& b) const { return (x*b.x)+(y*b.y)+(z*b.z); }
 Vector3 Vector3::floor() const { return Vector3(std::floor(x), std::floor(y), std::floor(z)); }
 Vector3 Vector3::round() const { return Vector3(std::round(x), std::round(y), std::round(z)); }

@@ -32,6 +32,7 @@ class Vector2 {
 	void operator+=(const Vector2& b);
 	void operator-=(const Vector2& b);
 	float length() const;
+	float cross(const Vector2& b) const;
 	float dot(const Vector2& b) const;
 	Vector2 normalized() const;
 	Vector2 abs() const;
@@ -73,10 +74,10 @@ class Vector3 {
 	Vector3(float _x, float _y, float _z);
 	Vector3(float v);
 	Vector2 toXY() const;
-	Vector3 cross(const Vector3& b) const;
 	void operator+=(const Vector3& b);
 	void operator-=(const Vector3& b);
 	float length() const;
+	Vector3 cross(const Vector3& b) const;
 	float dot(const Vector3& b) const;
 	Vector3 normalized() const;
 	Vector3 abs() const;
