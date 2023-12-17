@@ -68,7 +68,7 @@ float FpsTracker::getFrameTime() {
 
 #pragma region BoxCollider
 BoxCollider::BoxCollider(Engine* _engine, Vector2 _position, Vector2 _scale, Shader* _debugLineShader) :
-	LineRenderer(_engine, _debugLineShader, { Vector2(-_scale.x/2, _scale.y/2), Vector2(_scale.x/2, _scale.y/2), Vector2(_scale.x/2, -_scale.y/2), Vector2(-_scale.x/2, -_scale.y/2) }, 2.0f, _position, true),
+	LineRenderer(_engine, _debugLineShader, { Vector2(-_scale.x/2, _scale.y/2), Vector2(_scale.x/2, _scale.y/2), Vector2(_scale.x/2, -_scale.y/2), Vector2(-_scale.x/2, -_scale.y/2) }, 3.0f, _position, true),
 	boundingRadius((_scale/2.0f).length()) {}
 BoxCollider::CollitionData BoxCollider::checkCollision(BoxCollider* other) {
 	if(((position-other->position).length()-(boundingRadius+other->boundingRadius))>=0) CollitionData(Vector2::ZERO, 0.0f);
@@ -133,6 +133,13 @@ BoxCollider::RaycastHit BoxCollider::lineLineIntersection(const Vector2& p1, con
 }
 bool BoxCollider::lineLineCollide(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4) { return lineLineIntersection(p1, p2, p3, p4).hit; }
 BoxCollider::RaycastHit BoxCollider::LineBox(const Vector2& p1, const Vector2& p2) {
+	//check if theres honestly any chance of collision
+	if(((p1-position).length()-scale.length())>(p1-p2).length()) return RaycastHit();
+
+	//if (std::abs((p1-p2).cross(p1-position))>1000) return RaycastHit();
+	//Log(scale.length());
+	//draw();
+	// 
 	// check if the line has hit any of the rectangle's sides
 	RaycastHit collision=RaycastHit();
 	Vector2 halfScale=scale/2.0f;
@@ -368,11 +375,9 @@ void Enemy::setDebugLine(std::vector<Vector2> line) {
 BoxCollider::RaycastHit Enemy::raycast() {
 	if(engine->ended||!initialized) return BoxCollider::RaycastHit();
 	BoxCollider::RaycastHit out=BoxCollider::RaycastHit();
-	float boundingCircleRad=(position-target->position).length();
 	for(unsigned int i=0; i<colliders.size(); i++) {
 		if(colliders[i]==target->collider) continue;
 		else if(colliders[i]==collider) continue;
-		if(((position-colliders[i]->position).length()-colliders[i]->scale.length())>boundingCircleRad) continue;
 		BoxCollider::RaycastHit hit=colliders[i]->LineBox(position, target->position);
 		out=out||hit;
 	}
@@ -491,7 +496,7 @@ int Run() {
 	instanceShader=createBatchedShader({ instanceUnlitTex });
 	instanceStateShader=createBatchedShader({ instanceWorkingTex, instanceBrokenTex });
 
-	lineShader=createColorShader(Vector4(0.0f, 0.0f, 1.0f, 1.0f));
+	lineShader=createColorShader(Vector4(1.0f, 0.0f, 0.0f, 1.0f));
 	textShader=createTextShader();
 	if(engine->ended||
 		!playerShader->initialized||!flashlightShader->initialized||
@@ -517,7 +522,7 @@ int Run() {
 	sceneRenderers.push_back(new SpriteRenderer(engine, backgroundShader, Vector2::ZERO, 0.0f, fullMapSize, Vector2::BottomLeft));// background
 	uiRenderers.push_back(new SpriteRenderer(engine, minimapShader, Vector2(0.0f, HD1080P.y/2.0f), 0.0f, minimapSize, Vector2::TopLeft));// minimap
 	// create instances
-	ColliderDebug=true;// make hitboxes visible
+	//ColliderDebug=true;// make hitboxes visible
 	instanceRenderer=new StaticBatchedSpriteRenderer(engine, instanceShader);
 	instanceStateRenderer=new StaticBatchedSpriteRenderer(engine, instanceStateShader);
 	for(const std::array<int, 5>&dat:instanceData) {

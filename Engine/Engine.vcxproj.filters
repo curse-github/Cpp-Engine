@@ -24,13 +24,13 @@
     <ClCompile Include="Src\Lib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="glad.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Src\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Src\Json.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="imports\dependencies\glad.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

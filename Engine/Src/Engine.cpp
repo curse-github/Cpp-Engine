@@ -16,7 +16,7 @@ void engine_on_error(int error, const char* description) {
 }
 
 Engine::Engine(Vector2 size, const char* title, bool vsync) : window(nullptr), screenSize(size) {
-	if(!glfwInit()) {
+	if(glfwInit()==GLFW_FALSE) {
 		ended=true;
 		Log("GLFW failed to init.");//error
 		return;
@@ -791,8 +791,8 @@ void TextRenderer::draw() {
 			continue;
 		}
 		Character ch=Characters[*c2];
-		if(*c2==' ') { x+=ch.Advance; continue; }// skip one space and continue
-		else if(*c2=='\t') { x+=ch.Advance*4; continue; }//4 character spaces
+		if(*c2==' ') { x+=1+ch.Advance; continue; }// skip one space and continue
+		else if(*c2=='\t') { x+=1+ch.Advance*4; continue; }//4 character spaces
 		x+=ch.Advance; // bitshift by 6 to get value in pixels (2^6 = 64)
 	}
 	if(x>maxX)maxX=x;
@@ -806,8 +806,8 @@ void TextRenderer::draw() {
 	for(c=text.begin(); c!=text.end(); c++) {
 		if(*c=='\n') { x=0;y-=9; continue; } else if(*c=='\r') { x=0; continue; }
 		Character ch=Characters[*c];
-		if(*c==' ') { x+=ch.Advance; continue; }// skip one space and continue
-		else if(*c=='\t') { x+=ch.Advance*4; continue; }//4 character spaces
+		if(*c==' ') { x+=1+ch.Advance; continue; }// skip one space and continue
+		else if(*c=='\t') { x+=1+ch.Advance*4; continue; }//4 character spaces
 		Mat4x4 model=casheMat*scaleMat(Vector3(ch.Size, 1.0f))*translate(Vector3(offset+Vector2(((float)x)+ch.Bearing.x, ((float)y)-(ch.Size.y-ch.Bearing.y))*scale, zIndex-100.0f));
 		shader->setMat4x4("model", model);
 		glBindTexture(GL_TEXTURE_2D, ch.TextureID);
@@ -815,7 +815,7 @@ void TextRenderer::draw() {
 		//glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		// now advance cursors for next glyph
-		x+=ch.Advance;
+		x+=1+ch.Advance;
 	}
 	glBindVertexArray(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
