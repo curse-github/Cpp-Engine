@@ -229,17 +229,41 @@ Transform2D::Transform2D(Vector2 _position, float _zIndex, Vector2 _scale, Vecto
 	position(_position), zIndex(_zIndex), scale(_scale), anchor(_anchor), rotAngle(_rotAngle) {
 	lastModelMat=translate(Vector3(-anchor, 0.0f))*axisRotMat(rotAxis, deg_to_rad(rotAngle))*scaleMat(Vector3(scale, 1.0f))*translate(Vector3(position, zIndex-100.0f));
 }
+Vector2 Transform2D::getWorldPos() {
+	if(parent!=nullptr) return parent->getWorldPos()+position;
+	else return position;
+}
+Vector2 Transform2D::getWorldScale() {
+	if(parent!=nullptr) {
+		Vector2 parentWorldScale=parent->getWorldScale();
+		return Vector2(parentWorldScale.x*scale.x, parentWorldScale.y*scale.y);
+	} else return scale;
+}
+float Transform2D::getWorldRot() {
+	if(parent!=nullptr) return parent->getWorldRot()+rotAngle;
+	else return rotAngle;
+}
+void Transform2D::addChild(Transform2D* child) {
+	for(Transform2D* c:children) if(c==child) return;
+	if(child->parent!=nullptr) {//remove child from its parents list of children
+		child->parent->children.erase(std::find(child->parent->children.begin(), child->parent->children.end(), child));
+	}
+	child->parent=this;
+	children.push_back(child);
+}
 Mat4x4 Transform2D::createModelMat(Vector2 _position=Vector2::ZERO, float _zIndex=0.0f, Vector2 _scale=Vector2::ONE, Vector2 _anchor=Vector2::Center, float _rotAngle=0.0f) {
 	return translate(Vector3(-_anchor, 0.0f))*axisRotMat(Vector3(0.0f, 0.0f, 1.0f), deg_to_rad(_rotAngle))*scaleMat(Vector3(_scale, 1.0f))*translate(Vector3(_position, _zIndex-100.0f));
 }
 Mat4x4 Transform2D::getModelMat() {
 	bool changed=false;
-	if(lastPosition!=position) { lastPosition=position;changed=true; }
-	if(lastZIndex!=zIndex) { lastZIndex=zIndex; }
-	if(lastScale!=scale) { lastScale=scale; }
-	if(lastAnchor!=anchor) { lastAnchor=anchor; }
-	if(lastRotAngle!=rotAngle) { lastRotAngle=rotAngle; }
-	if(changed) { lastModelMat=translate(Vector3(-anchor, 0.0f))*axisRotMat(rotAxis, deg_to_rad(rotAngle))*scaleMat(Vector3(scale, 1.0f))*translate(Vector3(position, zIndex-100.0f)); }
+	Vector2 worldPos=getWorldPos();
+	Vector2 worldScale=getWorldScale();
+	float worldRot=getWorldRot();
+	if(lastWorldPosition!=worldPos) { lastWorldPosition=worldPos;changed=true; }
+	if(lastZIndex!=zIndex) { lastZIndex=zIndex;changed=true; }
+	if(lastWorldScale!=worldScale) { lastWorldScale=worldScale;changed=true; }
+	if(lastWorldRot!=worldRot) { lastWorldRot=worldRot;changed=true; }
+	if(changed) { lastModelMat=translate(Vector3(-anchor, 0.0f))*axisRotMat(rotAxis, deg_to_rad(worldRot))*scaleMat(Vector3(worldScale, 1.0f))*translate(Vector3(worldPos, zIndex-100.0f)); }
 	return lastModelMat;
 }
 #pragma endregion// Transforms
@@ -393,6 +417,7 @@ void Shader::setTexture(const char* name, Texture* tex, const unsigned int& loca
 	if(name!="_") setInt(name, location);
 	textures.push_back(tex);
 	textureIndexes.push_back(location);
+	numTextures++;
 }
 void Shader::setTextureArray(const std::string& name) {
 	if(engine->ended||!initialized) return;
@@ -403,8 +428,7 @@ void Shader::setTextureArray(const std::string& name) {
 void Shader::bindTextures() {
 	if(engine->ended||!initialized) return;
 	use();
-	unsigned int len=std::min(textures.size(), textureIndexes.size());
-	for(unsigned int i=0; i<len; i++) textures[i]->Bind(textureIndexes[i]);
+	for(unsigned int i=0; i<numTextures; i++) textures[i]->Bind(textureIndexes[i]);
 }
 #pragma endregion// Shader
 #pragma region Texture
@@ -458,15 +482,14 @@ void Camera::bindShader(Shader* shader) {
 	shaders.push_back(shader);
 }
 void Camera::bindShaders(std::vector<Shader*> shaders) {
-	for(unsigned int i=0; i<shaders.size(); i++) bindShader(shaders[i]);
+	for(Shader* shdr:shaders) bindShader(shdr);
 }
 void Camera::use() {
 	if(engine->ended||!initialized) return;
-	for(unsigned int i=0; i<shaders.size(); i++) {
-		Shader* ptr=(shaders)[i];
-		if(!ptr->initialized) continue;
-		ptr->setMat4x4("projection", projection);
-		ptr->setMat4x4("view", view);
+	for(Shader* shdr:shaders) {
+		if(!shdr->initialized) continue;
+		shdr->setMat4x4("projection", projection);
+		shdr->setMat4x4("view", view);
 	}
 }
 
@@ -551,7 +574,7 @@ OrthoCam::OrthoCam(Engine* _engine, Vector2 _position, Vector2 _scale) :
 void OrthoCam::update() {
 	if(engine->ended||!initialized) return;
 	projection=ortho(-scale.x/2.0f, scale.x/2.0f, -scale.y/2.0f, scale.y/2.0f, 0.0f, 1000.0f);
-	view=translate(Vector3(-position, 0));
+	view=translate(Vector3(-getWorldPos(), 0));
 }
 #pragma endregion// Cameras
 
@@ -862,7 +885,7 @@ void LineRenderer::draw() {
 	shader->setMat4x4("model", createModelMat(position, zIndex));
 	glBindVertexArray(VAO);
 	glLineWidth(width);
-	glDrawArrays(loop ? GL_LINE_LOOP : GL_LINE_STRIP, 0, positions.size());
+	glDrawArrays(loop ? GL_LINE_LOOP : GL_LINE_STRIP, 0, (GLsizei)positions.size());
 }
 #pragma endregion// LineRenderer
 #pragma region BatchedSpriteRenderer
@@ -882,7 +905,7 @@ void BatchedSpriteRenderer::bufferQuad(const Vector2& position, const float& zIn
 }
 void BatchedSpriteRenderer::renderBatch() {
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, ((unsigned int)dataBufferPtr)-((unsigned int)dataBuffer), dataBuffer);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, 4*sizeof(BatchedVertex)*numQuads, dataBuffer);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, numQuads*6, GL_UNSIGNED_INT, nullptr);
 	//glDrawArrays(GL_TRIANGLE_STRIP, 0, numQuads*4);
@@ -1006,7 +1029,7 @@ void StaticBatchedSpriteRenderer::bind() {
 	numQuads=0;
 	for(const QuadData& quad:quads) bufferQuad(quad.position, quad.zIndex, quad.scale, quad.modulate, quad.texIndex);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, ((unsigned int)dataBufferPtr)-((unsigned int)dataBuffer), dataBuffer);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, maxQuadCount*4*sizeof(BatchedVertex), dataBuffer);
 }
 void StaticBatchedSpriteRenderer::draw() {
 	shader->bindTextures();

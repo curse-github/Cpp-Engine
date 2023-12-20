@@ -117,13 +117,10 @@ class FpsTracker : Object {
 };
 
 bool ColliderDebug=false;
-class BoxCollider : protected LineRenderer {
+class BoxCollider : public LineRenderer {
 	protected:
-	float boundingRadius;
 	public:
-	using Transform2D::position;
-	using Transform2D::scale;
-	BoxCollider() : LineRenderer(), boundingRadius(0.0f) {}
+	BoxCollider() : LineRenderer() {}
 	BoxCollider(Engine* _engine, Vector2 _position, Vector2 _scale, Shader* _debugLineShader);
 	struct CollitionData {
 		Vector2 normal;
@@ -143,10 +140,8 @@ class BoxCollider : protected LineRenderer {
 	static RaycastHit lineLineIntersection(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4);
 	static bool lineLineCollide(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4);
 	RaycastHit LineBox(const Vector2& p1, const Vector2& p2);
-	using LineRenderer::draw;
-	using Renderer2D::shouldDraw;
 };
-class Player : public Object {
+class Player : public Object, public Transform2D {
 	protected:
 	SpriteRenderer* renderer;
 	StencilSimple flashlightStencil;
@@ -159,14 +154,13 @@ class Player : public Object {
 	void resolveCollitions();
 	public:
 	BoxCollider* collider;
-	Vector2 position;
-	Player() : Object(), renderer(nullptr), collider(nullptr), position(Vector2()), flashlightStencil(StencilSimple()), sceneCam(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {}
+	Player() : Object(), Transform2D(), renderer(nullptr), collider(nullptr), flashlightStencil(StencilSimple()), sceneCam(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {}
 	Player(Engine* _engine, OrthoCam* _sceneCam, Vector2 _position, Shader* playerShader, Shader* flashlightShader, Shader* iconShader);
 	void flashlightStencilOn();
 	void flashlightStencilOff();
 	void setPos(Vector2 pos);
 };
-class Enemy : public Object {
+class Enemy : public Object, public Transform2D {
 	protected:
 	SpriteRenderer* renderer;
 	BoxCollider* collider;
@@ -174,15 +168,14 @@ class Enemy : public Object {
 	Shader* lineShader;
 	Pathfinder* pathfinder;
 	Player* target;
-	Vector2 targetLastPos;
+	Vector2 lastSpottedPos;
 	std::vector<Vector2> path;
 	void setDebugLine(std::vector<Vector2> line);
 	BoxCollider::RaycastHit raycast();
 	void on_loop(double delta) override;
 	public:
-	Vector2 position;
 	LineRenderer* debugRen=nullptr;
-	Enemy() : Object(), position(Vector2()), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), lineShader(nullptr), pathfinder(nullptr), target(nullptr) {}
+	Enemy() : Object(), Transform2D(), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), lineShader(nullptr), pathfinder(nullptr), target(nullptr) {}
 	Enemy(Engine* _engine, Vector2 _position, Shader* enemyShader, Shader* iconShader, Shader* _lineShader, Pathfinder* _pathfinder, Player* _target);
 };
 

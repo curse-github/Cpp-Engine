@@ -10,13 +10,14 @@
   "playerSize": 0.5,
   "playerHitbox": [ 0.65, 0.85 ],
   "playerSpeed": 4.0,
-  "playerSprintSpeed": 6.0,
+  "playerSprintSpeed": 6,
   "playerTex": "Resources/ghost.png",
   "playerModulate": [ 0.35 /*r*/, 0.0 /*g*/, 0.7 /*b*/ ],
   "flashlightTex": "Resources/circle.png",
   "flashlightColor": [ 0.3, 0.3, 0.0 ],
   "flashlightRange": 2.0,
   // enemy vars
+  "enemySpeed": 5.5,
   "enemyTexPath": "Resources/ghost.png",
   "enemyModulate": [ 0.0, 0.0, 0.7 ],
   // map vars

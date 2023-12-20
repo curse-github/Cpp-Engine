@@ -83,25 +83,29 @@ class Transform {
 	Transform(Vector3 _position, Vector3 _scale, Vector3 _rotAxis, float _rotAngle);
 };
 class Transform2D {
+	private:
+	Vector3 rotAxis=Vector3(0.0f, 0.0f, 1.0f);
+	Mat4x4 lastModelMat=Mat4x4();
+	Vector2 lastWorldPosition=Vector2::ZERO;
+	float lastZIndex=0.0f;
+	Vector2 lastWorldScale=Vector2::ONE;
+	float lastWorldRot=0.0f;
 	public:
+	Transform2D* parent=nullptr;
+	std::vector<Transform2D*> children;
 	Vector2 position;
 	float zIndex;
 	Vector2 scale;
 	Vector2 anchor;
-	Vector3 rotAxis=Vector3(0.0f, 0.0f, 1.0f);
 	float rotAngle;
 	Transform2D() : position(Vector2()), zIndex(0.0f), scale(Vector2()), anchor(Vector2()), rotAngle(0.0f) {};
 	Transform2D(Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle);
-	Transform2D operator*(const Transform2D& b) const;
+	Vector2 getWorldPos();
+	Vector2 getWorldScale();
+	float getWorldRot();
+	void addChild(Transform2D* child);
 	static Mat4x4 createModelMat(Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle);
 	Mat4x4 getModelMat();
-	private:
-	Mat4x4 lastModelMat=Mat4x4();
-	Vector2 lastPosition=Vector2::ZERO;
-	float lastZIndex=0.0f;
-	Vector2 lastScale=Vector2::ONE;
-	Vector2 lastAnchor=Vector2::Center;
-	float lastRotAngle=0.0f;
 };
 
 class Texture;
@@ -111,6 +115,7 @@ class Shader : public Object {
 	public:
 	std::vector<Texture*> textures;
 	std::vector<int> textureIndexes;
+	unsigned int numTextures=0;
 	Shader() : Object() {}
 	Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath);
 	virtual ~Shader();
@@ -151,9 +156,8 @@ class Camera : public Object {
 	void bindShaders(std::vector<Shader*> shaders);
 	void use();
 };
-class LookAtCam : public Camera, protected Transform {
+class LookAtCam : public Camera, public Transform {
 	public:
-	using Transform::position;
 	float fov=45;
 	float aspect;
 	Vector3 focus;
@@ -161,10 +165,9 @@ class LookAtCam : public Camera, protected Transform {
 	LookAtCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _focus);
 	void update();
 };
-class FreeCam : public Camera, protected Transform {
+class FreeCam : public Camera, public Transform {
 	protected:
 	float aspect;
-	using Transform::position;
 	Vector3 forward;
 	Vector3 up;
 	float SPEED=2.5f;
@@ -183,10 +186,8 @@ class FreeCam : public Camera, protected Transform {
 	FreeCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _forward, Vector3 _up);
 	void update();
 };
-class OrthoCam : public Camera, protected Transform2D {
+class OrthoCam : public Camera, public Transform2D {
 	public:
-	using Transform2D::position;
-	using Transform2D::scale;
 	OrthoCam() : Camera(), Transform2D() {}
 	OrthoCam(Engine* _engine, Vector2 _position, Vector2 _size);
 	void update();
@@ -235,14 +236,11 @@ class SpriteRenderer : public Renderer2D {
 	using Renderer2D::shouldDraw;
 };
 extern bool characterMapInitialized;
-class TextRenderer : protected Renderer2D {
+class TextRenderer : public Renderer2D {
 	public:
 	std::string text;
 	Vector3 color;
-	using Transform2D::position;
-	using Transform2D::zIndex;
 	float scale;
-	using Transform2D::anchor;
 	TextRenderer() : Renderer2D(), text(""), color(Vector3()), scale(0.0f) {}
 	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, float _zIndex, Vector2 _anchor);
 	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, float _zIndex);
@@ -250,11 +248,10 @@ class TextRenderer : protected Renderer2D {
 	void draw() override;
 	using Renderer2D::shouldDraw;
 };
-class LineRenderer : protected Renderer2D {
+class LineRenderer : public Renderer2D {
 	protected:
 	std::vector<Vector2> positions;
 	public:
-	using Transform2D::position;
 	float width;
 	bool loop;
 	LineRenderer() : Renderer2D(), positions {}, width(1.0f), loop(false) {}
@@ -263,7 +260,6 @@ class LineRenderer : protected Renderer2D {
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop);
 	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width);
 	void draw() override;
-	using Renderer2D::shouldDraw;
 };
 
 const int maxTextures=32;

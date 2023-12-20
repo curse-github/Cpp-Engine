@@ -30,7 +30,7 @@ std::string flashlightTexPath;
 Vector3 flashlightColor;
 float flashlightRange;
 
-float enemySpeed=3.5f;
+float enemySpeed;
 std::string enemyTexPath;
 Vector3 enemyModulate;
 
@@ -86,6 +86,8 @@ void loadMapData(const std::string& mapName) {
 			flashlightColor=parseVector3(&data);
 		} else if(key=="flashlightRange") {
 			flashlightRange=parseFloat(&data);
+		} else if(key=="enemySpeed") {
+			enemySpeed=parseFloat(&data);
 		} else if(key=="enemyTexPath") {
 			enemyTexPath=parseString(&data);
 		} else if(key=="enemyModulate") {

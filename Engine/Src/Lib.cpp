@@ -58,7 +58,7 @@ float Vector2::operator[](const int& i) const {
 	else { Log("Vector2: Index out of range");exit(0); }
 }
 bool Vector2::operator==(const Vector2& b) const { return (x==b.x)&&(y==b.y); }
-bool Vector2::operator!=(const Vector2& b) const { return !(*this==b); }
+bool Vector2::operator!=(const Vector2& b) const { return !(operator==(b)); }
 std::string Vector2::to_string() const {
 	return "("+std::to_string(x)+", "+std::to_string(y)+")";
 }
@@ -170,8 +170,8 @@ const Vector4 Vector4::UP=Vector4(0.0f, 1.0f, 0.0f, 0.0f);
 const Vector4 Vector4::FORWARD=Vector4(0.0f, 0.0f, 1.0f, 0.0f);
 const Vector4 Vector4::ANA=Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 
-Mat4x4::Mat4x4() { float _values[16]={ 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f }; for(int i=0; i<16; i++) { values[i]=_values[i]; } }
 Mat4x4::Mat4x4(float _values[16]) { for(int i=0; i<16; i++) { values[i]=_values[i]; } }
+Mat4x4::Mat4x4() { float _values[16]={ 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f }; for(int i=0; i<16; i++) { values[i]=_values[i]; } isIdentity=true; }
 float Mat4x4::get(const int& x, const int& y) const { return values[y*4+x]; }
 float Mat4x4::operator[](const int& i) const { return values[i]; }
 Vector4 Mat4x4::getColumn(const int& x) const { return Vector4(get(x, 0), get(x, 1), get(x, 2), get(x, 3)); }
@@ -184,7 +184,12 @@ Vector4 Mat4x4::operator*(const Vector4& b) const {
 		getRow(3).dot(b)
 	);
 }
+Vector3 Mat4x4::operator*(const Vector3& b) const {
+	return operator*(Vector4(b, 1.0f)).toXYZ();
+}
 Mat4x4 Mat4x4::operator*(const Mat4x4& b) const {
+	if(b.isIdentity) return *this;
+	else if(isIdentity) return b;
 	float ary[16]={
 		getRow(0).dot(b.getColumn(0)), getRow(0).dot(b.getColumn(1)), getRow(0).dot(b.getColumn(2)), getRow(0).dot(b.getColumn(3)),
 		getRow(1).dot(b.getColumn(0)), getRow(1).dot(b.getColumn(1)), getRow(1).dot(b.getColumn(2)), getRow(1).dot(b.getColumn(3)),
@@ -207,6 +212,7 @@ float rad_to_deg(const float& rad) {
 	return rad/PI*180.0f;
 }
 Mat4x4 translate(const Vector3& value) {
+	if(value==Vector3::ZERO) return Mat4x4();//returns identity matrix
 	float ary[16]={
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
@@ -216,6 +222,7 @@ Mat4x4 translate(const Vector3& value) {
 	return Mat4x4(ary);
 }
 Mat4x4 scaleMat(const Vector3& value) {
+	if(value==Vector3::ONE) return Mat4x4();//returns identity matrix
 	float ary[16]={
 		value.x, 0.0f, 0.0f, 0.0f,
 		0.0f, value.y, 0.0f, 0.0f,
@@ -225,6 +232,7 @@ Mat4x4 scaleMat(const Vector3& value) {
 	return Mat4x4(ary);
 }
 Mat4x4 axisRotMat(const Vector3& axis, const float& angle) {
+	if(angle==0.0f||axis==Vector3::ZERO) return Mat4x4();//returns identity matrix
 	float c=cosf(angle);
 	float s=sinf(angle);
 	Vector3 a=axis.normalized();

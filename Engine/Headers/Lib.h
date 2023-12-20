@@ -145,8 +145,10 @@ class Vector4 {
 	static const Vector4 FORWARD;
 	static const Vector4 ANA;
 };
+
 class Mat4x4 {
 	public:
+	bool isIdentity=false;
 	float values[16];
 	Mat4x4(float _values[16]);
 	Mat4x4();
@@ -155,6 +157,7 @@ class Mat4x4 {
 	Vector4 getColumn(const int& x) const;
 	Vector4 getRow(const int& y) const;
 	Vector4 operator*(const Vector4& b) const;
+	Vector3 operator*(const Vector3& b) const;
 	Mat4x4 operator*(const Mat4x4& b) const;
 	std::string to_string() const;
 };

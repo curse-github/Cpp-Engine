@@ -68,20 +68,25 @@ float FpsTracker::getFrameTime() {
 
 #pragma region BoxCollider
 BoxCollider::BoxCollider(Engine* _engine, Vector2 _position, Vector2 _scale, Shader* _debugLineShader) :
-	LineRenderer(_engine, _debugLineShader, { Vector2(-_scale.x/2, _scale.y/2), Vector2(_scale.x/2, _scale.y/2), Vector2(_scale.x/2, -_scale.y/2), Vector2(-_scale.x/2, -_scale.y/2) }, 3.0f, _position, true),
-	boundingRadius((_scale/2.0f).length()) {}
+	LineRenderer(_engine, _debugLineShader, { Vector2(-_scale.x/2, _scale.y/2), Vector2(_scale.x/2, _scale.y/2), Vector2(_scale.x/2, -_scale.y/2), Vector2(-_scale.x/2, -_scale.y/2) }, 3.0f, _position, true) {}
 BoxCollider::CollitionData BoxCollider::checkCollision(BoxCollider* other) {
-	if(((position-other->position).length()-(boundingRadius+other->boundingRadius))>=0) CollitionData(Vector2::ZERO, 0.0f);
-	if(position==other->position) return CollitionData(Vector2::ZERO, 0.0f);
+	Vector2 worldPos=getWorldPos();
+	Vector2 worldScale=getWorldScale();
+	Vector2 otherWorldPos=other->getWorldPos();
+	Vector2 otherWorldScale=other->getWorldScale();
+	float boundingRadius=(worldScale/2.0f).length();
+	float otherBoundingRadius=(otherWorldScale/2.0f).length();
+	if(((worldPos-otherWorldPos).length()-(boundingRadius+otherBoundingRadius))>=0) CollitionData(Vector2::ZERO, 0.0f);
+	if(worldPos==otherWorldPos) return CollitionData(Vector2::ZERO, 0.0f);
 	// collision x-axis?
-	float collisionX1=((position.x+scale.x/2)-(other->position.x-other->scale.x/2));
-	float collisionX2=((other->position.x+other->scale.x/2)-(position.x-scale.x/2));
+	float collisionX1=((worldPos.x+worldScale.x/2)-(otherWorldPos.x-otherWorldScale.x/2));
+	float collisionX2=((otherWorldPos.x+otherWorldScale.x/2)-(worldPos.x-worldScale.x/2));
 	// collision y-axis?
-	float collisionY1=((position.y+scale.y/2)-(other->position.y-other->scale.y/2));
-	float collisionY2=((other->position.y+other->scale.y/2)-(position.y-scale.y/2));
+	float collisionY1=((worldPos.y+worldScale.y/2)-(otherWorldPos.y-otherWorldScale.y/2));
+	float collisionY2=((otherWorldPos.y+otherWorldScale.y/2)-(worldPos.y-worldScale.y/2));
 	// collision only if on both axes
 	if(collisionX1>0&&collisionX2>0&&collisionY1>0&&collisionY2>0) {
-		if(std::abs(collisionX2-collisionX1)/scale.x>std::abs(collisionY2-collisionY1)/scale.y) {
+		if(std::abs(collisionX2-collisionX1)/worldScale.x>std::abs(collisionY2-collisionY1)/worldScale.y) {
 			Vector2 vec(collisionX2-collisionX1, 0.0f);
 			return CollitionData(vec.normalized(), std::min(collisionX1, collisionX2));
 		} else {
@@ -133,20 +138,19 @@ BoxCollider::RaycastHit BoxCollider::lineLineIntersection(const Vector2& p1, con
 }
 bool BoxCollider::lineLineCollide(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4) { return lineLineIntersection(p1, p2, p3, p4).hit; }
 BoxCollider::RaycastHit BoxCollider::LineBox(const Vector2& p1, const Vector2& p2) {
+	Vector2 worldPos=getWorldPos();
+	Vector2 worldScale=getWorldScale();
+	float boundingRadius=(worldScale/2.0f).length();
 	//check if theres honestly any chance of collision
-	if(((p1-position).length()-scale.length())>(p1-p2).length()) return RaycastHit();
-
-	//if (std::abs((p1-p2).cross(p1-position))>1000) return RaycastHit();
-	//Log(scale.length());
+	if(((p1-worldPos).length()-boundingRadius)>(p1-p2).length()) return RaycastHit();
 	//draw();
-	// 
 	// check if the line has hit any of the rectangle's sides
 	RaycastHit collision=RaycastHit();
-	Vector2 halfScale=scale/2.0f;
-	collision=collision||BoxCollider::lineLineIntersection(p1, p2, position-halfScale, position+Vector2(-halfScale.x, halfScale.y));
-	collision=collision||BoxCollider::lineLineIntersection(p1, p2, position+Vector2(halfScale.x, -halfScale.y), position+halfScale);
-	collision=collision||BoxCollider::lineLineIntersection(p1, p2, position-halfScale, position+Vector2(halfScale.x, -halfScale.y));
-	collision=collision||BoxCollider::lineLineIntersection(p1, p2, position+Vector2(-halfScale.x, halfScale.y), position+halfScale);
+	Vector2 halfScale=worldScale/2.0f;
+	collision=collision||BoxCollider::lineLineIntersection(p1, p2, worldPos-halfScale, worldPos+Vector2(-halfScale.x, halfScale.y));
+	collision=collision||BoxCollider::lineLineIntersection(p1, p2, worldPos+Vector2(halfScale.x, -halfScale.y), worldPos+halfScale);
+	collision=collision||BoxCollider::lineLineIntersection(p1, p2, worldPos-halfScale, worldPos+Vector2(halfScale.x, -halfScale.y));
+	collision=collision||BoxCollider::lineLineIntersection(p1, p2, worldPos+Vector2(-halfScale.x, halfScale.y), worldPos+halfScale);
 	// if ANY of the above are true, the line has hit the rectangle
 	return collision;
 }
@@ -168,12 +172,9 @@ void Player::on_loop(double delta) {
 		(float)(inputs[0]>=GLFW_PRESS)-(float)(inputs[2]>=GLFW_PRESS)
 	).normalized();
 	if(inputVec.x==0&&inputVec.y==0) return;
-	collider->position+=inputVec*((float)delta)*((inputs[4]>=GLFW_PRESS) ? playerSprintSpeed : playerSpeed)*mapScale*(1+spacing);
+	position+=inputVec*((float)delta)*((inputs[4]>=GLFW_PRESS) ? playerSprintSpeed : playerSpeed)*mapScale*(1+spacing);
+
 	resolveCollitions();
-	position=collider->position;
-	renderer->position=position;
-	flashlightRenderer->position=position;
-	sceneCam->position=position;
 	iconRenderer->position=gridToMinimap(WorldToGrid(position));
 	sceneCam->update();
 	sceneCam->use();
@@ -183,25 +184,25 @@ void Player::resolveCollitions() {
 	//if (inputs[4]) return;// noclip when left shift
 	for(unsigned int i=0; i<colliders.size(); i++) {
 		BoxCollider::CollitionData collition=colliders[i]->checkCollision(collider);
-		collider->position+=collition.normal*collition.dist;
+		position+=collition.normal*collition.dist;
 	}
 }
 Player::Player(Engine* _engine, OrthoCam* _sceneCam, Vector2 _position, Shader* playerShader, Shader* flashlightShader, Shader* iconShader)
-	: Object(_engine), renderer(nullptr), collider(nullptr), position(_position), flashlightStencil(StencilSimple()), sceneCam(_sceneCam), flashlightRenderer(nullptr), iconRenderer(nullptr) {
+	: Object(_engine), Transform2D(_position, 0.0f, Vector2(mapScale), Vector2::Center, 0.0f), renderer(nullptr), collider(nullptr), flashlightStencil(StencilSimple()), sceneCam(_sceneCam), flashlightRenderer(nullptr), iconRenderer(nullptr) {
 	if(!initialized) return;
-	renderer=new SpriteRenderer(_engine, playerShader, position, 1.0f, playerSize*mapScale, Vector2::Center);
+	addChild(sceneCam);
+	sceneCam->position=Vector2::ZERO;
+	renderer=new SpriteRenderer(_engine, playerShader, Vector2::ZERO, 1.0f, Vector2(playerSize), Vector2::Center);
 	sceneRenderers.push_back(renderer);
-	collider=new BoxCollider(_engine, position, playerHitbox*playerSize*mapScale, lineShader);
-	flashlightRenderer=new SpriteRenderer(engine, flashlightShader, position, 1.0f, flashlightRange*mapScale, Vector2::Center);
+	addChild(renderer);
+	collider=new BoxCollider(_engine, Vector2::ZERO, playerHitbox, lineShader);
+	renderer->addChild(collider);
+	flashlightRenderer=new SpriteRenderer(engine, flashlightShader, Vector2::ZERO, 1.0f, flashlightRange, Vector2::Center);
+	addChild(flashlightRenderer);
 	iconRenderer=new SpriteRenderer(engine, iconShader, gridToMinimap(WorldToGrid(position)), 1.0f, Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), Vector2::Center);
 	uiRenderers.push_back(iconRenderer);
 
-	collider->position=position;
 	resolveCollitions();
-	position=collider->position;
-	renderer->position=position;
-	flashlightRenderer->position=position;
-	sceneCam->position=position;
 	iconRenderer->position=gridToMinimap(WorldToGrid(position));
 	sceneCam->update();
 	sceneCam->use();
@@ -223,12 +224,8 @@ void Player::flashlightStencilOff() {
 }
 void Player::setPos(Vector2 _position) {
 	if(engine->ended||!initialized) return;
-	collider->position=_position;
+	position=_position;
 	resolveCollitions();
-	position=collider->position;
-	renderer->position=position;
-	flashlightRenderer->position=position;
-	sceneCam->position=position;
 	iconRenderer->position=gridToMinimap(WorldToGrid(position));
 	sceneCam->update();
 	sceneCam->use();
@@ -368,9 +365,11 @@ std::vector<Vector2> Pathfinder::pathfind(Vector2 A, Vector2 B) {
 #pragma region Enemy
 void Enemy::setDebugLine(std::vector<Vector2> line) {
 	delete debugRen;
-	if(line.size()>0) {
-		debugRen=new LineRenderer(engine, lineShader, line, 3, false);
-	} else debugRen=nullptr;
+	std::vector<Vector2> renderLine;
+	for(const Vector2& pos:line) renderLine.push_back(pos);
+	renderLine.push_back(position);
+	if(line.size()>0) debugRen=new LineRenderer(engine, lineShader, renderLine, 3, false);
+	else debugRen=nullptr;
 }
 BoxCollider::RaycastHit Enemy::raycast() {
 	if(engine->ended||!initialized) return BoxCollider::RaycastHit();
@@ -385,27 +384,24 @@ BoxCollider::RaycastHit Enemy::raycast() {
 }
 void Enemy::on_loop(double delta) {
 	if(engine->ended||!initialized) return;
-	BoxCollider::RaycastHit hit=raycast();
-	if(!((bool)hit)) setDebugLine({ position, target->position });
-	else setDebugLine({ position, hit.point });
 
 	Vector2 targetPos=Pathfinder::WorldToGrid(target->position);
-	if(targetLastPos!=targetPos) {
-		//double startTime=glfwGetTime();
-		//path=pathfinder->pathfind(Pathfinder::WorldToGrid(position), targetPos);
-		//Log("Final Time: "+std::to_string((glfwGetTime()-startTime)*1000.0)+"ms");
-		targetLastPos=targetPos;
+	if(lastSpottedPos!=targetPos) {
+		BoxCollider::RaycastHit hit=raycast();
+		if(!((bool)hit)) {
+			//double startTime=glfwGetTime();
+			path=pathfinder->pathfind(Pathfinder::WorldToGrid(position), targetPos);
+			//Log("Final Time: "+std::to_string((glfwGetTime()-startTime)*1000.0)+"ms");
+			lastSpottedPos=targetPos;
+		}
 	}
+
 	float travelDist=enemySpeed*((float)delta)*mapScale*(1+spacing);
-	while(path.size()>0) {
+	while(path.size()>0&&travelDist>0) {
 		if((position-target->position).length()<=mapScale*(1+spacing)) { path.clear();break; }
 		Vector2 dir=path.back()-position;
 		float dist=dir.length();
-		if(travelDist==dist) {
-			position+=dir;
-			path.pop_back();
-			break;
-		} else if(travelDist<dist) {
+		if(travelDist<dist) {
 			position+=dir.normalized()*travelDist;
 			break;
 		} else {// travelDist>dist
@@ -416,18 +412,18 @@ void Enemy::on_loop(double delta) {
 		}
 	}
 	//setDebugLine(path);
-	renderer->position=position;
-	collider->position=position;
 	iconRenderer->position=gridToMinimap(WorldToGrid(position));
 }
 Enemy::Enemy(Engine* _engine, Vector2 _position, Shader* enemyShader, Shader* iconShader, Shader* _lineShader, Pathfinder* _pathfinder, Player* _target)
-	: Object(_engine), position(_position), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), lineShader(_lineShader), pathfinder(_pathfinder), target(_target) {
+	: Object(_engine), Transform2D(_position, 0.0f, Vector2(mapScale), Vector2::Center, 0.0f), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), lineShader(_lineShader), pathfinder(_pathfinder), target(_target) {
 	if(!initialized) return;
 
-	renderer=new SpriteRenderer(engine, enemyShader, position, 1.0f, playerSize*mapScale, Vector2::Center);
+	renderer=new SpriteRenderer(engine, enemyShader, Vector2::ZERO, 1.0f, Vector2(playerSize), Vector2::Center);
 	sceneRenderers.push_back(renderer);
-	collider=new BoxCollider(engine, position, playerHitbox*playerSize*mapScale, lineShader);
+	addChild(renderer);
+	collider=new BoxCollider(engine, Vector2::ZERO, playerHitbox, lineShader);
 	colliders.push_back(collider);
+	renderer->addChild(collider);
 	iconRenderer=new SpriteRenderer(engine, iconShader, gridToMinimap(WorldToGrid(position)), 1.0f, Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), Vector2::Center);
 	uiRenderers.push_back(iconRenderer);
 
@@ -496,7 +492,7 @@ int Run() {
 	instanceShader=createBatchedShader({ instanceUnlitTex });
 	instanceStateShader=createBatchedShader({ instanceWorkingTex, instanceBrokenTex });
 
-	lineShader=createColorShader(Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+	lineShader=createColorShader(Vector4(0.0f, 0.0f, 1.0f, 1.0f));
 	textShader=createTextShader();
 	if(engine->ended||
 		!playerShader->initialized||!flashlightShader->initialized||
