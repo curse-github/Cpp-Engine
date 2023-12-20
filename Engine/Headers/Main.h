@@ -118,28 +118,34 @@ class FpsTracker : Object {
 
 bool ColliderDebug=false;
 class BoxCollider : public LineRenderer {
-	protected:
 	public:
 	BoxCollider() : LineRenderer() {}
 	BoxCollider(Engine* _engine, Vector2 _position, Vector2 _scale, Shader* _debugLineShader);
-	struct CollitionData {
-		Vector2 normal;
-		float dist;
-		CollitionData(Vector2 _normal, float _dist) : normal(_normal), dist(_dist) {}
-	};
-	CollitionData checkCollision(BoxCollider* other);
 	struct RaycastHit {
 		bool hit;
-		float dist;
 		Vector2 point;
+		float dist;
 		RaycastHit() : hit(false), dist(FLT_MAX), point(Vector2()) {};
-		RaycastHit(const float& _dist, const Vector2& _point) : hit(true), dist(_dist), point(_point) {};
+		RaycastHit(const Vector2& _point, const float& _dist) : hit(true), point(_point), dist(_dist) {};
 		operator bool() const;
 		RaycastHit operator||(const RaycastHit& b) const;
 	};
+	struct CollitionData {
+		bool hit;
+		Vector2 point;
+		Vector2 normal;
+		float dist;
+		CollitionData() : hit(false), dist(FLT_MAX), point(Vector2()) {};
+		CollitionData(const Vector2& _point, const Vector2& _normal, const float& _dist) : hit(true), point(_point), normal(_normal), dist(_dist) {};
+		CollitionData(const RaycastHit& raycast, const Vector2& _normal) : hit(raycast.hit), point(raycast.point), normal(_normal), dist(raycast.dist) {};
+		operator bool() const;
+		CollitionData operator||(const CollitionData& b) const;
+	};
 	static RaycastHit lineLineIntersection(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4);
-	static bool lineLineCollide(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4);
-	RaycastHit LineBox(const Vector2& p1, const Vector2& p2);
+	static CollitionData LineBoxCollide(const Vector2& p1, const Vector2& p2, const Vector2& boxPos, const Vector2& boxSize);
+	CollitionData detectCollision(BoxCollider* other);
+	CollitionData sweepDetectCollision(BoxCollider* other, const Vector2& vec);
+	CollitionData LineCollide(const Vector2& p1, const Vector2& p2);
 };
 class Player : public Object, public Transform2D {
 	protected:
@@ -152,6 +158,7 @@ class Player : public Object, public Transform2D {
 	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods) override;
 	void on_loop(double delta) override;
 	void resolveCollitions();
+	BoxCollider::CollitionData checkCollisions(const Vector2& vec);
 	public:
 	BoxCollider* collider;
 	Player() : Object(), Transform2D(), renderer(nullptr), collider(nullptr), flashlightStencil(StencilSimple()), sceneCam(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {}
@@ -171,7 +178,7 @@ class Enemy : public Object, public Transform2D {
 	Vector2 lastSpottedPos;
 	std::vector<Vector2> path;
 	void setDebugLine(std::vector<Vector2> line);
-	BoxCollider::RaycastHit raycast();
+	BoxCollider::CollitionData raycast();
 	void on_loop(double delta) override;
 	public:
 	LineRenderer* debugRen=nullptr;
