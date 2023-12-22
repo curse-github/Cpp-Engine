@@ -92,8 +92,6 @@ std::vector<TextRenderer*> debugText;
 StaticBatchedSpriteRenderer* instanceRenderer;
 StaticBatchedSpriteRenderer* instanceStateRenderer;
 
-std::vector<BoxCollider*> colliders;
-
 Shader* createTexShader(Texture* tex, Vector4 modulate);
 Shader* createColorShader(Vector4 color);
 Shader* createTextShader();
@@ -117,10 +115,13 @@ class FpsTracker : Object {
 };
 
 bool ColliderDebug=false;
+std::vector<BoxCollider*> colliders;
 class BoxCollider : public LineRenderer {
 	public:
-	BoxCollider() : LineRenderer() {}
-	BoxCollider(Engine* _engine, Vector2 _position, Vector2 _scale, Shader* _debugLineShader);
+	typedef short unsigned int maskType;
+	maskType mask;
+	BoxCollider() : LineRenderer(), mask(0) {}
+	BoxCollider(Engine* _engine, Vector2 _position, Vector2 _scale, maskType _mask, Shader* _debugLineShader);
 	struct RaycastHit {
 		bool hit;
 		Vector2 point;
@@ -146,7 +147,15 @@ class BoxCollider : public LineRenderer {
 	CollitionData detectCollision(BoxCollider* other);
 	CollitionData sweepDetectCollision(BoxCollider* other, const Vector2& vec);
 	CollitionData LineCollide(const Vector2& p1, const Vector2& p2);
+
+	Vector2 forceOut(const maskType& collisionMask);
+	Vector2 tryMove(const Vector2& tryVec, const maskType& collisionMask);
+	BoxCollider::CollitionData raycast(const Vector2& p1, const Vector2& p2, const maskType& collisionMask);
 };
+const BoxCollider::maskType PLAYERMASK=1;
+const BoxCollider::maskType MAPMASK=2;
+const BoxCollider::maskType ENEMYMASK=4;
+
 class Player : public Object, public Transform2D {
 	protected:
 	SpriteRenderer* renderer;
@@ -157,8 +166,6 @@ class Player : public Object, public Transform2D {
 	int inputs[5]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
 	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods) override;
 	void on_loop(double delta) override;
-	void resolveCollitions();
-	BoxCollider::CollitionData checkCollisions(const Vector2& vec);
 	public:
 	BoxCollider* collider;
 	Player() : Object(), Transform2D(), renderer(nullptr), collider(nullptr), flashlightStencil(StencilSimple()), sceneCam(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {}
@@ -178,7 +185,6 @@ class Enemy : public Object, public Transform2D {
 	Vector2 lastSpottedPos;
 	std::vector<Vector2> path;
 	void setDebugLine(std::vector<Vector2> line);
-	BoxCollider::CollitionData raycast();
 	void on_loop(double delta) override;
 	public:
 	LineRenderer* debugRen=nullptr;

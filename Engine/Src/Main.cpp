@@ -67,8 +67,11 @@ float FpsTracker::getFrameTime() {
 #pragma endregion// FpsTracker
 
 #pragma region BoxCollider
-BoxCollider::BoxCollider(Engine* _engine, Vector2 _position, Vector2 _scale, Shader* _debugLineShader) :
-	LineRenderer(_engine, _debugLineShader, { Vector2(-_scale.x/2, _scale.y/2), Vector2(_scale.x/2, _scale.y/2), Vector2(_scale.x/2, -_scale.y/2), Vector2(-_scale.x/2, -_scale.y/2) }, 3.0f, _position, true) {}
+BoxCollider::BoxCollider(Engine* _engine, Vector2 _position, Vector2 _scale, maskType _mask, Shader* _debugLineShader) :
+	LineRenderer(_engine, _debugLineShader, { Vector2(-_scale.x/2, _scale.y/2), Vector2(_scale.x/2, _scale.y/2), Vector2(_scale.x/2, -_scale.y/2), Vector2(-_scale.x/2, -_scale.y/2) }, 3.0f, _position, true),
+	mask(_mask) {
+	colliders.push_back(this);
+}
 BoxCollider::RaycastHit::operator bool() const { return hit; }
 BoxCollider::RaycastHit BoxCollider::RaycastHit::operator||(const BoxCollider::RaycastHit& b) const {
 	RaycastHit out;
@@ -180,6 +183,52 @@ BoxCollider::CollitionData BoxCollider::LineCollide(const Vector2& p1, const Vec
 	Vector2 worldScale=getWorldScale();
 	return LineBoxCollide(p1, p2, worldPos, worldScale);
 }
+
+Vector2 BoxCollider::forceOut(const maskType& collisionMask) {
+	Vector2 oldPos=position;
+	for(BoxCollider* collider:colliders) {
+		if((collider->mask&collisionMask)==0) continue;
+		BoxCollider::CollitionData collition=collider->detectCollision(this);
+		position+=collition.normal*collition.dist;
+	}
+	Vector2 vec=oldPos-position;
+	position=oldPos;
+	return vec;
+}
+Vector2 BoxCollider::tryMove(const Vector2& tryVec, const maskType& collisionMask) {
+	Vector2 oldPos=position;
+	BoxCollider::CollitionData hit=BoxCollider::CollitionData();
+	for(BoxCollider* collider:colliders) {
+		if((collider->mask&collisionMask)==0) continue;
+		hit=hit||(collider->sweepDetectCollision(this, tryVec));
+	}
+	//if (!hit.hit) return tryVec; else return Vector2::ZERO;
+	if(hit.hit) {
+		Vector2 newVec=tryVec-(hit.normal*tryVec.dot(hit.normal));
+		if(newVec.x!=0.0f||newVec.y!=0.0f) {
+			hit=BoxCollider::CollitionData();
+			for(BoxCollider* collider:colliders) {
+				if((collider->mask&mask)==0) continue;
+				hit=hit||(collider->sweepDetectCollision(this, newVec));
+			}
+			if(!hit.hit) return newVec;
+			else return Vector2::ZERO;
+		}
+	} else return tryVec;
+	Vector2 vec=oldPos-position;
+	position=oldPos;
+	return vec;
+}
+BoxCollider::CollitionData BoxCollider::raycast(const Vector2& p1, const Vector2& p2, const maskType& collisionMask) {
+	if(engine->ended||!initialized) return BoxCollider::CollitionData();
+	BoxCollider::CollitionData out=BoxCollider::CollitionData();
+	for(BoxCollider* collider:colliders) {
+		if((collider->mask&collisionMask)==0) continue;
+		BoxCollider::CollitionData hit=collider->LineCollide(p1,p2);
+		out=out||hit;
+	}
+	return out;
+}
 #pragma endregion// BoxCollider
 
 #pragma region Player
@@ -191,14 +240,6 @@ void Player::on_key(GLFWwindow* window, int key, int scancode, int action, int m
 	else if(key==GLFW_KEY_D) inputs[3]=action;
 	else if(key==GLFW_KEY_LEFT_SHIFT) inputs[4]=action;
 }
-BoxCollider::CollitionData Player::checkCollisions(const Vector2& vec) {
-	BoxCollider::CollitionData hit=BoxCollider::CollitionData();
-	for(unsigned int i=0; i<colliders.size(); i++) {
-		if(colliders[i]==collider) continue;
-		hit=hit||colliders[i]->sweepDetectCollision(collider, vec);
-	}
-	return hit;
-}
 void Player::on_loop(double delta) {
 	if(engine->ended||!initialized) return;
 	Vector2 inputVec=Vector2(
@@ -207,25 +248,10 @@ void Player::on_loop(double delta) {
 	).normalized();
 	if(inputVec.x==0&&inputVec.y==0) return;
 	inputVec=inputVec*((float)delta)*((inputs[4]>=GLFW_PRESS) ? playerSprintSpeed : playerSpeed)*mapScale*(1+spacing);
-	BoxCollider::CollitionData hit=checkCollisions(inputVec);
-	if(hit.hit) {
-		inputVec-=hit.normal*inputVec.dot(hit.normal);
-		if(inputVec.x!=0.0f||inputVec.y!=0.0f) {
-			hit=checkCollisions(inputVec);
-			if(!hit.hit) position+=inputVec;
-		}
-	} else position+=inputVec;
+	position+=collider->tryMove(inputVec, MAPMASK|ENEMYMASK);
 	iconRenderer->position=gridToMinimap(WorldToGrid(position));
 	sceneCam->update();
 	sceneCam->use();
-}
-void Player::resolveCollitions() {
-	if(engine->ended||!initialized) return;
-	//if (inputs[4]) return;// noclip when left shift
-	for(unsigned int i=0; i<colliders.size(); i++) {
-		BoxCollider::CollitionData collition=colliders[i]->detectCollision(collider);
-		position+=collition.normal*collition.dist;
-	}
 }
 Player::Player(Engine* _engine, OrthoCam* _sceneCam, Vector2 _position, Shader* playerShader, Shader* flashlightShader, Shader* iconShader)
 	: Object(_engine), Transform2D(_position, 0.0f, Vector2(mapScale), Vector2::Center, 0.0f), renderer(nullptr), collider(nullptr), flashlightStencil(StencilSimple()), sceneCam(_sceneCam), flashlightRenderer(nullptr), iconRenderer(nullptr) {
@@ -235,14 +261,14 @@ Player::Player(Engine* _engine, OrthoCam* _sceneCam, Vector2 _position, Shader* 
 	renderer=new SpriteRenderer(_engine, playerShader, Vector2::ZERO, 1.0f, Vector2(playerSize), Vector2::Center);
 	sceneRenderers.push_back(renderer);
 	addChild(renderer);
-	collider=new BoxCollider(_engine, Vector2::ZERO, playerHitbox, lineShader);
+	collider=new BoxCollider(_engine, Vector2::ZERO, playerHitbox, PLAYERMASK, lineShader);
 	renderer->addChild(collider);
 	flashlightRenderer=new SpriteRenderer(engine, flashlightShader, Vector2::ZERO, 1.0f, flashlightRange, Vector2::Center);
 	addChild(flashlightRenderer);
 	iconRenderer=new SpriteRenderer(engine, iconShader, gridToMinimap(WorldToGrid(position)), 1.0f, Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), Vector2::Center);
 	uiRenderers.push_back(iconRenderer);
 
-	resolveCollitions();
+	position+=collider->forceOut(MAPMASK|ENEMYMASK);
 	iconRenderer->position=gridToMinimap(WorldToGrid(position));
 	sceneCam->update();
 	sceneCam->use();
@@ -265,7 +291,7 @@ void Player::flashlightStencilOff() {
 void Player::setPos(Vector2 _position) {
 	if(engine->ended||!initialized) return;
 	position=_position;
-	resolveCollitions();
+	position+=collider->forceOut(MAPMASK|ENEMYMASK);
 	iconRenderer->position=gridToMinimap(WorldToGrid(position));
 	sceneCam->update();
 	sceneCam->use();
@@ -411,29 +437,17 @@ void Enemy::setDebugLine(std::vector<Vector2> line) {
 	if(line.size()>0) debugRen=new LineRenderer(engine, lineShader, renderLine, 3, false);
 	else debugRen=nullptr;
 }
-BoxCollider::CollitionData Enemy::raycast() {
-	if(engine->ended||!initialized) return BoxCollider::CollitionData();
-	BoxCollider::CollitionData out=BoxCollider::CollitionData();
-	for(unsigned int i=0; i<colliders.size(); i++) {
-		if(colliders[i]==target->collider) continue;
-		else if(colliders[i]==collider) continue;
-		BoxCollider::CollitionData hit=colliders[i]->LineCollide(position, target->position);
-		out=out||hit;
-	}
-	return out;
-}
 void Enemy::on_loop(double delta) {
 	if(engine->ended||!initialized) return;
-
 	Vector2 targetPos=Pathfinder::WorldToGrid(target->position);
 	if(lastSpottedPos!=targetPos) {
-		BoxCollider::CollitionData hit=raycast();
+		BoxCollider::CollitionData hit=collider->raycast(position, target->position, MAPMASK);
 		if(!((bool)hit)) {
 			//double startTime=glfwGetTime();
 			path=pathfinder->pathfind(Pathfinder::WorldToGrid(position), targetPos);
 			//Log("Final Time: "+std::to_string((glfwGetTime()-startTime)*1000.0)+"ms");
 			lastSpottedPos=targetPos;
-		}
+		} else setDebugLine({position,hit.point});
 	}
 
 	float travelDist=enemySpeed*((float)delta)*mapScale*(1+spacing);
@@ -461,8 +475,7 @@ Enemy::Enemy(Engine* _engine, Vector2 _position, Shader* enemyShader, Shader* ic
 	renderer=new SpriteRenderer(engine, enemyShader, Vector2::ZERO, 1.0f, Vector2(playerSize), Vector2::Center);
 	sceneRenderers.push_back(renderer);
 	addChild(renderer);
-	collider=new BoxCollider(engine, Vector2::ZERO, playerHitbox, lineShader);
-	colliders.push_back(collider);
+	collider=new BoxCollider(engine, Vector2::ZERO, playerHitbox, ENEMYMASK, lineShader);
 	renderer->addChild(collider);
 	iconRenderer=new SpriteRenderer(engine, iconShader, gridToMinimap(WorldToGrid(position)), 1.0f, Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), Vector2::Center);
 	uiRenderers.push_back(iconRenderer);
@@ -567,15 +580,15 @@ int Run() {
 		instanceRenderer->addQuad(pos, 2.0f, Vector2(mapScale), Vector4(0.5f, 0.5f, 0.5f, 1.0f), 0.0f);
 		instanceStateRenderer->addQuad(pos, 3.0f, Vector2(mapScale), Vector4::ONE, broken ? 1.0f : 0.0f);
 		//if(broken) Log(pos);
-		colliders.push_back(new BoxCollider(engine, pos, Vector2(mapScale), lineShader));
+		new BoxCollider(engine, pos, Vector2(mapScale), MAPMASK, lineShader);
 	}
 	instanceRenderer->bind();
 	instanceStateRenderer->bind();
 	for(const Vector3& line:horizontalWallData) {// horizontal walls
-		colliders.push_back(new BoxCollider(engine, GridToWorld(Vector2((line.z+line.y)/2.0f, line.x)), Vector2(((line.z-line.y)*(1.0f+spacing)+spacing*3.0f)*mapScale, spacing*3.0f*mapScale), lineShader));
+		new BoxCollider(engine, GridToWorld(Vector2((line.z+line.y)/2.0f, line.x)), Vector2(((line.z-line.y)*(1.0f+spacing)+spacing*3.0f)*mapScale, spacing*3.0f*mapScale), MAPMASK, lineShader);
 	}
 	for(const Vector3& line:verticalWallData) {// vertical walls
-		colliders.push_back(new BoxCollider(engine, GridToWorld(Vector2(line.x, (line.z+line.y)/2.0f)), Vector2(spacing*3.0f, ((line.z-line.y)*(1.0f+spacing)+spacing*3.0f))*mapScale, lineShader));
+		new BoxCollider(engine, GridToWorld(Vector2(line.x, (line.z+line.y)/2.0f)), Vector2(spacing*3.0f, ((line.z-line.y)*(1.0f+spacing)+spacing*3.0f))*mapScale, MAPMASK, lineShader);
 	}
 	// setup text renderers
 	debugText.push_back(new TextRenderer(engine, textShader, "Pos:\nFps Avg:\nTime:", Vector3(0.75f, 0.75f, 0.75f), Vector2(1.0f, 1.0f), 2.0f, 0.0f, Vector2::BottomLeft));
