@@ -1,19 +1,23 @@
-#include "Lib.h"
+#include "EngineLib.h"
 void Log(const std::string& out) {
 #ifdef _DEBUG
 	std::cout<<out<<std::endl;
 #endif // _DEBUG
 }
-void Log(const char* out) { Log(std::string(out)); }
+void Log(const char* out) {
+#ifdef _DEBUG
+	std::cout<<out<<std::endl;
+#endif // _DEBUG
+}
 void Log(const bool& out) { Log(out ? "True" : "False"); }
 void Log(const int& out) { Log(std::to_string(out)); }
 void Log(const unsigned int& out) { Log(std::to_string(out)); }
 void Log(const float& out) { Log(std::to_string(out)); }
 void Log(const double& out) { Log(std::to_string(out)); }
-void Log(Vector2 out) { Log(out.to_string()); }
-void Log(Vector3 out) { Log(out.to_string()); }
-void Log(Vector4 out) { Log(out.to_string()); }
-void Log(Mat4x4 out) { Log(out.to_string()); }
+void Log(const Vector2& out) { Log(out.to_string()); }
+void Log(const Vector3& out) { Log(out.to_string()); }
+void Log(const Vector4& out) { Log(out.to_string()); }
+void Log(const Mat4x4& out) { Log(out.to_string()); }
 
 void FsReadDiskFile(std::string* content, const std::string& filePath) {
 	std::ifstream fileStream(filePath, std::ios::in);
@@ -26,8 +30,8 @@ void FsReadDiskFile(std::string* content, const std::string& filePath) {
 }
 
 Vector2::Vector2() { x=0; y=0; }
-Vector2::Vector2(float _x, float _y) { x=_x; y=_y; }
-Vector2::Vector2(float v) { x=v; y=v; }// from a single value
+Vector2::Vector2(const float& _x, const float& _y) { x=_x; y=_y; }
+Vector2::Vector2(const float& v) { x=v; y=v; }// from a single value
 void Vector2::operator+=(const Vector2& b) { x+=b.x; y+=b.y; }
 void Vector2::operator-=(const Vector2& b) { x-=b.x; y-=b.y; }
 float Vector2::length() const { return sqrt(x*x+y*y); }
@@ -74,9 +78,9 @@ const Vector2 Vector2::BottomLeft=Vector2(-0.5f, -0.5f);
 const Vector2 Vector2::BottomRight=Vector2(0.5f, -0.5f);
 
 Vector3::Vector3() { x=0; y=0; z=0; }
-Vector3::Vector3(Vector2 v, float _z) { x=v.x; y=v.y; z=_z; }
-Vector3::Vector3(float _x, float _y, float _z) { x=_x; y=_y; z=_z; }
-Vector3::Vector3(float v) { x=v; y=v; z=v; }// from a single value
+Vector3::Vector3(const Vector2& v, const float& _z) { x=v.x; y=v.y; z=_z; }
+Vector3::Vector3(const float& _x, const float& _y, const float& _z) { x=_x; y=_y; z=_z; }
+Vector3::Vector3(const float& v) { x=v; y=v; z=v; }// from a single value
 Vector2 Vector3::toXY() const { return Vector2(x, y); }
 void Vector3::operator+=(const Vector3& b) { x+=b.x; y+=b.y; z+=b.z; }
 void Vector3::operator-=(const Vector3& b) { x-=b.x; y-=b.y; z-=b.z; }
@@ -125,9 +129,9 @@ const Vector3 Vector3::UP=Vector3(0.0f, 1.0f, 0.0f);
 const Vector3 Vector3::FORWARD=Vector3(0.0f, 0.0f, 1.0f);
 
 Vector4::Vector4() { x=0; y=0; z=0; w=0; }
-Vector4::Vector4(Vector3 v, float _w) { x=v.x; y=v.y; z=v.z; w=_w; }
-Vector4::Vector4(float _x, float _y, float _z, float _w) { x=_x; y=_y; z=_z; w=_w; }
-Vector4::Vector4(float v) { x=v; y=v; z=v; w=v; }// from a single value
+Vector4::Vector4(const Vector3& v, const float& _w) { x=v.x; y=v.y; z=v.z; w=_w; }
+Vector4::Vector4(const float& _x, const float& _y, const float& _z, const float& _w) { x=_x; y=_y; z=_z; w=_w; }
+Vector4::Vector4(const float& v) { x=v; y=v; z=v; w=v; }// from a single value
 Vector3 Vector4::toXYZ() const { return Vector3(x, y, z); }
 void Vector4::operator+=(const Vector4& b) { x+=b.x; y+=b.y; z+=b.z; w+=b.w; }
 void Vector4::operator-=(const Vector4& b) { x-=b.x; y-=b.y; z-=b.z; w-=b.w; }

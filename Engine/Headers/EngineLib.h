@@ -1,6 +1,6 @@
 #pragma once
-#ifndef _LIBH
-#define _LIBH
+#ifndef _LIB_H
+#define _LIB_H
 
 #include <iostream>
 #include <string>
@@ -13,12 +13,14 @@ void Log(const int& out);
 void Log(const unsigned int& out);
 void Log(const float& out);
 void Log(const double& out);
-class Vector2; class Vector3; class Vector4;
-void Log(Vector2 out);
-void Log(Vector3 out);
-void Log(Vector4 out);
+class Vector2;
+void Log(const Vector2& out);
+class Vector3;
+void Log(const Vector3& out);
+class Vector4;
+void Log(const Vector4& out);
 class Mat4x4;
-void Log(Mat4x4 out);
+void Log(const Mat4x4& out);
 
 void FsReadDiskFile(std::string* content, const std::string& filePath);
 
@@ -27,8 +29,8 @@ class Vector2 {
 	float x;
 	float y;
 	Vector2();
-	Vector2(float _x, float _y);
-	Vector2(float v);
+	Vector2(const float& _x, const float& _y);
+	Vector2(const float& v);
 	void operator+=(const Vector2& b);
 	void operator-=(const Vector2& b);
 	float length() const;
@@ -70,9 +72,9 @@ class Vector3 {
 	float y;
 	float z;
 	Vector3();
-	Vector3(Vector2 v, float _z);
-	Vector3(float _x, float _y, float _z);
-	Vector3(float v);
+	Vector3(const Vector2& v, const float& _z);
+	Vector3(const float& _x, const float& _y, const float& _z);
+	Vector3(const float& v);
 	Vector2 toXY() const;
 	void operator+=(const Vector3& b);
 	void operator-=(const Vector3& b);
@@ -111,9 +113,9 @@ class Vector4 {
 	float z;
 	float w;
 	Vector4();
-	Vector4(Vector3 v, float _w);
-	Vector4(float _x, float _y, float _z, float _w);
-	Vector4(float v);
+	Vector4(const Vector3& v, const float& _w);
+	Vector4(const float& _x, const float& _y, const float& _z, const float& _w);
+	Vector4(const float& v);
 	Vector3 toXYZ() const;
 	void operator+=(const Vector4& b);
 	void operator-=(const Vector4& b);
@@ -169,4 +171,5 @@ Mat4x4 axisRotMat(const Vector3& axis, const float& angle);
 Mat4x4 ortho(const float& left, const float& right, const float& bottom, const float& top, const float& near, const float& far);
 Mat4x4 perspective(const float& fov, const float& aspect, const float& near, const float& far);
 Mat4x4 lookAt(const Vector3& position, const Vector3& target, const Vector3& up);
-#endif
+
+#endif// _LIB_H

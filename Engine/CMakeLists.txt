@@ -39,16 +39,24 @@ project(Engine# ${PROJECT_NAME}
 )
 # Add source files.
 set(SOURCES
-    Src/Lib.cpp
+    Src/EngineLib.cpp
     Src/Engine.cpp
+    Src/Cameras.cpp
+    Src/Renderers.cpp
+    Src/BatchedRenderers.cpp
     Src/Json.cpp
+    Src/GameLib.cpp
     Src/Main.cpp
 )
 # Add header files.
 set(HEADERS
-    Headers/Lib.h
+    Headers/EngineLib.h
     Headers/Engine.h
+    Headers/Cameras.h
+    Headers/Renderers.h
+    Headers/BatchedRenderers.h
     Headers/Json.h
+    Headers/GameLib.h
     Headers/Main.h
 )
 # Add executable.

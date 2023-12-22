@@ -1,6 +1,6 @@
 #include "Json.h"
 bool startsWith(std::string str, std::string start);
-std::string stringCut(std::string* str, int num);
+std::string stringCut(std::string* str, const int& num);
 void cutComment(std::string* str);
 void cutEmptySpace(std::string* str);
 void cutSemicolon(std::string* str);
@@ -174,7 +174,7 @@ void loadMapData(const std::string& mapName) {
 bool startsWith(std::string str, std::string start) {
 	return str.substr(0, std::min((int)start.size(), (int)str.size()))==start;
 }
-std::string stringCut(std::string* str, int num) {
+std::string stringCut(std::string* str, const int& num) {
 	int len=std::min(num, (int)str->size());
 	std::string tmp=str->substr(0, len);
 	(*str)=str->substr(len, str->size());

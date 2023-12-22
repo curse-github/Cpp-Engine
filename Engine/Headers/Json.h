@@ -1,6 +1,6 @@
-#ifndef _JSONH
-#define _JSONH
-#include "Lib.h"
+#ifndef _JSON_H
+#define _JSON_H
+#include "EngineLib.h"
 #include <vector>
 #include <array>
 
@@ -37,4 +37,4 @@ extern std::vector<Vector3> verticalWallData;
 
 extern bool parsedMap;
 void loadMapData(const std::string& mapName);
-#endif// JSONH
+#endif// _JSON_H

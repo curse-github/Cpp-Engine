@@ -20,16 +20,24 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imports\dependencies\glad.c" />
+    <ClCompile Include="Src\BatchedRenderers.cpp" />
+    <ClCompile Include="Src\Cameras.cpp" />
     <ClCompile Include="Src\Engine.cpp" />
+    <ClCompile Include="Src\EngineLib.cpp" />
+    <ClCompile Include="Src\GameLib.cpp" />
     <ClCompile Include="Src\Json.cpp" />
-    <ClCompile Include="Src\Lib.cpp" />
     <ClCompile Include="Src\Main.cpp" />
+    <ClCompile Include="Src\Renderers.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Headers\BatchedRenderers.h" />
+    <ClInclude Include="Headers\Cameras.h" />
+    <ClInclude Include="Headers\EngineLib.h" />
+    <ClInclude Include="Headers\GameLib.h" />
     <ClInclude Include="Headers\Json.h" />
-    <ClInclude Include="Headers\Lib.h" />
     <ClInclude Include="Headers\Engine.h" />
     <ClInclude Include="Headers\Main.h" />
+    <ClInclude Include="Headers\Renderers.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Data\map.json" />

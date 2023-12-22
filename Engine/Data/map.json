@@ -17,7 +17,7 @@
   "flashlightColor": [ 0.3, 0.3, 0.0 ],
   "flashlightRange": 2.0,
   // enemy vars
-  "enemySpeed": 5.5,
+  "enemySpeed": 5,
   "enemyTexPath": "Resources/ghost.png",
   "enemyModulate": [ 0.0, 0.0, 0.7 ],
   // map vars

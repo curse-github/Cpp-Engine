@@ -1,14 +1,16 @@
 #pragma once
-#ifndef _ENGINEH
-#define _ENGINEH
+#ifndef _ENGINE_H
+#define _ENGINE_H
+
 #include <glad/glad.h>// must be included first
 #include <GLFW/glfw3.h>// https://www.glfw.org/docs/3.3
 #include <vector>
 #include <string>
 #include <functional>
-#include "Lib.h"
-typedef std::function<void(double)> onloopfun;
 
+#include "EngineLib.h"
+
+typedef std::function<void(const double&)> onloopfun;
 void engine_on_error(int error, const char* description);
 class Object;
 class Engine {
@@ -28,12 +30,12 @@ class Engine {
 	bool ended=false;
 	std::vector<Object*> objects;
 	Engine() : window(nullptr), screenSize(Vector2()) {}
-	Engine(Vector2 size, const char* title, bool vsync);
+	Engine(const Vector2& size, const char* title, const bool& vsync);
 	virtual ~Engine();
 	void Loop();
 	void Close();
 	void Delete();
-	void SetCursorMode(int mode);
+	void SetCursorMode(const int& mode);
 
 	std::vector<Object*> onResize;
 	std::vector<Object*> onKey;
@@ -59,14 +61,14 @@ class Object {
 	Engine* engine;
 	friend Engine;
 	public:
-	virtual void on_resize(GLFWwindow* window, int width, int height);
-	virtual void on_key(GLFWwindow* window, int key, int scancode, int action, int mods);
-	virtual void on_scroll(GLFWwindow* window, double xoffset, double yoffset);
-	virtual void on_mouse(GLFWwindow* window, double mouseX, double mouseY);
-	virtual void on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY);
-	virtual void on_mouse_button(GLFWwindow* window, int button, int action, int mods);
-	virtual void on_mouse_enter(GLFWwindow* window, int entered);
-	virtual void on_loop(double delta);
+	virtual void on_resize(GLFWwindow* window, const int& width, const int& height);
+	virtual void on_key(GLFWwindow* window, const int& key, const int& scancode, const int& action, const int& mods);
+	virtual void on_scroll(GLFWwindow* window, const double& xoffset, const double& yoffset);
+	virtual void on_mouse(GLFWwindow* window, const double& mouseX, const double& mouseY);
+	virtual void on_mouse_delta(GLFWwindow* window, const float& deltaX, const float& deltaY);
+	virtual void on_mouse_button(GLFWwindow* window, const int& button, const int& action, const int& mods);
+	virtual void on_mouse_enter(GLFWwindow* window, const int& entered);
+	virtual void on_loop(const double& delta);
 	bool initialized=false;
 	Object() : engine(nullptr) {}
 	Object(Engine* _engine);
@@ -79,8 +81,8 @@ class Transform {
 	Vector3 scale;
 	Vector3 rotAxis;
 	float rotAngle;
-	Transform() : position(Vector3()), scale(Vector3()), rotAxis(Vector3()), rotAngle(0.0f) {};
-	Transform(Vector3 _position, Vector3 _scale, Vector3 _rotAxis, float _rotAngle);
+	Transform() : position(Vector3::ZERO), scale(Vector3::ONE), rotAxis(Vector3::Vector3::UP), rotAngle(0.0f) {};
+	Transform(const Vector3& _position, const Vector3& _scale, const Vector3& _rotAxis, const float& _rotAngle);
 };
 class Transform2D {
 	private:
@@ -99,12 +101,12 @@ class Transform2D {
 	Vector2 anchor;
 	float rotAngle;
 	Transform2D() : position(Vector2()), zIndex(0.0f), scale(Vector2()), anchor(Vector2()), rotAngle(0.0f) {};
-	Transform2D(Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle);
-	Vector2 getWorldPos();
-	Vector2 getWorldScale();
-	float getWorldRot();
+	Transform2D(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor, const float& _rotAngle);
+	Vector2 getWorldPos() const;
+	Vector2 getWorldScale() const;
+	float getWorldRot() const;
 	void addChild(Transform2D* child);
-	static Mat4x4 createModelMat(Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle);
+	static Mat4x4 createModelMat(const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f);
 	Mat4x4 getModelMat();
 };
 
@@ -117,7 +119,7 @@ class Shader : public Object {
 	std::vector<int> textureIndexes;
 	unsigned int numTextures=0;
 	Shader() : Object() {}
-	Shader(Engine* _engine, std::string vertexPath, std::string fragmentPath);
+	Shader(Engine* _engine, const std::string& vertexPath, const std::string& fragmentPath);
 	virtual ~Shader();
 	void use();
 	void setBool(const char* name, const bool& value);
@@ -141,183 +143,7 @@ class Texture : public Object {
 	int width;
 	int height;
 	Texture() : Object(), ID(0), path(""), width(0), height(0) {}
-	Texture(Engine* _engine, std::string _path);
-};
-
-class Camera : public Object {
-	std::vector<Shader*> shaders;
-	public:
-	Mat4x4 projection;
-	Mat4x4 view;
-	Camera() : Object(), projection(Mat4x4()), view(Mat4x4()) {}
-	Camera(Engine* _engine);
-	virtual void update();
-	void bindShader(Shader* shader);
-	void bindShaders(std::vector<Shader*> shaders);
-	void use();
-};
-class LookAtCam : public Camera, public Transform {
-	public:
-	float fov=45;
-	float aspect;
-	Vector3 focus;
-	LookAtCam() : Camera(), Transform(), aspect(0.0f), focus(Vector3()) {}
-	LookAtCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _focus);
-	void update();
-};
-class FreeCam : public Camera, public Transform {
-	protected:
-	float aspect;
-	Vector3 forward;
-	Vector3 up;
-	float SPEED=2.5f;
-	float pitch=0.0f;
-	float yaw=-90.0f;
-	void on_loop(double delta) override;
-	int inputs[6]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
-	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods) override;
-	void on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY) override;
-	void on_scroll(GLFWwindow* window, double xoffset, double yoffset) override;
-	public:
-	float fov=45;
-	float SENSITIVITY=0.1f;
-	bool paused=false;
-	FreeCam() : Camera(), Transform(), aspect(0.0f), forward(Vector3()), up(Vector3()) {}
-	FreeCam(Engine* _engine, float _aspect, Vector3 _position, Vector3 _forward, Vector3 _up);
-	void update();
-};
-class OrthoCam : public Camera, public Transform2D {
-	public:
-	OrthoCam() : Camera(), Transform2D() {}
-	OrthoCam(Engine* _engine, Vector2 _position, Vector2 _size);
-	void update();
-};
-
-class Renderer : public Object {
-	protected:
-	Shader* shader;
-	unsigned int VAO;
-	unsigned int VBO;
-	unsigned int EBO;
-	public:
-	Renderer() : Object(), shader(nullptr), VAO(0), VBO(0), EBO(0) {}
-	Renderer(Engine* _engine, Shader* _shader);
-	virtual ~Renderer();
-	void setShader(Shader* _shader);
-	virtual void draw()=0;
-};
-class CubeRenderer : public Renderer, public Transform {
-	public:
-	CubeRenderer() : Renderer(), Transform() {}
-	CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _scale, Vector3 _rotAxis, float _rotAngle);
-	CubeRenderer(Engine* _engine, Shader* _shader, Vector3 _position, Vector3 _scale);
-	void draw() override;
-};
-class Renderer2D : public Renderer, public Transform2D {
-	protected:
-	static bool AABBOverlap(const Vector2& aPos, const Vector2& aSize, const Vector2& bPos, const Vector2& bSize);
-	public:
-	Renderer2D() : Renderer(), Transform2D() {};
-	Renderer2D(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle) :
-		Renderer(_engine, _shader), Transform2D(_position, _zIndex, _scale, _anchor, _rotAngle) {};
-	bool shouldDraw(const Vector2& viewer, const Vector2& viewRange);
-	bool shouldDraw(const Vector2& viewer, const float& viewRange);
-	bool shouldDraw(OrthoCam* viewer);
-};
-class SpriteRenderer : public Renderer2D {
-	public:
-	SpriteRenderer() : Renderer2D() {}
-	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle);
-	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor);
-	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale);
-	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex);
-	SpriteRenderer(Engine* _engine, Shader* _shader, Vector2 _position);
-	void draw() override;
-	using Renderer2D::shouldDraw;
-};
-extern bool characterMapInitialized;
-class TextRenderer : public Renderer2D {
-	public:
-	std::string text;
-	Vector3 color;
-	float scale;
-	TextRenderer() : Renderer2D(), text(""), color(Vector3()), scale(0.0f) {}
-	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, float _zIndex, Vector2 _anchor);
-	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale, float _zIndex);
-	TextRenderer(Engine* _engine, Shader* _shader, std::string _text, Vector3 _color, Vector2 _position, float _scale);
-	void draw() override;
-	using Renderer2D::shouldDraw;
-};
-class LineRenderer : public Renderer2D {
-	protected:
-	std::vector<Vector2> positions;
-	public:
-	float width;
-	bool loop;
-	LineRenderer() : Renderer2D(), positions {}, width(1.0f), loop(false) {}
-	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position, bool _loop);
-	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, Vector2 _position);
-	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width, bool _loop);
-	LineRenderer(Engine* _engine, Shader* _shader, std::vector<Vector2> _positions, float _width);
-	void draw() override;
-};
-
-const int maxTextures=32;
-struct BatchedVertex {
-	float X;
-	float Y;
-	float Z;
-
-	float U;
-	float V;
-
-	float R;
-	float G;
-	float B;
-	float A;
-
-	float I;
-};
-struct QuadData {
-	Vector2 position;
-	float zIndex;
-	Vector2 scale;
-	float texIndex;
-	Vector4 modulate;
-};
-class BatchedSpriteRenderer : protected Renderer2D {
-	protected:
-	BatchedVertex* dataBuffer;
-	BatchedVertex* dataBufferPtr;
-	void bufferQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex);
-	void renderBatch();
-	public:
-	std::vector<QuadData> quads;
-	int maxQuadCount=10000;
-	int drawCalls=0;
-	int numQuads=0;
-	BatchedSpriteRenderer() : Renderer2D(), dataBuffer(nullptr), dataBufferPtr(nullptr) {};
-	BatchedSpriteRenderer(Engine* _engine, Shader* _shader);
-	virtual ~BatchedSpriteRenderer();
-	void addQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex);
-	void draw() override;
-};
-class StaticBatchedSpriteRenderer : protected Renderer2D {
-	protected:
-	BatchedVertex* dataBuffer;
-	BatchedVertex* dataBufferPtr;
-	void bufferQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex);
-	void renderBatch();
-	public:
-	std::vector<QuadData> quads;
-	int maxQuadCount=10000;
-	int numQuads=0;
-	StaticBatchedSpriteRenderer() : Renderer2D(), dataBuffer(nullptr), dataBufferPtr(nullptr) {};
-	StaticBatchedSpriteRenderer(Engine* _engine, Shader* _shader);
-	virtual ~StaticBatchedSpriteRenderer();
-	void addQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex);
-	void bind();
-	void draw() override;
+	Texture(Engine* _engine, const std::string& _path);
 };
 
 class StencilSimple {
@@ -328,6 +154,11 @@ class StencilSimple {
 	void Write();
 	void Compare();
 };
+
+#include "Cameras.h"
+#include "Renderers.h"
+//#include "BatchedRenderers.h"
+
 #pragma region Shader Embedded Code
 #define vsShader "#version 330 core\n\
 layout(location=0) in vec3 vecPos;\n\
@@ -409,4 +240,4 @@ void main() {\n\
 	}\n\
 }\0"
 #pragma endregion
-#endif
+#endif// _ENGINE_H
