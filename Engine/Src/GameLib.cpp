@@ -138,25 +138,25 @@ std::vector<Vector2> Pathfinder::pathfind(const Vector2& A, const Vector2& B) {
 #pragma endregion// Pathfinder
 
 #pragma region Shader creators
+Shader* createColorShader(Engine* engine, const Vector4& color) {
+	Shader* shader=new Shader(engine, "Shaders/basic.vert", "Shaders/color.frag");
+	if(!shader->initialized) return shader;
+	shader->setFloat4("color", color);
+	return shader;
+}
 Shader* createTexShader(Engine* engine, Texture* tex, const Vector4& modulate) {
-	Shader* shader=new Shader(engine, "Shaders/vs.glsl", "Shaders/texFrag.glsl");
+	Shader* shader=new Shader(engine, "Shaders/basic.vert", "Shaders/tex.frag");
 	if(!shader->initialized) return shader;
 	shader->setTexture("_texture", tex, 0);
 	shader->setFloat4("modulate", modulate);
 	return shader;
 }
-Shader* createColorShader(Engine* engine, const Vector4& color) {
-	Shader* shader=new Shader(engine, "Shaders/vs.glsl", "Shaders/colorFrag.glsl");
-	if(!shader->initialized) return shader;
-	shader->setFloat4("color", color);
-	return shader;
-}
 Shader* createTextShader(Engine* engine) {
-	Shader* shader=new Shader(engine, "Shaders/vs.glsl", "Shaders/textFrag.glsl");
+	Shader* shader=new Shader(engine, "Shaders/basic.vert", "Shaders/text.frag");
 	return shader;
 }
 Shader* createBatchedShader(Engine* engine, const std::vector<Texture*>& textures) {
-	Shader* shader=new Shader(engine, "Shaders/batchVs.glsl", "Shaders/batchFrag.glsl");
+	Shader* shader=new Shader(engine, "Shaders/batch.vert", "Shaders/texBatch.frag");
 	if(!shader->initialized) return shader;
 	shader->setTextureArray("_textures");
 	for(unsigned int i=0; i<textures.size(); i++) shader->setTexture("_", textures[i], (int)i);
@@ -254,13 +254,12 @@ BoxCollider::CollitionData BoxCollider::CollitionData::operator||(const BoxColli
 }
 BoxCollider::RaycastHit BoxCollider::lineLineIntersection(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4) {
 	// calculate the direction of the lines
-	float uA=((p4.x-p3.x)*(p1.y-p3.y)-(p4.y-p3.y)*(p1.x-p3.x))/((p4.y-p3.y)*(p2.x-p1.x)-(p4.x-p3.x)*(p2.y-p1.y));
-	float uB=((p2.x-p1.x)*(p1.y-p3.y)-(p2.y-p1.y)*(p1.x-p3.x))/((p4.y-p3.y)*(p2.x-p1.x)-(p4.x-p3.x)*(p2.y-p1.y));
+	float den=(p4.y-p3.y)*(p2.x-p1.x)-(p4.x-p3.x)*(p2.y-p1.y);
+	float t=((p4.x-p3.x)*(p1.y-p3.y)-(p4.y-p3.y)*(p1.x-p3.x))/den;
+	float u=((p2.x-p1.x)*(p1.y-p3.y)-(p2.y-p1.y)*(p1.x-p3.x))/den;
 	// if uA and uB are between 0-1, lines are intersecting
-	if(uA>=0&&uA<=1&&uB>=0&&uB<=1) {
-		float intersectionX=p1.x+(uA*(p2.x-p1.x));
-		float intersectionY=p1.y+(uA*(p2.y-p1.y));
-		return RaycastHit(Vector2(intersectionX, intersectionY), uA);
+	if(t>=0&&t<=1&&u>=0&&u<=1) {
+		return RaycastHit(p1+(p2-p1)*t, t);
 	}
 	return RaycastHit();
 }

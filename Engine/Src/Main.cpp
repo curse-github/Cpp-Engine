@@ -1,4 +1,5 @@
 #include "Main.h"
+#include <map>
 
 #pragma region Player
 void Player::on_key(GLFWwindow* window, const int& key, const int& scancode, const int& action, const int& mods) {
@@ -163,8 +164,7 @@ int Run() {
 	if(engine->ended||!playerTex->initialized||!flashlightTex->initialized||
 		!backgroundTex->initialized||!minimapTex->initialized||
 		!instanceUnlitTex->initialized||!instanceWorkingTex->initialized||
-		!instanceBrokenTex->initialized
-		) {
+		!instanceBrokenTex->initialized) {
 		Log("Textures failed to init.");
 		engine->Delete();
 		return 0;
@@ -185,20 +185,18 @@ int Run() {
 	instanceStateShader=createBatchedShader(engine, { instanceWorkingTex, instanceBrokenTex });
 
 	lineShader=createColorShader(engine, Vector4(0.0f, 0.0f, 1.0f, 1.0f));
-	textShader=createTextShader(engine);
 	if(engine->ended||
 		!playerShader->initialized||!flashlightShader->initialized||
 		!playerIconShader->initialized||!backgroundShader->initialized||
 		!minimapShader->initialized||!instanceShader->initialized||
-		!instanceStateShader->initialized||!lineShader->initialized||
-		!textShader->initialized
+		!instanceStateShader->initialized||!lineShader->initialized
 		) {
 		Log("Shaders failed to init.");
 		engine->Delete();
 		return 0;
 	}
 	cam->bindShaders({ playerShader, flashlightShader, enemyShader, backgroundShader, instanceShader, instanceStateShader, lineShader });
-	uiCam->bindShaders({ playerIconShader, enemyIconShader, minimapShader, textShader });
+	uiCam->bindShaders({ playerIconShader, enemyIconShader, minimapShader });
 	cam->use();
 	uiCam->use();
 #pragma endregion// Setup
@@ -230,8 +228,12 @@ int Run() {
 		new BoxCollider(engine, GridToWorld(Vector2(line.x, (line.z+line.y)/2.0f)), Vector2(spacing*3.0f, ((line.z-line.y)*(1.0f+spacing)+spacing*3.0f))*mapScale, MAPMASK, lineShader);
 	}
 	// setup text renderers
-	debugText.push_back(new TextRenderer(engine, textShader, "Pos:\nFps Avg:\nTime:", Vector3(0.75f, 0.75f, 0.75f), Vector2(1.0f, 1.0f), 2.0f, 0.0f, Vector2::BottomLeft));
-	if(engine->ended||!characterMapInitialized) {
+	textRenderer=new BatchedTextRenderer(engine, uiCam);
+	fpsText=textRenderer->addText("Fps Avg:,high:,low:", Vector4(0.75f, 0.25f, 0.25f, 1.0f), viewRange+Vector2(-232.0f, -1.0f), 15.0f, 2.0f, Vector2::TopLeft);
+#ifdef _DEBUG
+	debugText=textRenderer->addText("Pos:\nTime:", Vector4(0.75f, 0.75f, 0.75f, 1.0f), Vector2(1.0f, 1.0f), 15.0f, 2.0f, Vector2::BottomLeft);
+#endif// _DEBUG
+	if(engine->ended||!TextRenderer::characterMapInitialized) {
 		Log("Fonts failed to init.");
 		engine->Delete();
 		return 0;
@@ -244,20 +246,16 @@ int Run() {
 	delete engine;
 	sceneRenderers.clear();
 	uiRenderers.clear();
-	debugText.clear();
 	colliders.clear();
 	return 1;
 }
 void Loop(const double& delta) {
-	Vector2 playerPos=player->position;
-	// set debug text
+	fpsText->text="Fps Avg: "+std::to_string(tracker->getAvgFps())+", high: "+std::to_string(tracker->getHighFps())+", low: "+std::to_string(tracker->getLowFps());
 #ifdef _DEBUG
-	debugText[0]->text="Pos: "+playerPos.to_string()+"\n";
-	debugText[0]->text+="Fps Avg: "+std::to_string(tracker->getAvgFps())+", high: "+std::to_string(tracker->getHighFps())+", low: "+std::to_string(tracker->getLowFps())+"\n";
-	debugText[0]->text+="Time: "+std::to_string(glfwGetTime());
-#else// _DEBUG
-	debugText[0]->text=std::to_string(tracker->getAvgFps());
+	// set debug text
+	debugText->text="Pos: "+player->position.to_string()+"\nTime: "+std::to_string(glfwGetTime());
 #endif// _DEBUG
+
 	// draw scene
 	for(Renderer2D* ren:sceneRenderers) if(ren->shouldDraw(cam)) ren->draw();
 	instanceRenderer->draw();
@@ -272,7 +270,7 @@ void Loop(const double& delta) {
 	// draw ui
 	glClear(GL_DEPTH_BUFFER_BIT);
 	for(Renderer* ren:uiRenderers) ren->draw();
-	for(TextRenderer* ren:debugText) ren->draw();
+	textRenderer->draw();
 }
 
 int main(int argc, char** argv) {

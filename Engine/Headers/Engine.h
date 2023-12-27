@@ -131,19 +131,18 @@ class Shader : public Object {
 	void setMat4x4(const char* name, const Mat4x4& value);
 	void setTexture(const char* name, Texture* tex, const unsigned int& location);
 	void setTextureArray(const std::string& name);
+	void bindTexture(const unsigned int& index);
 	void bindTextures();
 };
 class Texture : public Object {
-	protected:
-	std::string path;
-	void Bind(const unsigned int& location);
-	friend Shader;
 	public:
 	unsigned int ID;
 	int width;
 	int height;
-	Texture() : Object(), ID(0), path(""), width(0), height(0) {}
-	Texture(Engine* _engine, const std::string& _path);
+	Texture() : Object(), ID(0), width(0), height(0) {}
+	Texture(Engine* _engine, const unsigned int& _ID);
+	Texture(Engine* _engine, const std::string& path);
+	void Bind(const unsigned int& location);
 };
 
 class StencilSimple {
@@ -171,6 +170,22 @@ void main() {\n\
 	gl_Position=projection * view * model * vec4(vecPos, 1.0);\n\
 	uv=vecUV;\n\
 }\0"
+#define batchVsShader "#version 450 core\n\
+layout (location = 0) in vec3 vecPos;\n\
+layout (location = 1) in vec2 vecUV;\n\
+layout (location = 2) in vec4 vecMod;\n\
+layout (location = 3) in float vecTexIndex;\n\
+uniform mat4 view;\n\
+uniform mat4 projection;\n\
+out vec2 uv;\n\
+out vec4 mod;\n\
+out float texIndex;\n\
+void main() {\n\
+	gl_Position = projection*view*vec4(vecPos, 1.0);\n\
+	uv = vecUV;\n\
+	mod=vecMod;\n\
+	texIndex=vecTexIndex;\n\
+}\0"
 #define colorFragShader "#version 330 core\n\
 out vec4 FragColor;\n\
 in vec2 uv;\n\
@@ -189,16 +204,6 @@ void main() {\n\
 	if(modulate.r == 0 && modulate.g == 0 && modulate.b == 0 && modulate.a == 0) outColor=vertcolor;\n\
 	else outColor=vertcolor * modulate;\n\
 }\0"
-#define textVsShader "#version 330 core\n\
-layout(location=0) in vec3 vecPos;\n\
-layout(location=1) in vec2 vecUV;\n\
-uniform mat4 view;\n\
-uniform mat4 projection;\n\
-out vec2 uv;\n\
-void main() {\n\
-	gl_Position=projection * view * vec4(vecPos, 1.0);\n\
-	uv=vecUV;\n\
-}\0"
 #define textFragShader "#version 330 core\n\
 in vec2 uv;\n\
 out vec4 outColor;\n\
@@ -209,23 +214,7 @@ void main() {\n\
 	if(sampled.a <= 0.05) discard;\n\
 	outColor=vec4(textColor, 1.0) * sampled;\n\
 }\0"
-#define batchVsShader "#version 450 core\n\
-layout (location = 0) in vec3 vecPos;\n\
-layout (location = 1) in vec2 vecUV;\n\
-layout (location = 2) in vec4 vecMod;\n\
-layout (location = 3) in float vecTexIndex;\n\
-uniform mat4 view;\n\
-uniform mat4 projection;\n\
-out vec2 uv;\n\
-out vec4 mod;\n\
-out float texIndex;\n\
-void main() {\n\
-	gl_Position = projection*view*vec4(vecPos, 1.0);\n\
-	uv = vecUV;\n\
-	mod=vecMod;\n\
-	texIndex=vecTexIndex;\n\
-}\0"
-#define batchFragShader "#version 450 core\n\
+#define texBatchFragShader "#version 450 core\n\
 in vec2 uv;\n\
 in vec4 mod;\n\
 in float texIndex;\n\
@@ -238,6 +227,17 @@ void main() {\n\
 		if (vertColor.a<=0.05f) discard;\n\
 		outColor=vertColor*mod;\n\
 	}\n\
+}\0"
+#define textBatchFragShader "#version 450 core\n\
+in vec2 uv;\n\
+in vec4 mod;\n\
+in float texIndex;\n\
+out vec4 outColor;\n\
+uniform sampler2D _textures[32];\n\
+void main() {\n\
+	vec4 vertColor=vec4(1.0f,1.0f,1.0f,texture(_textures[int(texIndex)],uv).r);\n\
+	if (vertColor.a<=0.05f) discard;\n\
+	outColor=mod;\n\
 }\0"
 #pragma endregion
 #endif// _ENGINE_H

@@ -3,6 +3,9 @@
 #define _BATCH_RENDERERS_H
 
 #include "Engine.h"
+#include "Renderers.h"
+
+#include <array>
 
 const int maxTextures=32;
 struct BatchedVertex {
@@ -20,46 +23,82 @@ struct BatchedVertex {
 
 	float I;
 };
-struct QuadData {
+struct BatchedQuadData {
 	Vector2 position;
 	float zIndex;
 	Vector2 scale;
-	float texIndex;
 	Vector4 modulate;
+	float texIndex;
 };
 class BatchedSpriteRenderer : protected Renderer2D {
 	protected:
-	BatchedVertex* dataBuffer;
-	BatchedVertex* dataBufferPtr;
-	void bufferQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex);
+	BatchedVertex* quadBuffer;
+	BatchedVertex* quadBufferPtr;
+	void bufferQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex);
 	void renderBatch();
 	public:
-	std::vector<QuadData> quads;
-	const int maxQuadCount=10000;
+	using Renderer::shader;
+	using Object::initialized;
+	std::vector<BatchedQuadData*> quads;
+	unsigned int numQuads=0;
+	const unsigned int maxQuadCount=10000;
 	int drawCalls=0;
-	int numQuads=0;
-	BatchedSpriteRenderer() : Renderer2D(), dataBuffer(nullptr), dataBufferPtr(nullptr) {};
+	BatchedSpriteRenderer() : Renderer2D(), quadBuffer(nullptr), quadBufferPtr(nullptr) {};
 	BatchedSpriteRenderer(Engine* _engine, Shader* _shader);
 	virtual ~BatchedSpriteRenderer();
-	void addQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex);
+	BatchedQuadData* addQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex);
 	void draw() override;
 };
 class StaticBatchedSpriteRenderer : protected Renderer2D {
 	protected:
-	BatchedVertex* dataBuffer;
-	BatchedVertex* dataBufferPtr;
-	void bufferQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex);
+	BatchedVertex* quadBuffer;
+	BatchedVertex* quadBufferPtr;
+	void bufferQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex);
 	void renderBatch();
 	public:
-	std::vector<QuadData> quads;
-	int maxQuadCount=10000;
-	int numQuads=0;
-	StaticBatchedSpriteRenderer() : Renderer2D(), dataBuffer(nullptr), dataBufferPtr(nullptr) {};
+	using Renderer::shader;
+	using Object::initialized;
+	std::vector<BatchedQuadData*> quads;
+	unsigned int numQuads=0;
+	const unsigned int maxQuadCount=10000;
+	int drawCalls=0;
+	StaticBatchedSpriteRenderer() : Renderer2D(), quadBuffer(nullptr), quadBufferPtr(nullptr) {};
 	StaticBatchedSpriteRenderer(Engine* _engine, Shader* _shader);
 	virtual ~StaticBatchedSpriteRenderer();
-	void addQuad(const Vector2& position, const float& zIndex, const Vector2& scale, const Vector4& modulate, const float& texIndex);
+	BatchedQuadData* addQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex);
 	void bind();
 	void draw() override;
 };
 
+struct BatchedTextData {
+	std::string text;
+	Vector4 color;
+	Vector2 position;
+	float zIndex;
+	float scale;
+	Vector2 anchor;
+};
+class BatchedTextRenderer : protected Renderer2D {
+	protected:
+	std::array<BatchedVertex*, 3> characterBuffers;
+	std::array<BatchedVertex*, 3> characterBufferPtrs;
+	void bufferCharacter(const int& shaderIndex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& color, const float& texIndex);
+	void renderBatch(const int& shaderIndex);
+	std::array<std::array<Texture*, 32>, 3> textureArrays={ {
+		{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr },
+		{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr },
+		{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr }
+		} };
+	public:
+	using Object::initialized;
+	std::vector<BatchedTextData*> text;
+	std::array<unsigned int, 3> numChars={ 0, 0, 0 };
+	const unsigned int maxCharacterCount=10000;
+	int drawCalls=0;
+	BatchedTextRenderer() : Renderer2D(), characterBuffers({ nullptr, nullptr, nullptr }), characterBufferPtrs({ nullptr, nullptr, nullptr }) {};
+	BatchedTextRenderer(Engine* _engine, Camera* cam);
+	virtual ~BatchedTextRenderer();
+	BatchedTextData* addText(const std::string& _text, const Vector4& _color, const Vector2& _position, const float& _zIndex, const float& _scale, const Vector2& _anchor);
+	void draw() override;
+};
 #endif// _BATCH_RENDERERS_H

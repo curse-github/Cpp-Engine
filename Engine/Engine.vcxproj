@@ -41,15 +41,15 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Data\map.json" />
-    <None Include="Shaders\batchFrag.glsl">
+    <None Include="Shaders\texBatch.frag">
       <FileType>Document</FileType>
     </None>
-    <None Include="Shaders\batchVs.glsl" />
-    <None Include="Shaders\colorFrag.glsl" />
-    <None Include="Shaders\textVs.glsl" />
-    <None Include="Shaders\texFrag.glsl" />
-    <None Include="Shaders\textFrag.glsl" />
-    <None Include="Shaders\vs.glsl" />
+    <None Include="Shaders\batch.vert" />
+    <None Include="Shaders\color.frag" />
+    <None Include="Shaders\tex.frag" />
+    <None Include="Shaders\textBatch.frag" />
+    <None Include="Shaders\text.frag" />
+    <None Include="Shaders\basic.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

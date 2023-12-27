@@ -73,28 +73,28 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\vs.glsl">
+    <None Include="Shaders\basic.vert">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\colorFrag.glsl">
+    <None Include="Shaders\color.frag">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\texFrag.glsl">
+    <None Include="Shaders\tex.frag">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\textFrag.glsl">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\textVs.glsl">
+    <None Include="Shaders\text.frag">
       <Filter>Shaders</Filter>
     </None>
     <None Include="Data\map.json">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Shaders\batchVs.glsl">
+    <None Include="Shaders\batch.vert">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\batchFrag.glsl">
+    <None Include="Shaders\texBatch.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\textBatch.frag">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

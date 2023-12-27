@@ -274,9 +274,8 @@ Shader::Shader(Engine* _engine, const std::string& vertexPath, const std::string
 	FsReadDiskFile(&vertexShaderSourceStr, vertexPath);
 	if(vertexShaderSourceStr.size()==0) {
 		Log("File \""+vertexPath+"\" failed to read.");//error
-		if(vertexPath=="Shaders/vs.glsl") vertexShaderSourceStr=vsShader;
-		else if(vertexPath=="Shaders/textVs.glsl") vertexShaderSourceStr=textVsShader;
-		else if(vertexPath=="Shaders/batchVs.glsl") vertexShaderSourceStr=batchVsShader;
+		if(vertexPath=="Shaders/basic.vert") vertexShaderSourceStr=vsShader;
+		else if(vertexPath=="Shaders/batch.vert") vertexShaderSourceStr=batchVsShader;
 		if(vertexShaderSourceStr.size()==0) {
 			engine->Delete();
 			return;
@@ -306,10 +305,11 @@ Shader::Shader(Engine* _engine, const std::string& vertexPath, const std::string
 	FsReadDiskFile(&fragmentShaderSourceStr, fragmentPath);
 	if(fragmentShaderSourceStr.size()==0) {
 		Log("File \""+fragmentPath+"\" failed to read.");//error
-		if(fragmentPath=="Shaders/colorFrag.glsl") fragmentShaderSourceStr=colorFragShader;
-		else if(fragmentPath=="Shaders/texFrag.glsl") fragmentShaderSourceStr=texFragShader;
-		else if(fragmentPath=="Shaders/textFrag.glsl") fragmentShaderSourceStr=textFragShader;
-		else if(fragmentPath=="Shaders/batchFrag.glsl") fragmentShaderSourceStr=batchFragShader;
+		if(fragmentPath=="Shaders/color.frag") fragmentShaderSourceStr=colorFragShader;
+		else if(fragmentPath=="Shaders/tex.frag") fragmentShaderSourceStr=texFragShader;
+		else if(fragmentPath=="Shaders/text.frag") fragmentShaderSourceStr=textFragShader;
+		else if(fragmentPath=="Shaders/texBatch.frag") fragmentShaderSourceStr=texBatchFragShader;
+		else if(fragmentPath=="Shaders/textBatch.frag") fragmentShaderSourceStr=textBatchFragShader;
 		if(fragmentShaderSourceStr.size()==0) {
 			glDeleteShader(vertexShader);
 			engine->Delete();
@@ -423,10 +423,22 @@ void Shader::setTextureArray(const std::string& name) {
 		setInt((name+"["+std::to_string(i)+"]").c_str(), i);
 	}
 }
+void Shader::bindTexture(const unsigned int& index) {
+	if(engine->ended||!initialized) return;
+	use();
+	if(index>=numTextures) return;
+	// equivilent to '''textures[index]->Bind(textureIndexes[index]);'''
+	glActiveTexture(GL_TEXTURE0+textureIndexes[index]);
+	glBindTexture(GL_TEXTURE_2D, textures[index]->ID);
+}
 void Shader::bindTextures() {
 	if(engine->ended||!initialized) return;
 	use();
-	for(unsigned int i=0; i<numTextures; i++) textures[i]->Bind(textureIndexes[i]);
+	for(unsigned int i=0; i<numTextures; i++) {
+		// equivilent to '''textures[i]->Bind(textureIndexes[i]);'''
+		glActiveTexture(GL_TEXTURE0+textureIndexes[i]);
+		glBindTexture(GL_TEXTURE_2D, textures[i]->ID);
+	}
 }
 #pragma endregion// Shader
 #pragma region Texture
@@ -454,13 +466,12 @@ int load_texture(unsigned int* texture, std::string path, int* width, int* heigh
 	}
 }
 
-void Texture::Bind(const unsigned int& location) {
-	if(engine->ended||!initialized) return;
-	glActiveTexture(GL_TEXTURE0+location);
-	glBindTexture(GL_TEXTURE_2D, ID);
+Texture::Texture(Engine* _engine, const unsigned int& _ID) :
+	Object(_engine), ID(_ID), width(0), height(0) {
+	if(!initialized) return;
 }
-Texture::Texture(Engine* _engine, const std::string& _path) :
-	Object(_engine), ID(0), path(_path), width(0), height(0) {
+Texture::Texture(Engine* _engine, const std::string& path) :
+	Object(_engine), ID(0), width(0), height(0) {
 	if(!initialized) return;
 	if(!load_texture(&ID, path, &width, &height)) {
 		initialized=false;
@@ -468,6 +479,11 @@ Texture::Texture(Engine* _engine, const std::string& _path) :
 		engine->Delete();
 		return;
 	}
+}
+void Texture::Bind(const unsigned int& location) {
+	if(engine->ended||!initialized) return;
+	glActiveTexture(GL_TEXTURE0+location);
+	glBindTexture(GL_TEXTURE_2D, ID);
 }
 #pragma endregion// Texture
 

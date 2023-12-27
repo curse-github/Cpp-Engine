@@ -13,8 +13,8 @@ Vector2 gridToMinimap(const Vector2& grid);
 Vector2 WorldToGrid(const Vector2& world);
 Vector2 GridToWorld(const Vector2& grid);
 
-Shader* createTexShader(Engine* engine, Texture* tex, const Vector4& modulate);
 Shader* createColorShader(Engine* engine, const Vector4& color);
+Shader* createTexShader(Engine* engine, Texture* tex, const Vector4& modulate);
 Shader* createTextShader(Engine* engine);
 Shader* createBatchedShader(Engine* engine, const std::vector<Texture*>& textures);
 

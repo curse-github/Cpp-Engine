@@ -5,6 +5,8 @@
 #include "Engine.h"
 class OrthoCam;
 
+#include <array>
+
 class Renderer : public Object {
 	protected:
 	Shader* shader;
@@ -52,6 +54,12 @@ class SpriteRenderer : public Renderer2D {
 extern bool characterMapInitialized;
 class TextRenderer : public Renderer2D {
 	public:
+	struct Character;
+	static std::array<Character, 128> Characters;
+	static bool characterMapInitialized;
+	static int initCharacterMap(Engine* engine);
+	using Renderer::shader;
+
 	std::string text;
 	Vector3 color;
 	float scale;

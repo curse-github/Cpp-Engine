@@ -8,7 +8,6 @@
 #include "BatchedRenderers.h"
 
 #include <math.h>
-#include <array>
 #define PI 3.14159265
 #define TAU 6.2831853
 
@@ -37,11 +36,14 @@ Shader* instanceShader;
 Shader* instanceStateShader;
 
 Shader* lineShader;
-Shader* textShader;
 
 std::vector<Renderer2D*> sceneRenderers;
 std::vector<Renderer*> uiRenderers;
-std::vector<TextRenderer*> debugText;
+BatchedTextRenderer* textRenderer;
+BatchedTextData* fpsText;
+#ifdef _DEBUG
+BatchedTextData* debugText;
+#endif// _DEBUG
 StaticBatchedSpriteRenderer* instanceRenderer;
 StaticBatchedSpriteRenderer* instanceStateRenderer;
 

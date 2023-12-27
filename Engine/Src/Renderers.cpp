@@ -1,11 +1,10 @@
 #include "Renderers.h"
 
 #include <freetype/freetype.h>
-#include <map>
 
 #pragma region Renderer
 Renderer::Renderer(Engine* _engine, Shader* _shader) : Object(_engine), shader(_shader), VAO(0), VBO(0), EBO(0) {
-	if(!initialized||!shader->initialized) initialized=false;
+	if(!initialized||(shader==nullptr)||!shader->initialized) initialized=false;
 }
 Renderer::~Renderer() {
 	if(!initialized) return;
@@ -72,7 +71,7 @@ CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, const Vector3& _pos
 void CubeRenderer::draw() {
 	if(engine->ended||!initialized) return;
 	Mat4x4 model=axisRotMat(rotAxis, deg_to_rad(rotAngle))*translate(position);
-	shader->bindTextures();
+	shader->bindTexture(0);
 	shader->setMat4x4("model", model);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
@@ -141,7 +140,7 @@ SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, const Vector2& 
 SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, const Vector2& _position) : SpriteRenderer(_engine, _shader, _position, 0.0f, Vector2::ONE, Vector2::Center, 0.0f) {}
 void SpriteRenderer::draw() {
 	if(engine->ended||!initialized) return;
-	shader->bindTextures();
+	shader->bindTexture(0);
 	shader->setMat4x4("model", getModelMat());
 	glBindVertexArray(VAO);
 	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -149,28 +148,28 @@ void SpriteRenderer::draw() {
 }
 #pragma endregion// SpriteRenderer
 #pragma region TextRenderer
-struct Character {
-	unsigned int TextureID=0;// ID handle of the glyph texture
-	Vector2   Size;		     // Size of glyph
-	Vector2   Bearing;       // Offset from baseline to left/top of glyph
-	int Advance=0;  // Offset to advance to next glyph
+struct TextRenderer::Character {
+	Texture* tex=new Texture();// ID handle of the glyph texture
+	Vector2   Size;		       // Size of glyph
+	Vector2   Bearing;         // Offset from baseline to left/top of glyph
+	float Advance=0.0f;        // Offset to advance to next glyph
 };
-std::map<char, Character> Characters;
-bool characterMapInitialized=false;
-int initCharacterMap() {
+std::array<TextRenderer::Character, 128> TextRenderer::Characters;
+bool TextRenderer::characterMapInitialized=false;
+int TextRenderer::initCharacterMap(Engine* engine) {
 	FT_Library ft;
 	if(FT_Init_FreeType(&ft)) return 0;
 	FT_Face face;
 	if(FT_New_Face(ft, "Fonts/MonocraftBetterBrackets.ttf", 0, &face)) return 0;
 	FT_Set_Pixel_Sizes(face, 0, 8);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // disable byte-alignment restriction
-	for(unsigned char c=0; c<128; c++) {
+	for(unsigned char c=0; c<128; c++) {// characters 0 through 127
 		// load character glyph
 		if(FT_Load_Char(face, c, FT_LOAD_RENDER)) return 0;
 		// generate texture
-		unsigned int texture;
-		glGenTextures(1, &texture);
-		glBindTexture(GL_TEXTURE_2D, texture);
+		unsigned int texID;
+		glGenTextures(1, &texID);
+		glBindTexture(GL_TEXTURE_2D, texID);
 		glTexImage2D(
 			GL_TEXTURE_2D,
 			0, GL_RED,
@@ -188,13 +187,13 @@ int initCharacterMap() {
 		// now store character for later use
 		Vector2 Size((float)face->glyph->bitmap.width, (float)face->glyph->bitmap.rows);
 		Vector2 Bearing((float)face->glyph->bitmap_left, (float)face->glyph->bitmap_top);
-		Character character={
-			texture,
+
+		Characters[(int)c]=Character {
+			new Texture(engine, texID),
 			Size,
 			Bearing,
-			((int)face->glyph->advance.x)>>6// bitshift by 6 to get value in pixels (2^6 = 64)
+			(float)(((int)face->glyph->advance.x)>>6)// bitshift by 6 to get value in pixels (2^6 = 64)
 		};
-		Characters.insert(std::pair<char, Character>(c, character));
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 	FT_Done_Face(face);
@@ -206,7 +205,7 @@ TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, const std::string& 
 	Renderer2D(_engine, _shader, _position, _zIndex, Vector2::ONE, _anchor, 0.0f), text(_text), color(_color), scale(_scale) {
 	if(!initialized) return;
 	if(!characterMapInitialized) {
-		if(!initCharacterMap()) {
+		if(!initCharacterMap(engine)) {
 			initialized=false;
 			Log("Error initializing font \"Fonts/MonocraftBetterBrackets.ttf\"");//error
 			engine->Delete();
@@ -240,44 +239,47 @@ void TextRenderer::draw() {
 	shader->setFloat3("textColor", color);
 	glActiveTexture(GL_TEXTURE0);
 	glBindVertexArray(VAO);
-	// iterate through all characters to find final scale
-	int x=0;
-	int maxX=0;
-	int y=0;
-	std::string::const_iterator c2;
-	for(c2=text.begin(); c2!=text.end(); c2++) {
-		if(*c2=='\n') {
+	// iterate through all characters to find full text block
+	float x=0.0f;
+	float maxX=0.0f;
+	float y=0.0f;
+	for(std::string::const_iterator c=text.begin(); c!=text.end(); c++) {
+		if(*c=='\n') {
 			if(x>maxX)maxX=x;
-			x=0;
-			y-=9;
+			x=0.0f;
+			y-=9.0f;
 			continue;
 		}
-		Character ch=Characters[*c2];
-		if(*c2==' ') { x+=1+ch.Advance; continue; }// skip one space and continue
-		else if(*c2=='\t') { x+=1+ch.Advance*4; continue; }//4 character spaces
+		Character ch=Characters[*c];
+		if(*c==' ') { x+=1.0f+ch.Advance; continue; }// skip one space and continue
+		else if(*c=='\t') { x+=1.0f+ch.Advance*4.0f; continue; }//4 character spaces
 		x+=ch.Advance; // bitshift by 6 to get value in pixels (2^6 = 64)
 	}
 	if(x>maxX)maxX=x;
-	Transform2D::scale=Vector2((float)maxX, (float)y)*scale;
-	Mat4x4 casheMat=translate(Vector3(-anchor, 0.0f))*scaleMat(Vector3(scale, scale, 1.0f));
+	Transform2D::scale=Vector2(maxX, y)*scale;
+	//Mat4x4 casheMat=translate(Vector3(-anchor, 0.0f))*scaleMat(Vector3(scale, scale, 1.0f));
 	Vector2 offset=position+Vector2((Transform2D::scale.x*(-anchor.x-0.5f)), (Transform2D::scale.y*(anchor.y-0.5f)));
 	// iterate through all characters and render each
-	x=0;
-	y=0;
+	x=0.0f;
+	y=0.0f;
 	std::string::const_iterator c;
+	//Log(1);
 	for(c=text.begin(); c!=text.end(); c++) {
-		if(*c=='\n') { x=0;y-=9; continue; } else if(*c=='\r') { x=0; continue; }
+		if(*c=='\n') { x=0.0f;y-=9.0f; continue; } else if(*c=='\r') { x=0.0f; continue; }
 		Character ch=Characters[*c];
-		if(*c==' ') { x+=1+ch.Advance; continue; }// skip one space and continue
-		else if(*c=='\t') { x+=1+ch.Advance*4; continue; }//4 character spaces
-		Mat4x4 model=casheMat*scaleMat(Vector3(ch.Size, 1.0f))*translate(Vector3(offset+Vector2(((float)x)+ch.Bearing.x, ((float)y)-(ch.Size.y-ch.Bearing.y))*scale, zIndex-100.0f));
-		shader->setMat4x4("model", model);
-		glBindTexture(GL_TEXTURE_2D, ch.TextureID);
+		if(*c==' ') { x+=1.0f+ch.Advance; continue; }// skip one space and continue
+		else if(*c=='\t') { x+=1.0f+ch.Advance*4.0f; continue; }//4 character spaces
+		//Mat4x4 model=casheMat*scaleMat(Vector3(ch.Size, 1.0f))*translate(Vector3(offset+Vector2(((float)x)+ch.Bearing.x, ((float)y)-(ch.Size.y-ch.Bearing.y))*scale, zIndex-100.0f));
+		//shader->setMat4x4("model", model);
+		//shader->setMat4x4("model", translate(Vector3(-anchor, 0.0f))*scaleMat(Vector3(scale, scale, 1.0f))*scaleMat(Vector3(ch.Size, 1.0f))*translate(Vector3(offset+Vector2(((float)x)+ch.Bearing.x, ((float)y)-(ch.Size.y-ch.Bearing.y))*scale, zIndex-100.0f)));
+		//Log(ch.Size*scale);
+		shader->setMat4x4("model", scaleMat(Vector3(ch.Size*scale, 1.0f))*translate(Vector3(offset+(Vector2(x, y)+ch.Bearing-Vector2(anchor.x*ch.Size.x, (anchor.y+1)*ch.Size.y))*scale, zIndex-100.0f)));
+		ch.tex->Bind(0);
 		// render quad
 		//glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		// now advance cursors for next glyph
-		x+=1+ch.Advance;
+		x+=1.0f+ch.Advance;
 	}
 	glBindVertexArray(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -320,7 +322,7 @@ LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, const std::vector<V
 LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, const std::vector<Vector2>& _positions, const float& _width) : LineRenderer(_engine, _shader, _positions, _width, Vector2::ZERO, false) {}
 void LineRenderer::draw() {
 	if(engine->ended||!initialized) return;
-	shader->bindTextures();
+	shader->bindTexture(0);
 	shader->setMat4x4("model", createModelMat(position, zIndex, Vector2::ONE, Vector2::Center, 0.0f));
 	glBindVertexArray(VAO);
 	glLineWidth(width);
