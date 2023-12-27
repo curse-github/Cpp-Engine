@@ -2,7 +2,7 @@
 
 #pragma region BatchedSpriteRenderer
 void BatchedSpriteRenderer::bufferQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	if(numQuads>=maxQuadCount) renderBatch();// if out of room render and reset
 	for(unsigned int i=0; i<((unsigned int)4*5); i+=5) {
 		*quadBufferPtr=BatchedVertex {
@@ -17,7 +17,7 @@ void BatchedSpriteRenderer::bufferQuad(const Vector2& _position, const float& _z
 	numQuads++;
 }
 void BatchedSpriteRenderer::renderBatch() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	if(numQuads==0) return;
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, 4*sizeof(BatchedVertex)*numQuads, quadBuffer);
@@ -28,8 +28,8 @@ void BatchedSpriteRenderer::renderBatch() {
 	quadBufferPtr=quadBuffer;
 	numQuads=0;
 }
-BatchedSpriteRenderer::BatchedSpriteRenderer(Engine* _engine, Shader* _shader) :
-	Renderer2D(_engine, _shader, Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f), quadBuffer(nullptr), quadBufferPtr(nullptr) {
+BatchedSpriteRenderer::BatchedSpriteRenderer(Shader* _shader) :
+	Renderer2D(_shader, Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f), quadBuffer(nullptr), quadBufferPtr(nullptr) {
 	if(!initialized) return;
 
 	quadBuffer=new BatchedVertex[maxQuadCount*4];
@@ -71,13 +71,13 @@ BatchedSpriteRenderer::~BatchedSpriteRenderer() {
 	delete[] quadBuffer;
 }
 BatchedQuadData* BatchedSpriteRenderer::addQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex) {
-	if(engine->ended||!initialized) return nullptr;
+	if(Engine::instance->ended||!initialized) return nullptr;
 	BatchedQuadData* ptr=new BatchedQuadData { _position, _zIndex, _scale, modulate, texIndex };
 	quads.push_back(ptr);
 	return ptr;
 }
 void BatchedSpriteRenderer::draw() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	drawCalls=0;
 	//equivilent to shader->bindTextures();
 	shader->use();
@@ -92,7 +92,7 @@ void BatchedSpriteRenderer::draw() {
 #pragma endregion// BatchedSpriteRenderer
 #pragma region StaticBatchedSpriteRenderer
 void StaticBatchedSpriteRenderer::bufferQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	if(numQuads>=maxQuadCount) return;//dont try to add more than the max, this should not occur though
 	for(unsigned int i=0; i<((unsigned int)4*5); i+=5) {
 		*quadBufferPtr=BatchedVertex {
@@ -107,15 +107,15 @@ void StaticBatchedSpriteRenderer::bufferQuad(const Vector2& _position, const flo
 	numQuads++;
 }
 void StaticBatchedSpriteRenderer::renderBatch() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	if(numQuads==0) return;
 	drawCalls++;
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, numQuads*6, GL_UNSIGNED_INT, nullptr);
 	//glDrawArrays(GL_TRIANGLE_STRIP, 0, numQuads*4);
 }
-StaticBatchedSpriteRenderer::StaticBatchedSpriteRenderer(Engine* _engine, Shader* _shader) :
-	Renderer2D(_engine, _shader, Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f), quadBuffer(nullptr), quadBufferPtr(nullptr) {
+StaticBatchedSpriteRenderer::StaticBatchedSpriteRenderer(Shader* _shader) :
+	Renderer2D(_shader, Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f), quadBuffer(nullptr), quadBufferPtr(nullptr) {
 	if(!initialized) return;
 	quadBuffer=new BatchedVertex[maxQuadCount*4];
 	quadBufferPtr=quadBuffer;
@@ -156,13 +156,13 @@ StaticBatchedSpriteRenderer::~StaticBatchedSpriteRenderer() {
 	for(BatchedQuadData* data:quads) delete data;
 }
 BatchedQuadData* StaticBatchedSpriteRenderer::addQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex) {
-	if(engine->ended||!initialized) return nullptr;
+	if(Engine::instance->ended||!initialized) return nullptr;
 	BatchedQuadData* ptr=new BatchedQuadData { _position, _zIndex, _scale, modulate, texIndex };
 	quads.push_back(ptr);
 	return ptr;
 }
 void StaticBatchedSpriteRenderer::bind() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	quadBufferPtr=quadBuffer;
 	numQuads=0;
 	for(BatchedQuadData* quad:quads) bufferQuad(quad->position, quad->zIndex, quad->scale, quad->modulate, quad->texIndex);
@@ -170,7 +170,7 @@ void StaticBatchedSpriteRenderer::bind() {
 	glBufferSubData(GL_ARRAY_BUFFER, 0, maxQuadCount*4*sizeof(BatchedVertex), quadBuffer);
 }
 void StaticBatchedSpriteRenderer::draw() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	drawCalls+=0;
 	//equivilent to shader->bindTextures();
 	shader->use();
@@ -191,7 +191,7 @@ struct TextRenderer::Character {
 	float Advance=0.0f;        // Offset to advance to next glyph
 };
 void BatchedTextRenderer::bufferCharacter(const int& shaderIndex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& _color, const float& texIndex) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	if(numChars[shaderIndex]>=maxCharacterCount) renderBatch(shaderIndex);// if out of room render and reset
 	for(unsigned int i=0; i<((unsigned int)4*5); i+=5) {
 		*characterBufferPtrs[shaderIndex]=BatchedVertex {
@@ -206,7 +206,7 @@ void BatchedTextRenderer::bufferCharacter(const int& shaderIndex, const Vector2&
 	numChars[shaderIndex]++;
 }
 void BatchedTextRenderer::renderBatch(const int& shaderIndex) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	if(numChars[shaderIndex]==0) return;
 	shader->use();
 	for(int i=0; i<32; i++) {
@@ -222,25 +222,17 @@ void BatchedTextRenderer::renderBatch(const int& shaderIndex) {
 	characterBufferPtrs[shaderIndex]=characterBuffers[shaderIndex];
 	numChars[shaderIndex]=0;
 }
-BatchedTextRenderer::BatchedTextRenderer(Engine* _engine, Camera* cam) :
-	Renderer2D(_engine, nullptr, Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f),
+BatchedTextRenderer::BatchedTextRenderer(Camera* cam) :
+	Renderer2D(new Shader("Shaders/batch.vert", "Shaders/textBatch.frag"), Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f),
 	characterBuffers({ nullptr, nullptr, nullptr }), characterBufferPtrs({ nullptr, nullptr, nullptr }) {
-
-	initialized=true;
+	if(!initialized) return;
 	if(!TextRenderer::characterMapInitialized) {
-		if(!TextRenderer::initCharacterMap(engine)) {
+		if(!TextRenderer::initCharacterMap()) {
 			initialized=false;
 			Log("Error initializing font \"Fonts/MonocraftBetterBrackets.ttf\"");//error
-			engine->Delete();
+			Engine::instance->Delete();
 			return;
 		}
-	}
-	shader=new Shader(engine, "Shaders/batch.vert", "Shaders/textBatch.frag");
-	if(!shader->initialized) {
-		initialized=false;
-		Log("Error initializing BatchedTextRenderer shader");//error
-		engine->Delete();
-		return;
 	}
 	shader->setTextureArray("_textures");
 	cam->bindShader(shader);
@@ -294,13 +286,13 @@ BatchedTextRenderer::~BatchedTextRenderer() {
 	for(BatchedTextData* _text:text) delete _text;
 }
 BatchedTextData* BatchedTextRenderer::addText(const std::string& _text, const Vector4& _color, const Vector2& _position, const float& _zIndex, const float& _scale, const Vector2& _anchor) {
-	if(engine->ended||!initialized) return nullptr;
+	if(Engine::instance->ended||!initialized) return nullptr;
 	BatchedTextData* ptr=new BatchedTextData { _text, _color, _position, _zIndex, _scale, _anchor };
 	text.push_back(ptr);
 	return ptr;
 }
 void BatchedTextRenderer::draw() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	drawCalls=0;
 
 	for(BatchedTextData* _text:text) {

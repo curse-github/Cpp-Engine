@@ -3,7 +3,7 @@
 #include <freetype/freetype.h>
 
 #pragma region Renderer
-Renderer::Renderer(Engine* _engine, Shader* _shader) : Object(_engine), shader(_shader), VAO(0), VBO(0), EBO(0) {
+Renderer::Renderer(Shader* _shader) : Object(), shader(_shader), VAO(0), VBO(0), EBO(0) {
 	if(!initialized||(shader==nullptr)||!shader->initialized) initialized=false;
 }
 Renderer::~Renderer() {
@@ -13,7 +13,7 @@ Renderer::~Renderer() {
 	glDeleteBuffers(1, &EBO);
 }
 void Renderer::setShader(Shader* _shader) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	shader=_shader;
 }
 #pragma endregion// Renderer
@@ -48,8 +48,8 @@ const int CubeRenderer::cubeindices[36]={
 	8, 13, 16, 16, 17, 8,
 	18, 19, 14, 14, 11, 18
 };
-CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, const Vector3& _position, const Vector3& _scale, const Vector3& _rotAxis, const float& _rotAngle) :
-	Renderer(_engine, _shader), Transform(_position, _scale, _rotAxis, _rotAngle) {
+CubeRenderer::CubeRenderer(Shader* _shader, const Vector3& _position, const Vector3& _scale, const Vector3& _rotAxis, const float& _rotAngle) :
+	Renderer(_shader), Transform(_position, _scale, _rotAxis, _rotAngle) {
 	if(!initialized) return;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -67,9 +67,9 @@ CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, const Vector3& _pos
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));// get vertex uv data
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
 }
-CubeRenderer::CubeRenderer(Engine* _engine, Shader* _shader, const Vector3& _position, const Vector3& _scale) {}
+CubeRenderer::CubeRenderer(Shader* _shader, const Vector3& _position, const Vector3& _scale) : CubeRenderer(_shader, _position, _scale, Vector3::UP, 0.0f) {}
 void CubeRenderer::draw() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	Mat4x4 model=axisRotMat(rotAxis, deg_to_rad(rotAngle))*translate(position);
 	shader->bindTexture(0);
 	shader->setMat4x4("model", model);
@@ -89,12 +89,12 @@ bool Renderer2D::AABBOverlap(const Vector2& aPos, const Vector2& aSize, const Ve
 	// collision only if on both axes
 	return collisionX1>0&&collisionX2>0&&collisionY1>0&&collisionY2>0;
 }
-Renderer2D::Renderer2D(Engine* _engine, Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle) :
-	Renderer(_engine, _shader), Transform2D(_position, _zIndex, _scale, _anchor, _rotAngle) {
+Renderer2D::Renderer2D(Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle) :
+	Renderer(_shader), Transform2D(_position, _zIndex, _scale, _anchor, _rotAngle) {
 	if(!initialized) return;
 };
 bool Renderer2D::shouldDraw(const Vector2& viewer, const Vector2& viewRange) {
-	if(engine->ended||!initialized) return false;
+	if(Engine::instance->ended||!initialized) return false;
 	return AABBOverlap(position-Vector2(anchor.x*scale.x, anchor.y*scale.y), scale, viewer, viewRange);
 }
 bool Renderer2D::shouldDraw(const Vector2& viewer, const float& viewRange) {
@@ -114,8 +114,8 @@ const float SpriteRenderer::quadvertices[20] {
 const int SpriteRenderer::quadindices[6] {
 	1, 3, 2, 2, 0, 1
 };
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor, const float& _rotAngle) :
-	Renderer2D(_engine, _shader, _position, _zIndex, _scale, _anchor, _rotAngle) {
+SpriteRenderer::SpriteRenderer(Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor, const float& _rotAngle) :
+	Renderer2D(_shader, _position, _zIndex, _scale, _anchor, _rotAngle) {
 	if(!initialized) return;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -134,12 +134,12 @@ SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, const Vector2& 
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) : SpriteRenderer(_engine, _shader, _position, _zIndex, _scale, _anchor, 0.0f) {}
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale) : SpriteRenderer(_engine, _shader, _position, _zIndex, _scale, Vector2::Center, 0.0f) {}
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, const Vector2& _position, const float& _zIndex) : SpriteRenderer(_engine, _shader, _position, _zIndex, Vector2::ONE, Vector2::Center, 0.0f) {}
-SpriteRenderer::SpriteRenderer(Engine* _engine, Shader* _shader, const Vector2& _position) : SpriteRenderer(_engine, _shader, _position, 0.0f, Vector2::ONE, Vector2::Center, 0.0f) {}
+SpriteRenderer::SpriteRenderer(Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) : SpriteRenderer(_shader, _position, _zIndex, _scale, _anchor, 0.0f) {}
+SpriteRenderer::SpriteRenderer(Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale) : SpriteRenderer(_shader, _position, _zIndex, _scale, Vector2::Center, 0.0f) {}
+SpriteRenderer::SpriteRenderer(Shader* _shader, const Vector2& _position, const float& _zIndex) : SpriteRenderer(_shader, _position, _zIndex, Vector2::ONE, Vector2::Center, 0.0f) {}
+SpriteRenderer::SpriteRenderer(Shader* _shader, const Vector2& _position) : SpriteRenderer(_shader, _position, 0.0f, Vector2::ONE, Vector2::Center, 0.0f) {}
 void SpriteRenderer::draw() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	shader->bindTexture(0);
 	shader->setMat4x4("model", getModelMat());
 	glBindVertexArray(VAO);
@@ -156,7 +156,7 @@ struct TextRenderer::Character {
 };
 std::array<TextRenderer::Character, 128> TextRenderer::Characters;
 bool TextRenderer::characterMapInitialized=false;
-int TextRenderer::initCharacterMap(Engine* engine) {
+int TextRenderer::initCharacterMap() {
 	FT_Library ft;
 	if(FT_Init_FreeType(&ft)) return 0;
 	FT_Face face;
@@ -189,7 +189,7 @@ int TextRenderer::initCharacterMap(Engine* engine) {
 		Vector2 Bearing((float)face->glyph->bitmap_left, (float)face->glyph->bitmap_top);
 
 		Characters[(int)c]=Character {
-			new Texture(engine, texID),
+			new Texture(texID),
 			Size,
 			Bearing,
 			(float)(((int)face->glyph->advance.x)>>6)// bitshift by 6 to get value in pixels (2^6 = 64)
@@ -201,14 +201,14 @@ int TextRenderer::initCharacterMap(Engine* engine) {
 	characterMapInitialized=true;
 	return 1;
 }
-TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, const std::string& _text, const Vector3& _color, const Vector2& _position, const float& _scale, const float& _zIndex, const Vector2& _anchor) :
-	Renderer2D(_engine, _shader, _position, _zIndex, Vector2::ONE, _anchor, 0.0f), text(_text), color(_color), scale(_scale) {
+TextRenderer::TextRenderer(Shader* _shader, const std::string& _text, const Vector3& _color, const Vector2& _position, const float& _scale, const float& _zIndex, const Vector2& _anchor) :
+	Renderer2D(_shader, _position, _zIndex, Vector2::ONE, _anchor, 0.0f), text(_text), color(_color), scale(_scale) {
 	if(!initialized) return;
 	if(!characterMapInitialized) {
-		if(!initCharacterMap(engine)) {
+		if(!initCharacterMap()) {
 			initialized=false;
 			Log("Error initializing font \"Fonts/MonocraftBetterBrackets.ttf\"");//error
-			engine->Delete();
+			Engine::instance->Delete();
 			return;
 		}
 	}
@@ -232,10 +232,10 @@ TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, const std::string& 
 
 	shader->setFloat("text", 0);
 }
-TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, const std::string& _text, const Vector3& _color, const Vector2& _position, const float& _scale, const float& _zIndex) : TextRenderer(_engine, _shader, _text, _color, _position, _scale, _zIndex, Vector2::Center) {}
-TextRenderer::TextRenderer(Engine* _engine, Shader* _shader, const std::string& _text, const Vector3& _color, const Vector2& _position, const float& _scale) : TextRenderer(_engine, _shader, _text, _color, _position, _scale, 0.0f, Vector2::Center) {}
+TextRenderer::TextRenderer(Shader* _shader, const std::string& _text, const Vector3& _color, const Vector2& _position, const float& _scale, const float& _zIndex) : TextRenderer(_shader, _text, _color, _position, _scale, _zIndex, Vector2::Center) {}
+TextRenderer::TextRenderer(Shader* _shader, const std::string& _text, const Vector3& _color, const Vector2& _position, const float& _scale) : TextRenderer(_shader, _text, _color, _position, _scale, 0.0f, Vector2::Center) {}
 void TextRenderer::draw() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	shader->setFloat3("textColor", color);
 	glActiveTexture(GL_TEXTURE0);
 	glBindVertexArray(VAO);
@@ -286,8 +286,8 @@ void TextRenderer::draw() {
 }
 #pragma endregion// TextRenderer
 #pragma region LineRenderer
-LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const Vector2& _position, const bool& _loop) :
-	Renderer2D(_engine, _shader, _position, 100.0f, Vector2::ONE, Vector2::Center, 0.0f), positions(_positions), width(_width), loop(_loop) {
+LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const Vector2& _position, const bool& _loop) :
+	Renderer2D(_shader, _position, 100.0f, Vector2::ONE, Vector2::Center, 0.0f), positions(_positions), width(_width), loop(_loop) {
 	if(!initialized) return;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -317,11 +317,11 @@ LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, const std::vector<V
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
-LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const Vector2& _position) : LineRenderer(_engine, _shader, _positions, _width, _position, false) {}
-LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const bool& _loop) : LineRenderer(_engine, _shader, _positions, _width, Vector2::ZERO, _loop) {}
-LineRenderer::LineRenderer(Engine* _engine, Shader* _shader, const std::vector<Vector2>& _positions, const float& _width) : LineRenderer(_engine, _shader, _positions, _width, Vector2::ZERO, false) {}
+LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const Vector2& _position) : LineRenderer(_shader, _positions, _width, _position, false) {}
+LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const bool& _loop) : LineRenderer(_shader, _positions, _width, Vector2::ZERO, _loop) {}
+LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width) : LineRenderer(_shader, _positions, _width, Vector2::ZERO, false) {}
 void LineRenderer::draw() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	shader->bindTexture(0);
 	shader->setMat4x4("model", createModelMat(position, zIndex, Vector2::ONE, Vector2::Center, 0.0f));
 	glBindVertexArray(VAO);

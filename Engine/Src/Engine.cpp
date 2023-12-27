@@ -12,26 +12,26 @@ void engine_on_error(int error, const char* description) {
 }
 
 #pragma region callbacks
-void Engine::on_resize(GLFWwindow* window, int width, int height) {
+void Engine::on_resize(int width, int height) {
 	if(ended||!initialized) return;
 	glViewport(0, 0, width, height); screenSize=Vector2((float)width, (float)height);
 	for(Object* obj:onResize) {
-		obj->on_resize(window, width, height);
+		obj->on_resize(width, height);
 	}
 }
-void Engine::on_key(GLFWwindow* window, int key, int scancode, int action, int mods) {
+void Engine::on_key(int key, int scancode, int action, int mods) {
 	if(ended||!initialized) return;
 	for(Object* obj:onKey) {
-		obj->on_key(window, key, scancode, action, mods);
+		obj->on_key(key, scancode, action, mods);
 	}
 }
-void Engine::on_scroll(GLFWwindow* window, double xoffset, double yoffset) {
+void Engine::on_scroll(double xoffset, double yoffset) {
 	if(ended||!initialized) return;
 	for(Object* obj:onScroll) {
-		obj->on_scroll(window, xoffset, yoffset);
+		obj->on_scroll(xoffset, yoffset);
 	}
 }
-void Engine::on_mouse(GLFWwindow* window, double mouseX, double mouseY) {
+void Engine::on_mouse(double mouseX, double mouseY) {
 	if(ended||!initialized) return;
 	if(lastMouse.x==-1||lastMouse.y==-1) {
 		lastMouse.x=(float)mouseX; lastMouse.y=(float)mouseY; return;
@@ -40,31 +40,32 @@ void Engine::on_mouse(GLFWwindow* window, double mouseX, double mouseY) {
 	float deltaY=lastMouse.y-((float)mouseY);
 	lastMouse=Vector2((float)mouseX, (float)mouseY);
 	for(Object* obj:onMouse) {
-		obj->on_mouse(window, mouseX, mouseY);
+		obj->on_mouse(mouseX, mouseY);
 	}
-	if((deltaX!=0)||(deltaY!=0)) on_mouse_delta(window, deltaX, deltaY);
+	if((deltaX!=0)||(deltaY!=0)) on_mouse_delta(deltaX, deltaY);
 }
-void Engine::on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY) {
+void Engine::on_mouse_delta(float deltaX, float deltaY) {
 	if(ended||!initialized) return;
 	for(Object* obj:onMouseDelta) {
-		obj->on_mouse_delta(window, deltaX, deltaY);
+		obj->on_mouse_delta(deltaX, deltaY);
 	}
 }
-void Engine::on_mouse_button(GLFWwindow* window, int button, int action, int mods) {
+void Engine::on_mouse_button(int button, int action, int mods) {
 	if(ended||!initialized) return;
 	for(Object* obj:onMouseButton) {
-		obj->on_mouse_button(window, button, action, mods);
+		obj->on_mouse_button(button, action, mods);
 	}
 }
-void Engine::on_mouse_enter(GLFWwindow* window, int entered) {
+void Engine::on_mouse_enter(int entered) {
 	if(ended||!initialized) return;
 	for(Object* obj:onMouseEnter) {
-		obj->on_mouse_enter(window, entered);
+		obj->on_mouse_enter(entered);
 	}
 }
 #pragma endregion// callbacks
 
 Engine::Engine(const Vector2& size, const char* title, const bool& vsync) : window(nullptr), screenSize(size) {
+	instance=this;
 	if(glfwInit()==GLFW_FALSE) {
 		ended=true;
 		Log("GLFW failed to init.");//error
@@ -90,14 +91,13 @@ Engine::Engine(const Vector2& size, const char* title, const bool& vsync) : wind
 	glViewport(0, 0, (int)size.x, (int)size.y);
 	glfwSwapInterval((int)vsync);// V-Sync: 1=on, 0=off
 
-	glfwSetWindowUserPointer(window, this);
 	glfwSetErrorCallback(engine_on_error);
-	glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {static_cast<Engine*>(glfwGetWindowUserPointer(window))->on_resize(window, width, height); });
-	glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {static_cast<Engine*>(glfwGetWindowUserPointer(window))->on_key(window, key, scancode, action, mods); });
-	glfwSetScrollCallback(window, [](GLFWwindow* window, double xoffset, double yoffset) {static_cast<Engine*>(glfwGetWindowUserPointer(window))->on_scroll(window, xoffset, yoffset); });
-	glfwSetCursorPosCallback(window, [](GLFWwindow* window, double mouseX, double mouseY) {static_cast<Engine*>(glfwGetWindowUserPointer(window))->on_mouse(window, mouseX, mouseY); });
-	glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button, int action, int mods) {static_cast<Engine*>(glfwGetWindowUserPointer(window))->on_mouse_button(window, button, action, mods); });
-	glfwSetCursorEnterCallback(window, [](GLFWwindow* window, int entered) {static_cast<Engine*>(glfwGetWindowUserPointer(window))->on_mouse_enter(window, entered); });
+	glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {Engine::instance->on_resize(width, height); });
+	glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {Engine::instance->on_key(key, scancode, action, mods); });
+	glfwSetScrollCallback(window, [](GLFWwindow* window, double xoffset, double yoffset) {Engine::instance->on_scroll(xoffset, yoffset); });
+	glfwSetCursorPosCallback(window, [](GLFWwindow* window, double mouseX, double mouseY) {Engine::instance->on_mouse(mouseX, mouseY); });
+	glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button, int action, int mods) {Engine::instance->on_mouse_button(button, action, mods); });
+	glfwSetCursorEnterCallback(window, [](GLFWwindow* window, int entered) {Engine::instance->on_mouse_enter(entered); });
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
@@ -184,6 +184,7 @@ void Engine::sub_loop(Object* obj) {
 }
 #pragma endregion// subFuncs
 
+Engine* Engine::instance=nullptr;
 #pragma endregion// Engine
 #pragma region Object
 template <typename T> void vecRemoveValue(std::vector<T>& vec, const T& value) {
@@ -192,30 +193,30 @@ template <typename T> void vecRemoveValue(std::vector<T>& vec, const T& value) {
 	}
 }
 
-void Object::on_resize(GLFWwindow* window, const int& width, const int& height) {}
-void Object::on_key(GLFWwindow* window, const int& key, const int& scancode, const int& action, const int& mods) {}
-void Object::on_scroll(GLFWwindow* window, const double& xoffset, const double& yoffset) {}
-void Object::on_mouse(GLFWwindow* window, const double& mouseX, const double& mouseY) {}
-void Object::on_mouse_delta(GLFWwindow* window, const float& deltaX, const float& deltaY) {}
-void Object::on_mouse_button(GLFWwindow* window, const int& button, const int& action, const int& mods) {}
-void Object::on_mouse_enter(GLFWwindow* window, const int& entered) {}
+void Object::on_resize(const int& width, const int& height) {}
+void Object::on_key(const int& key, const int& scancode, const int& action, const int& mods) {}
+void Object::on_scroll(const double& xoffset, const double& yoffset) {}
+void Object::on_mouse(const double& mouseX, const double& mouseY) {}
+void Object::on_mouse_delta(const float& deltaX, const float& deltaY) {}
+void Object::on_mouse_button(const int& button, const int& action, const int& mods) {}
+void Object::on_mouse_enter(const int& entered) {}
 void Object::on_loop(const double& delta) {}
-Object::Object(Engine* _engine) : engine(_engine) {
-	if(!engine->initialized||engine->ended) { initialized=false; return; }
+Object::Object() {
+	if(Engine::instance==nullptr||!Engine::instance->initialized||Engine::instance->ended) { initialized=false; return; }
 	initialized=true;
-	engine->objects.push_back(this);
+	Engine::instance->objects.push_back(this);
 }
 Object::~Object() {
 	if(!initialized) return;
-	vecRemoveValue(engine->objects, this);
-	vecRemoveValue(engine->onResize, this);
-	vecRemoveValue(engine->onKey, this);
-	vecRemoveValue(engine->onScroll, this);
-	vecRemoveValue(engine->onMouse, this);
-	vecRemoveValue(engine->onMouseDelta, this);
-	vecRemoveValue(engine->onMouseButton, this);
-	vecRemoveValue(engine->onMouseEnter, this);
-	vecRemoveValue(engine->onLoop, this);
+	vecRemoveValue(Engine::instance->objects, this);
+	vecRemoveValue(Engine::instance->onResize, this);
+	vecRemoveValue(Engine::instance->onKey, this);
+	vecRemoveValue(Engine::instance->onScroll, this);
+	vecRemoveValue(Engine::instance->onMouse, this);
+	vecRemoveValue(Engine::instance->onMouseDelta, this);
+	vecRemoveValue(Engine::instance->onMouseButton, this);
+	vecRemoveValue(Engine::instance->onMouseEnter, this);
+	vecRemoveValue(Engine::instance->onLoop, this);
 }
 #pragma endregion// Object
 
@@ -267,7 +268,7 @@ Mat4x4 Transform2D::getModelMat() {
 #pragma endregion// Transforms
 
 #pragma region Shader
-Shader::Shader(Engine* _engine, const std::string& vertexPath, const std::string& fragmentPath) : Object(_engine) {
+Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) : Object() {
 	if(!initialized) return;
 	// read vertex shader from file
 	std::string vertexShaderSourceStr;
@@ -277,7 +278,7 @@ Shader::Shader(Engine* _engine, const std::string& vertexPath, const std::string
 		if(vertexPath=="Shaders/basic.vert") vertexShaderSourceStr=vsShader;
 		else if(vertexPath=="Shaders/batch.vert") vertexShaderSourceStr=batchVsShader;
 		if(vertexShaderSourceStr.size()==0) {
-			engine->Delete();
+			Engine::instance->Delete();
 			return;
 		} else {
 			Log("Using hard coded shader for \""+vertexPath+"\".");
@@ -296,7 +297,7 @@ Shader::Shader(Engine* _engine, const std::string& vertexPath, const std::string
 	if(!vertexSuccess) {// glGetShaderInfoLog(vertexShader, 512, NULL, vertexInfoLog);
 		glDeleteShader(vertexShader);
 		Log("Vertex shader \""+vertexPath+"\" failed to init.");//error
-		engine->Delete();
+		Engine::instance->Delete();
 		return;
 
 	}
@@ -312,7 +313,7 @@ Shader::Shader(Engine* _engine, const std::string& vertexPath, const std::string
 		else if(fragmentPath=="Shaders/textBatch.frag") fragmentShaderSourceStr=textBatchFragShader;
 		if(fragmentShaderSourceStr.size()==0) {
 			glDeleteShader(vertexShader);
-			engine->Delete();
+			Engine::instance->Delete();
 			return;
 		} else {
 			Log("Using hard coded shader for \""+fragmentPath+"\".");
@@ -333,7 +334,7 @@ Shader::Shader(Engine* _engine, const std::string& vertexPath, const std::string
 		glDeleteShader(fragmentShader);
 		Log(fragmentShaderSource);
 		Log("Fragment shader \""+fragmentPath+"\" failed to init.");//error
-		engine->Delete();
+		Engine::instance->Delete();
 		return;
 
 	}
@@ -352,7 +353,7 @@ Shader::Shader(Engine* _engine, const std::string& vertexPath, const std::string
 		Log("Shader program failed to create.");//error
 		Log("OpenGL version is");
 		std::cout<<glGetString(GL_VERSION);
-		engine->Delete();
+		Engine::instance->Delete();
 		return;
 	}
 }
@@ -361,54 +362,54 @@ Shader::~Shader() {
 	glDeleteProgram(program);
 }
 void Shader::use() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	glUseProgram(program);
 }
 // uniform utility functions
 void Shader::setBool(const char* name, const bool& value) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform1i(uniformLocation, (bool)value);
 }
 void Shader::setInt(const char* name, const int& value) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform1i(uniformLocation, value);
 }
 void Shader::setFloat(const char* name, const float& value) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform1f(uniformLocation, value);
 }
 void Shader::setFloat2(const char* name, const Vector2& value) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform2f(uniformLocation, value.x, value.y);
 }
 void Shader::setFloat3(const char* name, const Vector3& value) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform3f(uniformLocation, value.x, value.y, value.z);
 }
 void Shader::setFloat4(const char* name, const Vector4& value) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform4f(uniformLocation, value.x, value.y, value.z, value.w);
 }
 void Shader::setMat4x4(const char* name, const Mat4x4& value) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name);
 	glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, &value.values[0]);
 }
 void Shader::setTexture(const char* name, Texture* tex, const unsigned int& location) {
-	if(engine->ended||!initialized||!tex->initialized) return;
+	if(Engine::instance->ended||!initialized||!tex->initialized) return;
 	for(unsigned int i=0; i<textureIndexes.size(); i++) {
 		if(textureIndexes[i]==location) { textures[i]=tex; return; }// replace texture at location if there already is one there
 	}
@@ -418,13 +419,13 @@ void Shader::setTexture(const char* name, Texture* tex, const unsigned int& loca
 	numTextures++;
 }
 void Shader::setTextureArray(const std::string& name) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	for(int i=0; i<32; i++) {// max slots on the gpu for textures
 		setInt((name+"["+std::to_string(i)+"]").c_str(), i);
 	}
 }
 void Shader::bindTexture(const unsigned int& index) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	use();
 	if(index>=numTextures) return;
 	// equivilent to '''textures[index]->Bind(textureIndexes[index]);'''
@@ -432,7 +433,7 @@ void Shader::bindTexture(const unsigned int& index) {
 	glBindTexture(GL_TEXTURE_2D, textures[index]->ID);
 }
 void Shader::bindTextures() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	use();
 	for(unsigned int i=0; i<numTextures; i++) {
 		// equivilent to '''textures[i]->Bind(textureIndexes[i]);'''
@@ -466,22 +467,22 @@ int load_texture(unsigned int* texture, std::string path, int* width, int* heigh
 	}
 }
 
-Texture::Texture(Engine* _engine, const unsigned int& _ID) :
-	Object(_engine), ID(_ID), width(0), height(0) {
+Texture::Texture(const unsigned int& _ID) :
+	Object(), ID(_ID), width(0), height(0) {
 	if(!initialized) return;
 }
-Texture::Texture(Engine* _engine, const std::string& path) :
-	Object(_engine), ID(0), width(0), height(0) {
+Texture::Texture(const std::string& path) :
+	Object(), ID(0), width(0), height(0) {
 	if(!initialized) return;
 	if(!load_texture(&ID, path, &width, &height)) {
 		initialized=false;
 		Log("texture \""+path+"\" failed to load.");//error
-		engine->Delete();
+		Engine::instance->Delete();
 		return;
 	}
 }
 void Texture::Bind(const unsigned int& location) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	glActiveTexture(GL_TEXTURE0+location);
 	glBindTexture(GL_TEXTURE_2D, ID);
 }

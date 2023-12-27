@@ -43,8 +43,8 @@ class BatchedSpriteRenderer : protected Renderer2D {
 	unsigned int numQuads=0;
 	const unsigned int maxQuadCount=10000;
 	int drawCalls=0;
-	BatchedSpriteRenderer() : Renderer2D(), quadBuffer(nullptr), quadBufferPtr(nullptr) {};
-	BatchedSpriteRenderer(Engine* _engine, Shader* _shader);
+	BatchedSpriteRenderer() : Renderer2D(), quadBuffer(nullptr), quadBufferPtr(nullptr) { initialized=false; };
+	BatchedSpriteRenderer(Shader* _shader);
 	virtual ~BatchedSpriteRenderer();
 	BatchedQuadData* addQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex);
 	void draw() override;
@@ -62,8 +62,8 @@ class StaticBatchedSpriteRenderer : protected Renderer2D {
 	unsigned int numQuads=0;
 	const unsigned int maxQuadCount=10000;
 	int drawCalls=0;
-	StaticBatchedSpriteRenderer() : Renderer2D(), quadBuffer(nullptr), quadBufferPtr(nullptr) {};
-	StaticBatchedSpriteRenderer(Engine* _engine, Shader* _shader);
+	StaticBatchedSpriteRenderer() : Renderer2D(), quadBuffer(nullptr), quadBufferPtr(nullptr) { initialized=false; };
+	StaticBatchedSpriteRenderer(Shader* _shader);
 	virtual ~StaticBatchedSpriteRenderer();
 	BatchedQuadData* addQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex);
 	void bind();
@@ -95,8 +95,8 @@ class BatchedTextRenderer : protected Renderer2D {
 	std::array<unsigned int, 3> numChars={ 0, 0, 0 };
 	const unsigned int maxCharacterCount=10000;
 	int drawCalls=0;
-	BatchedTextRenderer() : Renderer2D(), characterBuffers({ nullptr, nullptr, nullptr }), characterBufferPtrs({ nullptr, nullptr, nullptr }) {};
-	BatchedTextRenderer(Engine* _engine, Camera* cam);
+	BatchedTextRenderer() : Renderer2D(), characterBuffers({ nullptr, nullptr, nullptr }), characterBufferPtrs({ nullptr, nullptr, nullptr }) { initialized=false; };
+	BatchedTextRenderer(Camera* cam);
 	virtual ~BatchedTextRenderer();
 	BatchedTextData* addText(const std::string& _text, const Vector4& _color, const Vector2& _position, const float& _zIndex, const float& _scale, const Vector2& _anchor);
 	void draw() override;

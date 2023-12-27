@@ -15,15 +15,16 @@ void engine_on_error(int error, const char* description);
 class Object;
 class Engine {
 	protected:
-	void on_resize(GLFWwindow* window, int width, int height);
-	void on_key(GLFWwindow* window, int key, int scancode, int action, int mods);
-	void on_scroll(GLFWwindow* window, double xoffset, double yoffset);
+	void on_resize(int width, int height);
+	void on_key(int key, int scancode, int action, int mods);
+	void on_scroll(double xoffset, double yoffset);
 	Vector2 lastMouse=Vector2(-1.0f, -1.0f);
-	void on_mouse(GLFWwindow* window, double mouseX, double mouseY);
-	void on_mouse_delta(GLFWwindow* window, float deltaX, float deltaY);
-	void on_mouse_button(GLFWwindow* window, int button, int action, int mods);
-	void on_mouse_enter(GLFWwindow* window, int entered);
+	void on_mouse(double mouseX, double mouseY);
+	void on_mouse_delta(float deltaX, float deltaY);
+	void on_mouse_button(int button, int action, int mods);
+	void on_mouse_enter(int entered);
 	public:
+	static Engine* instance;
 	GLFWwindow* window=nullptr;
 	Vector2 screenSize;
 	bool initialized=false;
@@ -32,6 +33,10 @@ class Engine {
 	Engine() : window(nullptr), screenSize(Vector2()) {}
 	Engine(const Vector2& size, const char* title, const bool& vsync);
 	virtual ~Engine();
+	Engine(Engine& copy)=delete;
+	Engine(Engine&& move)=delete;
+	void operator=(const Engine& other)=delete;
+
 	void Loop();
 	void Close();
 	void Delete();
@@ -55,23 +60,20 @@ class Engine {
 	void sub_mouse_button(Object* obj);
 	void sub_mouse_enter(Object* obj);
 	void sub_loop(Object* obj);
+
 };
 class Object {
-	protected:
-	Engine* engine;
-	friend Engine;
 	public:
-	virtual void on_resize(GLFWwindow* window, const int& width, const int& height);
-	virtual void on_key(GLFWwindow* window, const int& key, const int& scancode, const int& action, const int& mods);
-	virtual void on_scroll(GLFWwindow* window, const double& xoffset, const double& yoffset);
-	virtual void on_mouse(GLFWwindow* window, const double& mouseX, const double& mouseY);
-	virtual void on_mouse_delta(GLFWwindow* window, const float& deltaX, const float& deltaY);
-	virtual void on_mouse_button(GLFWwindow* window, const int& button, const int& action, const int& mods);
-	virtual void on_mouse_enter(GLFWwindow* window, const int& entered);
+	virtual void on_resize(const int& width, const int& height);
+	virtual void on_key(const int& key, const int& scancode, const int& action, const int& mods);
+	virtual void on_scroll(const double& xoffset, const double& yoffset);
+	virtual void on_mouse(const double& mouseX, const double& mouseY);
+	virtual void on_mouse_delta(const float& deltaX, const float& deltaY);
+	virtual void on_mouse_button(const int& button, const int& action, const int& mods);
+	virtual void on_mouse_enter(const int& entered);
 	virtual void on_loop(const double& delta);
 	bool initialized=false;
-	Object() : engine(nullptr) {}
-	Object(Engine* _engine);
+	Object();
 	virtual ~Object();
 };
 
@@ -118,8 +120,8 @@ class Shader : public Object {
 	std::vector<Texture*> textures;
 	std::vector<int> textureIndexes;
 	unsigned int numTextures=0;
-	Shader() : Object() {}
-	Shader(Engine* _engine, const std::string& vertexPath, const std::string& fragmentPath);
+	Shader() : Object() { initialized=false; }
+	Shader(const std::string& vertexPath, const std::string& fragmentPath);
 	virtual ~Shader();
 	void use();
 	void setBool(const char* name, const bool& value);
@@ -139,9 +141,9 @@ class Texture : public Object {
 	unsigned int ID;
 	int width;
 	int height;
-	Texture() : Object(), ID(0), width(0), height(0) {}
-	Texture(Engine* _engine, const unsigned int& _ID);
-	Texture(Engine* _engine, const std::string& path);
+	Texture() : Object(), ID(0), width(0), height(0) { initialized=false; }
+	Texture(const unsigned int& _ID);
+	Texture(const std::string& path);
 	void Bind(const unsigned int& location);
 };
 

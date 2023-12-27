@@ -6,12 +6,15 @@
 #include "GameLib.h"
 #include "Engine.h"
 #include "BatchedRenderers.h"
+#include "UI.h"
 
 #include <math.h>
 #define PI 3.14159265
 #define TAU 6.2831853
 
 Engine* engine;
+UiHandler* uiHandler;
+
 FpsTracker* tracker;
 std::unique_ptr<Pathfinder> finder;
 class Player;
@@ -55,12 +58,12 @@ class Player : public Object, public Transform2D {
 	SpriteRenderer* flashlightRenderer;
 	SpriteRenderer* iconRenderer;
 	int inputs[5]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
-	void on_key(GLFWwindow* window, const int& key, const int& scancode, const int& action, const int& mods) override;
+	void on_key(const int& key, const int& scancode, const int& action, const int& mods) override;
 	void on_loop(const double& delta) override;
 	public:
 	BoxCollider* collider;
 	Player() : Object(), Transform2D(), renderer(nullptr), collider(nullptr), flashlightStencil(StencilSimple()), sceneCam(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {}
-	Player(Engine* _engine, OrthoCam* _sceneCam, const Vector2& _position, Shader* playerShader, Shader* flashlightShader, Shader* iconShader);
+	Player(OrthoCam* _sceneCam, const Vector2& _position, Shader* playerShader, Shader* flashlightShader, Shader* iconShader);
 	void flashlightStencilOn();
 	void flashlightStencilOff();
 	void setPos(const Vector2& pos);
@@ -80,7 +83,7 @@ class Enemy : public Object, public Transform2D {
 	public:
 	LineRenderer* debugRen=nullptr;
 	Enemy() : Object(), Transform2D(), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), lineShader(nullptr), pathfinder(nullptr), target(nullptr) {}
-	Enemy(Engine* _engine, const Vector2& _position, Shader* enemyShader, Shader* iconShader, Shader* _lineShader, Pathfinder* _pathfinder, Player* _target);
+	Enemy(const Vector2& _position, Shader* enemyShader, Shader* iconShader, Shader* _lineShader, Pathfinder* _pathfinder, Player* _target);
 };
 
 Vector2 HD1080P(1920.0, 1080.0);

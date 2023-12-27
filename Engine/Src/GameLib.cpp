@@ -138,25 +138,25 @@ std::vector<Vector2> Pathfinder::pathfind(const Vector2& A, const Vector2& B) {
 #pragma endregion// Pathfinder
 
 #pragma region Shader creators
-Shader* createColorShader(Engine* engine, const Vector4& color) {
-	Shader* shader=new Shader(engine, "Shaders/basic.vert", "Shaders/color.frag");
+Shader* createColorShader(const Vector4& color) {
+	Shader* shader=new Shader("Shaders/basic.vert", "Shaders/color.frag");
 	if(!shader->initialized) return shader;
 	shader->setFloat4("color", color);
 	return shader;
 }
-Shader* createTexShader(Engine* engine, Texture* tex, const Vector4& modulate) {
-	Shader* shader=new Shader(engine, "Shaders/basic.vert", "Shaders/tex.frag");
+Shader* createTexShader(Texture* tex, const Vector4& modulate) {
+	Shader* shader=new Shader("Shaders/basic.vert", "Shaders/tex.frag");
 	if(!shader->initialized) return shader;
 	shader->setTexture("_texture", tex, 0);
 	shader->setFloat4("modulate", modulate);
 	return shader;
 }
-Shader* createTextShader(Engine* engine) {
-	Shader* shader=new Shader(engine, "Shaders/basic.vert", "Shaders/text.frag");
+Shader* createTextShader() {
+	Shader* shader=new Shader("Shaders/basic.vert", "Shaders/text.frag");
 	return shader;
 }
-Shader* createBatchedShader(Engine* engine, const std::vector<Texture*>& textures) {
-	Shader* shader=new Shader(engine, "Shaders/batch.vert", "Shaders/texBatch.frag");
+Shader* createBatchedShader(const std::vector<Texture*>& textures) {
+	Shader* shader=new Shader("Shaders/batch.vert", "Shaders/texBatch.frag");
 	if(!shader->initialized) return shader;
 	shader->setTextureArray("_textures");
 	for(unsigned int i=0; i<textures.size(); i++) shader->setTexture("_", textures[i], (int)i);
@@ -166,7 +166,7 @@ Shader* createBatchedShader(Engine* engine, const std::vector<Texture*>& texture
 
 #pragma region FpsTracker
 void FpsTracker::on_loop(const double& delta) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	for(unsigned int i=1; i<500; i++) { lastFrames[i-1]=lastFrames[i]; }// move values back
 	lastFrames[499]=delta;// put delta at the end
 	double sum=0.0f;
@@ -181,24 +181,24 @@ void FpsTracker::on_loop(const double& delta) {
 		if((1/lastFrames[i])<lowFps) lowFps=(int)((1/lastFrames[i])+0.5);
 	}
 }
-FpsTracker::FpsTracker(Engine* _engine) : Object(_engine) {
+FpsTracker::FpsTracker() : Object() {
 	if(!initialized) return;
-	engine->sub_loop(this);
+	Engine::instance->sub_loop(this);
 }
 int FpsTracker::getAvgFps() {
-	if(engine->ended||!initialized) return 0;
+	if(Engine::instance->ended||!initialized) return 0;
 	return avgFps;
 }
 int FpsTracker::getHighFps() {
-	if(engine->ended||!initialized) return 0;
+	if(Engine::instance->ended||!initialized) return 0;
 	return highFps;
 }
 int FpsTracker::getLowFps() {
-	if(engine->ended||!initialized) return 0;
+	if(Engine::instance->ended||!initialized) return 0;
 	return lowFps;
 }
 float FpsTracker::getFrameTime() {
-	if(engine->ended||!initialized) return 0;
+	if(Engine::instance->ended||!initialized) return 0;
 	return frameTime;
 }
 #pragma endregion// FpsTracker
@@ -206,8 +206,8 @@ float FpsTracker::getFrameTime() {
 #pragma region BoxCollider
 bool ColliderDebug=false;
 std::vector<BoxCollider*> colliders;
-BoxCollider::BoxCollider(Engine* _engine, Vector2 _position, Vector2 _scale, maskType _mask, Shader* _debugLineShader) :
-	LineRenderer(_engine, _debugLineShader, { Vector2(-_scale.x/2, _scale.y/2), Vector2(_scale.x/2, _scale.y/2), Vector2(_scale.x/2, -_scale.y/2), Vector2(-_scale.x/2, -_scale.y/2) }, 3.0f, _position, true),
+BoxCollider::BoxCollider(Vector2 _position, Vector2 _scale, maskType _mask, Shader* _debugLineShader) :
+	LineRenderer(_debugLineShader, { Vector2(-_scale.x/2, _scale.y/2), Vector2(_scale.x/2, _scale.y/2), Vector2(_scale.x/2, -_scale.y/2), Vector2(-_scale.x/2, -_scale.y/2) }, 3.0f, _position, true),
 	mask(_mask) {
 	if(!initialized) return;
 	colliders.push_back(this);
@@ -267,7 +267,6 @@ BoxCollider::CollitionData BoxCollider::LineBoxCollide(const Vector2& p1, const 
 	float boundingRadius=(boxSize/2.0f).length();
 	//check if theres honestly any chance of collision
 	if(((p1-boxPos).length()-boundingRadius)>(p1-p2).length()) return CollitionData();
-	//draw();
 	// check if the line has hit any of the rectangle's sides
 	CollitionData collision=CollitionData();
 	Vector2 halfScale=boxSize/2.0f;
@@ -279,7 +278,7 @@ BoxCollider::CollitionData BoxCollider::LineBoxCollide(const Vector2& p1, const 
 	return collision;
 }
 BoxCollider::CollitionData BoxCollider::detectCollision(BoxCollider* other) {
-	if(engine->ended||!initialized) return BoxCollider::CollitionData();
+	if(Engine::instance->ended||!initialized) return BoxCollider::CollitionData();
 	Vector2 worldPos=getWorldPos();
 	Vector2 worldScale=getWorldScale();
 	Vector2 otherWorldPos=other->getWorldPos();
@@ -308,7 +307,7 @@ BoxCollider::CollitionData BoxCollider::detectCollision(BoxCollider* other) {
 	}
 }
 BoxCollider::CollitionData BoxCollider::sweepDetectCollision(BoxCollider* other, const Vector2& vec) {
-	if(engine->ended||!initialized) return BoxCollider::CollitionData();
+	if(Engine::instance->ended||!initialized) return BoxCollider::CollitionData();
 	Vector2 worldPos=getWorldPos();
 	Vector2 worldScale=getWorldScale();
 	Vector2 otherWorldPos=other->getWorldPos();
@@ -316,18 +315,17 @@ BoxCollider::CollitionData BoxCollider::sweepDetectCollision(BoxCollider* other,
 	float boundingRadius=(worldScale/2.0f).length();
 	float otherBoundingRadius=(otherWorldScale/2.0f).length();
 	if(((worldPos-otherWorldPos).length()-(boundingRadius+otherBoundingRadius))-vec.length()>=0) return CollitionData();
-	//draw();
 	return LineBoxCollide(otherWorldPos, otherWorldPos+vec, worldPos, worldScale+otherWorldScale);
 }
 BoxCollider::CollitionData BoxCollider::LineCollide(const Vector2& p1, const Vector2& p2) {
-	if(engine->ended||!initialized) return BoxCollider::CollitionData();
+	if(Engine::instance->ended||!initialized) return BoxCollider::CollitionData();
 	Vector2 worldPos=getWorldPos();
 	Vector2 worldScale=getWorldScale();
 	return LineBoxCollide(p1, p2, worldPos, worldScale);
 }
 
 Vector2 BoxCollider::forceOut(const maskType& collisionMask) {
-	if(engine->ended||!initialized) return Vector2::ZERO;
+	if(Engine::instance->ended||!initialized) return Vector2::ZERO;
 	Vector2 oldPos=position;
 	for(BoxCollider* collider:colliders) {
 		if((collider->mask&collisionMask)==0) continue;
@@ -339,7 +337,7 @@ Vector2 BoxCollider::forceOut(const maskType& collisionMask) {
 	return vec;
 }
 Vector2 BoxCollider::tryMove(const Vector2& tryVec, const maskType& collisionMask) {
-	if(engine->ended||!initialized) return Vector2::ZERO;
+	if(Engine::instance->ended||!initialized) return Vector2::ZERO;
 	Vector2 oldPos=position;
 	BoxCollider::CollitionData hit=BoxCollider::CollitionData();
 	for(BoxCollider* collider:colliders) {
@@ -364,7 +362,7 @@ Vector2 BoxCollider::tryMove(const Vector2& tryVec, const maskType& collisionMas
 	return vec;
 }
 BoxCollider::CollitionData BoxCollider::raycast(const Vector2& p1, const Vector2& p2, const maskType& collisionMask) {
-	if(engine->ended||!initialized) return BoxCollider::CollitionData();
+	if(Engine::instance->ended||!initialized) return BoxCollider::CollitionData();
 	BoxCollider::CollitionData out=BoxCollider::CollitionData();
 	for(BoxCollider* collider:colliders) {
 		if((collider->mask&collisionMask)==0) continue;

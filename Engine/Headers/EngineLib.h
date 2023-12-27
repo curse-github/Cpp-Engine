@@ -34,6 +34,8 @@ class Vector2 {
 	void operator+=(const Vector2& b);
 	void operator-=(const Vector2& b);
 	float length() const;
+	float magnitude() const;
+	float sqrMagnitude() const;
 	float cross(const Vector2& b) const;
 	float dot(const Vector2& b) const;
 	Vector2 normalized() const;

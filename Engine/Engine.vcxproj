@@ -28,6 +28,7 @@
     <ClCompile Include="Src\Json.cpp" />
     <ClCompile Include="Src\Main.cpp" />
     <ClCompile Include="Src\Renderers.cpp" />
+    <ClCompile Include="Src\UI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Headers\BatchedRenderers.h" />
@@ -38,6 +39,7 @@
     <ClInclude Include="Headers\Engine.h" />
     <ClInclude Include="Headers\Main.h" />
     <ClInclude Include="Headers\Renderers.h" />
+    <ClInclude Include="Headers\UI.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Data\map.json" />

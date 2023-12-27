@@ -13,10 +13,10 @@ Vector2 gridToMinimap(const Vector2& grid);
 Vector2 WorldToGrid(const Vector2& world);
 Vector2 GridToWorld(const Vector2& grid);
 
-Shader* createColorShader(Engine* engine, const Vector4& color);
-Shader* createTexShader(Engine* engine, Texture* tex, const Vector4& modulate);
-Shader* createTextShader(Engine* engine);
-Shader* createBatchedShader(Engine* engine, const std::vector<Texture*>& textures);
+Shader* createColorShader(const Vector4& color);
+Shader* createTexShader(Texture* tex, const Vector4& modulate);
+Shader* createTextShader();
+Shader* createBatchedShader(const std::vector<Texture*>& textures);
 
 struct PathfinderData;
 class Pathfinder {
@@ -66,8 +66,7 @@ class FpsTracker : Object {
 	float frameTime=0;
 	void on_loop(const double& delta) override;
 	public:
-	FpsTracker() : Object() {}
-	FpsTracker(Engine* _engine);
+	FpsTracker();
 	int getAvgFps();
 	int getHighFps();
 	int getLowFps();
@@ -79,8 +78,8 @@ class BoxCollider : public LineRenderer {
 	public:
 	typedef short unsigned int maskType;
 	maskType mask;
-	BoxCollider() : LineRenderer(), mask(0) {}
-	BoxCollider(Engine* _engine, Vector2 _position, Vector2 _scale, maskType _mask, Shader* _debugLineShader);
+	BoxCollider() : LineRenderer(), mask(0) { initialized=false; }
+	BoxCollider(Vector2 _position, Vector2 _scale, maskType _mask, Shader* _debugLineShader);
 	struct RaycastHit {
 		bool hit;
 		Vector2 point;

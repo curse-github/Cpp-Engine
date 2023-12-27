@@ -3,19 +3,19 @@
 #define clamp(a,b,c) std::max(b,std::min(a,c))
 
 #pragma region Camera
-Camera::Camera(Engine* _engine) : Object(_engine), projection(Mat4x4()), view(Mat4x4()) {
+Camera::Camera() : Object(), projection(Mat4x4()), view(Mat4x4()) {
 	if(!initialized) return;
 }
 void Camera::update() {}
 void Camera::bindShader(Shader* shader) {
-	if(engine->ended||!initialized||!shader->initialized) return;
+	if(Engine::instance->ended||!initialized||!shader->initialized) return;
 	shaders.push_back(shader);
 }
 void Camera::bindShaders(const std::vector<Shader*>& shaders) {
 	for(Shader* shdr:shaders) bindShader(shdr);
 }
 void Camera::use() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	for(Shader* shdr:shaders) {
 		if(!shdr->initialized) continue;
 		shdr->setMat4x4("projection", projection);
@@ -24,38 +24,38 @@ void Camera::use() {
 }
 #pragma endregion// Camera
 #pragma region LookAtCam
-LookAtCam::LookAtCam(Engine* _engine, const float& _aspect, const Vector3& _position, const Vector3& _focus) :
-	Camera(_engine), Transform(_position, Vector3(), Vector3(), 0.0f), aspect(_aspect), focus(_focus) {
+LookAtCam::LookAtCam(const float& _aspect, const Vector3& _position, const Vector3& _focus) :
+	Camera(), Transform(_position, Vector3(), Vector3(), 0.0f), aspect(_aspect), focus(_focus) {
 	if(!initialized) return;
 	update();
 }
 void LookAtCam::update() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	projection=perspective(deg_to_rad(fov), aspect, 0.1f, 100.0f);
 	view=lookAt(position, focus, Vector3(0.0f, 1.0f, 0.0f));
 }
 #pragma endregion// LookAtCam
 #pragma region FreeCam
-FreeCam::FreeCam(Engine* _engine, const float& _aspect, const Vector3& _position, const Vector3& _forward, const Vector3& _up) :
-	Camera(_engine), Transform(_position, Vector3(), Vector3(), 0.0f), aspect(_aspect), forward(_forward), up(_up) {
+FreeCam::FreeCam(const float& _aspect, const Vector3& _position, const Vector3& _forward, const Vector3& _up) :
+	Camera(), Transform(_position, Vector3(), Vector3(), 0.0f), aspect(_aspect), forward(_forward), up(_up) {
 	if(!initialized) return;
-	glfwSetInputMode(engine->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	engine->sub_key(this);
-	engine->sub_scroll(this);
-	engine->sub_mouse_delta(this);
-	engine->sub_loop(this);
+	Engine::instance->SetCursorMode(GLFW_CURSOR_DISABLED);
+	Engine::instance->sub_key(this);
+	Engine::instance->sub_scroll(this);
+	Engine::instance->sub_mouse_delta(this);
+	Engine::instance->sub_loop(this);
 }
 void FreeCam::update() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	projection=perspective(deg_to_rad(fov), aspect, 0.1f, 100.0f);
 	view=lookAt(position, position+forward, up);
 	Camera::update();
 }
-void FreeCam::on_key(GLFWwindow* window, const int& key, const int& scancode, const int& action, const int& mods) {
-	if(engine->ended||!initialized) return;
+void FreeCam::on_key(const int& key, const int& scancode, const int& action, const int& mods) {
+	if(Engine::instance->ended||!initialized) return;
 	if(key==GLFW_KEY_ESCAPE&&action==GLFW_PRESS) {
 		paused=!paused;
-		engine->SetCursorMode(paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+		Engine::instance->SetCursorMode(paused ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 		return;
 	}
 	if(paused) return;
@@ -66,14 +66,14 @@ void FreeCam::on_key(GLFWwindow* window, const int& key, const int& scancode, co
 	else if(key==GLFW_KEY_SPACE) inputs[4]=action;
 	else if(key==GLFW_KEY_LEFT_SHIFT) inputs[5]=action;
 }
-void FreeCam::on_scroll(GLFWwindow* window, const double& xoffset, const double& yoffset) {
-	if(engine->ended||!initialized) return;
+void FreeCam::on_scroll(const double& xoffset, const double& yoffset) {
+	if(Engine::instance->ended||!initialized) return;
 	fov-=(float)yoffset;
 	fov=clamp(fov, 1.0f, 90.0f);
 	update();
 }
-void FreeCam::on_mouse_delta(GLFWwindow* window, const float& deltaX, const float& deltaY) {
-	if(engine->ended||!initialized) return;
+void FreeCam::on_mouse_delta(const float& deltaX, const float& deltaY) {
+	if(Engine::instance->ended||!initialized) return;
 	if(paused) return;
 	pitch+=(float)deltaY*SENSITIVITY;
 	pitch=clamp(pitch, -89.0f, 89.0f);
@@ -87,7 +87,7 @@ void FreeCam::on_mouse_delta(GLFWwindow* window, const float& deltaX, const floa
 	update();
 }
 void FreeCam::on_loop(const double& delta) {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	float deltaf=((float)delta);
 	Vector3 inputVec=Vector3(
 		(float)(inputs[0]>=GLFW_PRESS)-(float)(inputs[2]>=GLFW_PRESS),
@@ -99,13 +99,13 @@ void FreeCam::on_loop(const double& delta) {
 }
 #pragma endregion// FreeCam
 #pragma region OrthoCam
-OrthoCam::OrthoCam(Engine* _engine, const Vector2& _position, const Vector2& _scale) :
-	Camera(_engine), Transform2D(_position, 0.0f, _scale, Vector2(), 0.0f) {
+OrthoCam::OrthoCam(const Vector2& _position, const Vector2& _scale) :
+	Camera(), Transform2D(_position, 0.0f, _scale, Vector2(), 0.0f) {
 	if(!initialized) return;
 	update();
 }
 void OrthoCam::update() {
-	if(engine->ended||!initialized) return;
+	if(Engine::instance->ended||!initialized) return;
 	projection=ortho(-scale.x/2.0f, scale.x/2.0f, -scale.y/2.0f, scale.y/2.0f, 0.0f, 1000.0f);
 	view=translate(Vector3(-getWorldPos(), 0));
 }

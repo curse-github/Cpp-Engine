@@ -35,9 +35,9 @@ Vector2::Vector2(const float& v) { x=v; y=v; }// from a single value
 void Vector2::operator+=(const Vector2& b) { x+=b.x; y+=b.y; }
 void Vector2::operator-=(const Vector2& b) { x-=b.x; y-=b.y; }
 float Vector2::length() const { return sqrt(x*x+y*y); }
-float Vector2::cross(const Vector2& b) const {
-	return x*b.y-y*b.x;
-}
+float Vector2::magnitude() const { return sqrt(x*x+y*y); }
+float Vector2::sqrMagnitude() const { return x*x+y*y; }
+float Vector2::cross(const Vector2& b) const { return x*b.y-y*b.x; }
 float Vector2::dot(const Vector2& b) const { return (x*b.x)+(y*b.y); }
 Vector2 Vector2::normalized() const {
 	float len=length();
