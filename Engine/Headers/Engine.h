@@ -18,19 +18,22 @@ class Engine {
 	void on_resize(int width, int height);
 	void on_key(int key, int scancode, int action, int mods);
 	void on_scroll(double xoffset, double yoffset);
-	Vector2 lastMouse=Vector2(-1.0f, -1.0f);
 	void on_mouse(double mouseX, double mouseY);
 	void on_mouse_delta(float deltaX, float deltaY);
 	void on_mouse_button(int button, int action, int mods);
 	void on_mouse_enter(int entered);
 	public:
 	static Engine* instance;
-	GLFWwindow* window=nullptr;
-	Vector2 screenSize;
+
 	bool initialized=false;
-	bool ended=false;
+	GLFWwindow* window=nullptr;
 	std::vector<Object*> objects;
-	Engine() : window(nullptr), screenSize(Vector2()) {}
+	bool ended=false;
+
+	Vector2 curResolution;
+	Vector2 curMousePos=Vector2(-1.0f, -1.0f);
+
+	Engine() : window(nullptr), curResolution(Vector2()) {}
 	Engine(const Vector2& size, const char* title, const bool& vsync);
 	virtual ~Engine();
 	Engine(Engine& copy)=delete;
@@ -94,22 +97,33 @@ class Transform2D {
 	float lastZIndex=0.0f;
 	Vector2 lastWorldScale=Vector2::ONE;
 	float lastWorldRot=0.0f;
+	protected:
+	static bool AABBOverlap(const Vector2& aPos, const Vector2& aSize, const Vector2& bPos, const Vector2& bSize);
 	public:
 	Transform2D* parent=nullptr;
 	std::vector<Transform2D*> children;
+
+	bool active;
 	Vector2 position;
 	float zIndex;
 	Vector2 scale;
 	Vector2 anchor;
 	float rotAngle;
-	Transform2D() : position(Vector2()), zIndex(0.0f), scale(Vector2()), anchor(Vector2()), rotAngle(0.0f) {};
+
+	Transform2D() : active(false), position(Vector2()), zIndex(0.0f), scale(Vector2()), anchor(Vector2()), rotAngle(0.0f) {};
 	Transform2D(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor, const float& _rotAngle);
+	virtual ~Transform2D();
+	bool inRange(const Vector2& viewer, const Vector2& viewRange);
+	bool inRange(const Vector2& viewer, const float& viewRange);
+
+	bool isActive() const;
 	Vector2 getWorldPos() const;
 	Vector2 getWorldScale() const;
 	float getWorldRot() const;
 	void addChild(Transform2D* child);
 	static Mat4x4 createModelMat(const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f);
 	Mat4x4 getModelMat();
+
 };
 
 class Texture;

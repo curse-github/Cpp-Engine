@@ -30,14 +30,9 @@ class CubeRenderer : public Renderer, public Transform {
 	void draw() override;
 };
 class Renderer2D : public Renderer, public Transform2D {
-	protected:
-	static bool AABBOverlap(const Vector2& aPos, const Vector2& aSize, const Vector2& bPos, const Vector2& bSize);
 	public:
 	Renderer2D() : Renderer(), Transform2D() { initialized=false; };
 	Renderer2D(Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle);
-	bool shouldDraw(const Vector2& viewer, const Vector2& viewRange);
-	bool shouldDraw(const Vector2& viewer, const float& viewRange);
-	bool shouldDraw(OrthoCam* viewer);
 };
 class SpriteRenderer : public Renderer2D {
 	public:
@@ -68,7 +63,6 @@ class TextRenderer : public Renderer2D {
 	TextRenderer(Shader* _shader, const std::string& _text, const Vector3& _color, const Vector2& _position, const float& _scale, const float& _zIndex);
 	TextRenderer(Shader* _shader, const std::string& _text, const Vector3& _color, const Vector2& _position, const float& _scale);
 	void draw() override;
-	using Renderer2D::shouldDraw;
 };
 class LineRenderer : public Renderer2D {
 	protected:

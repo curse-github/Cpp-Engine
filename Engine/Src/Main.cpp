@@ -1,5 +1,7 @@
-#ifdef _DEBUG
+#include "Main.h"
 #include "EngineLib.h"
+
+#ifdef _DEBUG
 #include <memory>
 unsigned int allocated=0;
 void* operator new(size_t size) {
@@ -13,8 +15,6 @@ void operator delete(void* memory, size_t size) {
 	free(memory);
 }
 #endif// _DEBUG
-
-#include "Main.h"
 
 #pragma region Player
 void Player::on_key(const int& key, const int& scancode, const int& action, const int& mods) {
@@ -139,6 +139,30 @@ Enemy::Enemy(const Vector2& _position, Shader* enemyShader, Shader* iconShader, 
 }
 #pragma endregion// Enemy
 
+#pragma region Instance
+void Instance::on_click(const Vector2& pos) {
+	if(broken) fixInstance();
+}
+Instance::Instance(OrthoCam* _cam, const Vector2& _position, const Vector2& _anchor, const float& _rotAngle, Shader* lineShader, StaticBatchedSpriteRenderer* instanceRenderer, StaticBatchedSpriteRenderer* _instanceStateRenderer) :
+	Clickable(_cam), Transform2D(_position, 0.0f, Vector2(mapScale), _anchor, _rotAngle), instanceStateRenderer(_instanceStateRenderer) {
+	broken=((float)std::rand())/((float)RAND_MAX)<=(instanceBrokenChance/100.0f);
+	instanceRenderer->addQuad(position, 2.0f, scale, Vector4(0.5f, 0.5f, 0.5f, 1.0f), 0.0f);
+	stateQuad=instanceStateRenderer->addQuad(position, 3.0f, scale, Vector4::ONE, broken ? 1.0f : 0.0f);
+	addChild(new BoxCollider(Vector2::ZERO, Vector2::ONE, MAPMASK, lineShader));
+}
+void Instance::fixInstance() {
+	broken=false;
+	stateQuad->texIndex=0.0f;
+	instanceStateRenderer->bind();
+}
+void Instance::breakInstance() {
+	broken=true;
+	stateQuad->texIndex=1.0f;
+	instanceStateRenderer->bind();
+}
+#pragma endregion// Instance
+
+
 int Run() {
 #pragma region Setup
 	// load map data
@@ -153,13 +177,8 @@ int Run() {
 		Log("Engine failed to init.");
 		return 0;
 	}
-	// setup UiHandler
-	uiHandler=new UiHandler();
-	if(!engine->initialized||engine->ended) {
-		Log("Engine failed to init.");
-		return 0;
-	}
 	// setup other stuff
+	uiHandler=new UiHandler();
 	tracker=new FpsTracker();
 	finder=std::make_unique<Pathfinder>();
 	// setup cameras
@@ -222,24 +241,20 @@ int Run() {
 	cam->use();
 	uiCam->use();
 #pragma endregion// Setup
-
 	// player object
 	player=new Player(cam, GridToWorld(playerOffset), playerShader, flashlightShader, playerIconShader);
 	enemy=new Enemy(GridToWorld(playerOffset-Vector2(0.0f, 2.0f)), enemyShader, enemyIconShader, lineShader, finder.get(), player);
-	// map and minimap
+#pragma region Map setup
+	//map background
 	sceneRenderers.push_back(new SpriteRenderer(backgroundShader, Vector2::ZERO, 0.0f, fullMapSize, Vector2::BottomLeft));// background
-	uiRenderers.push_back(new SpriteRenderer(minimapShader, Vector2(0.0f, HD1080P.y/2.0f), 0.0f, minimapSize, Vector2::TopLeft));// minimap
 	// create instances
 	//ColliderDebug=true;// make hitboxes visible
 	instanceRenderer=new StaticBatchedSpriteRenderer(instanceShader);
 	instanceStateRenderer=new StaticBatchedSpriteRenderer(instanceStateShader);
 	for(const std::array<int, 5>&dat:instanceData) {
 		Vector2 pos=GridToWorld(Vector2((float)dat[0], (float)dat[1])+Vector2(0.5f, 0.5f));
-		bool broken=((float)std::rand())/((float)RAND_MAX)<=(instanceBrokenChance/100.0f);
-		instanceRenderer->addQuad(pos, 2.0f, Vector2(mapScale), Vector4(0.5f, 0.5f, 0.5f, 1.0f), 0.0f);
-		instanceStateRenderer->addQuad(pos, 3.0f, Vector2(mapScale), Vector4::ONE, broken ? 1.0f : 0.0f);
-		//if(broken) Log(pos);
-		new BoxCollider(pos, Vector2(mapScale), MAPMASK, lineShader);
+		float rotAngle=0.0f;
+		new Instance(cam, pos, Vector2::Center, rotAngle, lineShader, instanceRenderer, instanceStateRenderer);
 	}
 	instanceRenderer->bind();
 	instanceStateRenderer->bind();
@@ -249,12 +264,21 @@ int Run() {
 	for(const Vector3& line:verticalWallData) {// vertical walls
 		new BoxCollider(GridToWorld(Vector2(line.x, (line.z+line.y)/2.0f)), Vector2(spacing*3.0f, ((line.z-line.y)*(1.0f+spacing)+spacing*3.0f))*mapScale, MAPMASK, lineShader);
 	}
+#pragma endregion// Map setup
+	// setup UI
+	uiRenderers.push_back(new SpriteRenderer(minimapShader, Vector2(0.0f, HD1080P.y/2.0f), 0.0f, minimapSize, Vector2::TopLeft));// minimap
+	Button* testButton=new Button(uiCam,
+		Vector4(0.125f, 0.125f, 0.125f, 1.0f), Vector4(0.1f, 0.1f, 0.1f, 1.0f), Vector4(0.0f, 0.0f, 1.0f, 1.0f),
+		Vector2(viewRange.x*2.0f, 0.0f), 0.0f, Vector2(150.0f, 50.0f), Vector2::BottomRight);
+	uiRenderers.push_back(testButton->renderer);
+	testButton->onclick=close;
 	// setup text renderers
 	textRenderer=new BatchedTextRenderer(uiCam);
 	fpsText=textRenderer->addText("Fps Avg:,high:,low:", Vector4(0.75f, 0.25f, 0.25f, 1.0f), viewRange+Vector2(-232.0f, -1.0f), 15.0f, 2.0f, Vector2::TopLeft);
 #ifdef _DEBUG
 	debugText=textRenderer->addText("Pos:\nTime:", Vector4(0.75f, 0.75f, 0.75f, 1.0f), Vector2(1.0f, 1.0f), 15.0f, 2.0f, Vector2::BottomLeft);
 #endif// _DEBUG
+	textRenderer->addText("Button", Vector4(1.0f, 0.0f, 0.0f, 1.0f), Vector2(viewRange.x-1.0f-37.5f, -1.0f+12.5), 15.0f, 2.0f, Vector2::Center);
 	if(engine->ended||!TextRenderer::characterMapInitialized) {
 		Log("Fonts failed to init.");
 		engine->Delete();
@@ -264,7 +288,6 @@ int Run() {
 	engine->renderLoop=Loop;
 	Log("Engine initialized successfully.");
 	engine->Loop();
-	//destruction
 	delete engine;
 	sceneRenderers.clear();
 	uiRenderers.clear();
@@ -277,22 +300,24 @@ void Loop(const double& delta) {
 	// set debug text
 	debugText->text="Pos: "+player->position.to_string()+"\nTime: "+std::to_string(glfwGetTime())+"\nMemory: "+std::to_string(allocated)+" bytes";
 #endif// _DEBUG
-
 	// draw scene
-	for(Renderer2D* ren:sceneRenderers) if(ren->shouldDraw(cam)) ren->draw();
+	for(Renderer2D* ren:sceneRenderers) if(ren->inRange(cam->position, cam->scale)) ren->draw();
 	instanceRenderer->draw();
 	player->flashlightStencilOn();
 	instanceStateRenderer->draw();
 	player->flashlightStencilOff();
 	if(enemy->debugRen) enemy->debugRen->draw();
 	if(ColliderDebug) {
-		for(BoxCollider* col:colliders) if(col->shouldDraw(cam)) col->draw();
+		for(BoxCollider* col:colliders) if(col->inRange(cam->position, cam->scale)) col->draw();
 		player->collider->draw();
 	}
 	// draw ui
 	glClear(GL_DEPTH_BUFFER_BIT);
 	for(Renderer* ren:uiRenderers) ren->draw();
 	textRenderer->draw();
+}
+void close() {
+	engine->Close();
 }
 
 int main(int argc, char** argv) {

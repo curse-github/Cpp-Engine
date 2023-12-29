@@ -41,7 +41,7 @@ class BatchedSpriteRenderer : protected Renderer2D {
 	using Object::initialized;
 	std::vector<BatchedQuadData*> quads;
 	unsigned int numQuads=0;
-	const unsigned int maxQuadCount=10000;
+	const unsigned int maxQuadCount=1000;
 	int drawCalls=0;
 	BatchedSpriteRenderer() : Renderer2D(), quadBuffer(nullptr), quadBufferPtr(nullptr) { initialized=false; };
 	BatchedSpriteRenderer(Shader* _shader);
@@ -60,7 +60,7 @@ class StaticBatchedSpriteRenderer : protected Renderer2D {
 	using Object::initialized;
 	std::vector<BatchedQuadData*> quads;
 	unsigned int numQuads=0;
-	const unsigned int maxQuadCount=10000;
+	const unsigned int maxQuadCount=1000;
 	int drawCalls=0;
 	StaticBatchedSpriteRenderer() : Renderer2D(), quadBuffer(nullptr), quadBufferPtr(nullptr) { initialized=false; };
 	StaticBatchedSpriteRenderer(Shader* _shader);
@@ -93,7 +93,7 @@ class BatchedTextRenderer : protected Renderer2D {
 	using Object::initialized;
 	std::vector<BatchedTextData*> text;
 	std::array<unsigned int, 3> numChars={ 0, 0, 0 };
-	const unsigned int maxCharacterCount=10000;
+	const unsigned int maxCharacterCount=1000;
 	int drawCalls=0;
 	BatchedTextRenderer() : Renderer2D(), characterBuffers({ nullptr, nullptr, nullptr }), characterBufferPtrs({ nullptr, nullptr, nullptr }) { initialized=false; };
 	BatchedTextRenderer(Camera* cam);

@@ -5,7 +5,7 @@
 
 #pragma region Engine
 void engine_on_error(int error, const char* description) {
-	Log("GLDW error: "+std::string(description));
+	Log("GLFW error: "+std::string(description));
 #ifdef _DEBUG
 	__debugbreak();
 #endif
@@ -14,7 +14,8 @@ void engine_on_error(int error, const char* description) {
 #pragma region callbacks
 void Engine::on_resize(int width, int height) {
 	if(ended||!initialized) return;
-	glViewport(0, 0, width, height); screenSize=Vector2((float)width, (float)height);
+	glViewport(0, 0, width, height);
+	curResolution=Vector2((float)width, (float)height);
 	for(Object* obj:onResize) {
 		obj->on_resize(width, height);
 	}
@@ -33,12 +34,12 @@ void Engine::on_scroll(double xoffset, double yoffset) {
 }
 void Engine::on_mouse(double mouseX, double mouseY) {
 	if(ended||!initialized) return;
-	if(lastMouse.x==-1||lastMouse.y==-1) {
-		lastMouse.x=(float)mouseX; lastMouse.y=(float)mouseY; return;
+	if(curMousePos.x==-1||curMousePos.y==-1) {
+		curMousePos.x=(float)mouseX; curMousePos.y=(float)mouseY; return;
 	}
-	float deltaX=((float)mouseX)-lastMouse.x;
-	float deltaY=lastMouse.y-((float)mouseY);
-	lastMouse=Vector2((float)mouseX, (float)mouseY);
+	float deltaX=((float)mouseX)-curMousePos.x;
+	float deltaY=curMousePos.y-((float)mouseY);
+	curMousePos=Vector2((float)mouseX, (float)mouseY);
 	for(Object* obj:onMouse) {
 		obj->on_mouse(mouseX, mouseY);
 	}
@@ -64,7 +65,7 @@ void Engine::on_mouse_enter(int entered) {
 }
 #pragma endregion// callbacks
 
-Engine::Engine(const Vector2& size, const char* title, const bool& vsync) : window(nullptr), screenSize(size) {
+Engine::Engine(const Vector2& size, const char* title, const bool& vsync) : window(nullptr), curResolution(size) {
 	instance=this;
 	if(glfwInit()==GLFW_FALSE) {
 		ended=true;
@@ -146,7 +147,7 @@ void Engine::Delete() {
 void Engine::SetCursorMode(const int& mode) {
 	if(ended||!initialized) return;
 	glfwSetInputMode(window, GLFW_CURSOR, mode);
-	lastMouse=Vector2(-1.0f, -1.0f);
+	curMousePos=Vector2(-1.0f, -1.0f);
 }
 
 #pragma region subFuncs
@@ -224,9 +225,37 @@ Object::~Object() {
 Transform::Transform(const Vector3& _position, const Vector3& _scale, const Vector3& _rotAxis, const float& _rotAngle) :
 	position(_position), scale(_scale), rotAxis(_rotAxis), rotAngle(_rotAngle) {}
 // Transform2D
+bool Transform2D::AABBOverlap(const Vector2& aPos, const Vector2& aSize, const Vector2& bPos, const Vector2& bSize) {
+	if(aPos==bPos) return true;// guaranteed collition
+	// collision x-axis?
+	float collisionX1=((aPos.x+aSize.x/2)-(bPos.x-bSize.x/2));
+	float collisionX2=((bPos.x+bSize.x/2)-(aPos.x-aSize.x/2));
+	// collision y-axis?
+	float collisionY1=((aPos.y+aSize.y/2)-(bPos.y-bSize.y/2));
+	float collisionY2=((bPos.y+bSize.y/2)-(aPos.y-aSize.y/2));
+	// collision only if on both axes
+	return collisionX1>0&&collisionX2>0&&collisionY1>0&&collisionY2>0;
+}
+
 Transform2D::Transform2D(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor, const float& _rotAngle) :
-	position(_position), zIndex(_zIndex), scale(_scale), anchor(_anchor), rotAngle(_rotAngle) {
+	active(true), position(_position), zIndex(_zIndex), scale(_scale), anchor(_anchor), rotAngle(_rotAngle) {
 	lastModelMat=translate(Vector3(-anchor, 0.0f))*axisRotMat(rotAxis, deg_to_rad(rotAngle))*scaleMat(Vector3(scale, 1.0f))*translate(Vector3(position, zIndex-100.0f));
+}
+Transform2D::~Transform2D() {
+	for(Transform2D* child:children) child->parent=nullptr;
+}
+
+bool Transform2D::inRange(const Vector2& viewer, const Vector2& viewRange) {
+	if(Engine::instance->ended) return false;
+	return isActive()&&AABBOverlap(position-Vector2(anchor.x*scale.x, anchor.y*scale.y), scale, viewer, viewRange);
+}
+bool Transform2D::inRange(const Vector2& viewer, const float& viewRange) {
+	return inRange(viewer, Vector2(viewRange));
+}
+
+bool Transform2D::isActive() const {
+	if(parent!=nullptr) return parent->isActive()&&active;
+	else return active;
 }
 Vector2 Transform2D::getWorldPos() const {
 	if(parent!=nullptr) return parent->getWorldPos()+position;

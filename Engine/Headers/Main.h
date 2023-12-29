@@ -8,17 +8,18 @@
 #include "BatchedRenderers.h"
 #include "UI.h"
 
-#include <math.h>
 #define PI 3.14159265
 #define TAU 6.2831853
+
+class Player;
+class Enemy;
+class Instance;
 
 Engine* engine;
 UiHandler* uiHandler;
 
 FpsTracker* tracker;
 std::unique_ptr<Pathfinder> finder;
-class Player;
-class Enemy;
 Player* player;
 Enemy* enemy;
 
@@ -41,6 +42,7 @@ Shader* instanceStateShader;
 Shader* lineShader;
 
 std::vector<Renderer2D*> sceneRenderers;
+std::vector<Instance*> instances;
 std::vector<Renderer*> uiRenderers;
 BatchedTextRenderer* textRenderer;
 BatchedTextData* fpsText;
@@ -85,9 +87,23 @@ class Enemy : public Object, public Transform2D {
 	Enemy() : Object(), Transform2D(), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), lineShader(nullptr), pathfinder(nullptr), target(nullptr) {}
 	Enemy(const Vector2& _position, Shader* enemyShader, Shader* iconShader, Shader* _lineShader, Pathfinder* _pathfinder, Player* _target);
 };
+class Instance : virtual public Transform2D, public Clickable {
+	protected:
+	bool broken=false;
+	BatchedQuadData* stateQuad;
+	StaticBatchedSpriteRenderer* instanceStateRenderer;
+	void on_click(const Vector2& pos) override;
+	public:
+	Instance() : Transform2D(), Clickable(), stateQuad(nullptr), instanceStateRenderer(nullptr) {};
+	Instance(OrthoCam* _cam, const Vector2& _position, const Vector2& _anchor, const float& _rotAngle, Shader* lineShader, StaticBatchedSpriteRenderer* instanceRenderer, StaticBatchedSpriteRenderer* instanceStateRenderer);
+	void fixInstance();
+	void breakInstance();
+};
 
 Vector2 HD1080P(1920.0, 1080.0);
 Vector2 viewRange(480.0f, 270.0f);
-int main(int argc, char** argv);
+int Run();
 void Loop(const double& delta);
+void close();
+int main(int argc, char** argv);
 #endif// _MAIN_H

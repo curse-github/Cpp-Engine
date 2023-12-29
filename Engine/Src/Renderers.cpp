@@ -78,31 +78,10 @@ void CubeRenderer::draw() {
 }
 #pragma endregion// CubeRenderer
 #pragma region Renderer2D
-bool Renderer2D::AABBOverlap(const Vector2& aPos, const Vector2& aSize, const Vector2& bPos, const Vector2& bSize) {
-	if(aPos==bPos) return true;// guaranteed collition
-	// collision x-axis?
-	float collisionX1=((aPos.x+aSize.x/2)-(bPos.x-bSize.x/2));
-	float collisionX2=((bPos.x+bSize.x/2)-(aPos.x-aSize.x/2));
-	// collision y-axis?
-	float collisionY1=((aPos.y+aSize.y/2)-(bPos.y-bSize.y/2));
-	float collisionY2=((bPos.y+bSize.y/2)-(aPos.y-aSize.y/2));
-	// collision only if on both axes
-	return collisionX1>0&&collisionX2>0&&collisionY1>0&&collisionY2>0;
-}
 Renderer2D::Renderer2D(Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle) :
 	Renderer(_shader), Transform2D(_position, _zIndex, _scale, _anchor, _rotAngle) {
 	if(!initialized) return;
 };
-bool Renderer2D::shouldDraw(const Vector2& viewer, const Vector2& viewRange) {
-	if(Engine::instance->ended||!initialized) return false;
-	return AABBOverlap(position-Vector2(anchor.x*scale.x, anchor.y*scale.y), scale, viewer, viewRange);
-}
-bool Renderer2D::shouldDraw(const Vector2& viewer, const float& viewRange) {
-	return shouldDraw(viewer, Vector2(viewRange, viewRange));
-}
-bool Renderer2D::shouldDraw(OrthoCam* viewer) {
-	return shouldDraw(viewer->position, viewer->scale);
-}
 #pragma endregion// Renderers2D
 #pragma region SpriteRenderer
 const float SpriteRenderer::quadvertices[20] {
@@ -258,7 +237,7 @@ void TextRenderer::draw() {
 	if(x>maxX)maxX=x;
 	Transform2D::scale=Vector2(maxX, y)*scale;
 	//Mat4x4 casheMat=translate(Vector3(-anchor, 0.0f))*scaleMat(Vector3(scale, scale, 1.0f));
-	Vector2 offset=position+Vector2((Transform2D::scale.x*(-anchor.x-0.5f)), (Transform2D::scale.y*(anchor.y-0.5f)));
+	Vector2 offset=getWorldPos()+Vector2((Transform2D::scale.x*(-anchor.x-0.5f)), (Transform2D::scale.y*(anchor.y-0.5f)));
 	// iterate through all characters and render each
 	x=0.0f;
 	y=0.0f;
