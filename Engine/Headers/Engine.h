@@ -80,7 +80,7 @@ class Object {
 	virtual ~Object();
 };
 
-class Transform {
+struct Transform {
 	public:
 	Vector3 position;
 	Vector3 scale;
@@ -89,7 +89,7 @@ class Transform {
 	Transform() : position(Vector3::ZERO), scale(Vector3::ONE), rotAxis(Vector3::Vector3::UP), rotAngle(0.0f) {};
 	Transform(const Vector3& _position, const Vector3& _scale, const Vector3& _rotAxis, const float& _rotAngle);
 };
-class Transform2D {
+struct Transform2D {
 	private:
 	Vector3 rotAxis=Vector3(0.0f, 0.0f, 1.0f);
 	Mat4x4 lastModelMat=Mat4x4();
@@ -110,8 +110,7 @@ class Transform2D {
 	Vector2 anchor;
 	float rotAngle;
 
-	Transform2D() : active(false), position(Vector2()), zIndex(0.0f), scale(Vector2()), anchor(Vector2()), rotAngle(0.0f) {};
-	Transform2D(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor, const float& _rotAngle);
+	Transform2D(const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f);
 	virtual ~Transform2D();
 	bool inRange(const Vector2& viewer, const Vector2& viewRange);
 	bool inRange(const Vector2& viewer, const float& viewRange);
@@ -121,9 +120,28 @@ class Transform2D {
 	Vector2 getWorldScale() const;
 	float getWorldRot() const;
 	void addChild(Transform2D* child);
-	static Mat4x4 createModelMat(const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f);
 	Mat4x4 getModelMat();
 
+	void setWorldPos(Vector2 pos);
+};
+class hasTransform2D {
+	public:
+	Transform2D transform;
+	hasTransform2D(const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f) : transform(Transform2D(_position, _zIndex, _scale, _anchor, _rotAngle)) {};
+	bool inRange(const Vector2& viewer, const Vector2& viewRange) { return transform.inRange(viewer, viewRange); };
+	bool inRange(const Vector2& viewer, const float& viewRange) { return transform.inRange(viewer, viewRange); };
+
+	virtual bool isActive() const { return transform.isActive(); };
+	virtual Vector2 getWorldPos() const { return transform.getWorldPos(); };
+	virtual float getZIndex() const { return transform.zIndex; };
+	virtual Vector2 getWorldScale() const { return transform.getWorldScale(); };
+	virtual Vector2 getAnchor() const { return transform.anchor; };
+	virtual float getWorldRot() const { return transform.getWorldRot(); };
+	virtual void addChild(Transform2D* child) { return transform.addChild(child); };
+	virtual void addChild(hasTransform2D* child) { return transform.addChild(&child->transform); };
+	virtual Mat4x4 getModelMat() { return transform.getModelMat(); };
+
+	void setWorldPos(Vector2 pos) { transform.setWorldPos(pos); };
 };
 
 class Texture;

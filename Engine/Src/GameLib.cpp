@@ -206,51 +206,11 @@ float FpsTracker::getFrameTime() {
 #pragma region BoxCollider
 bool ColliderDebug=false;
 std::vector<BoxCollider*> colliders;
-BoxCollider::BoxCollider(Vector2 _position, Vector2 _scale, maskType _mask, Shader* _debugLineShader) :
-	LineRenderer(_debugLineShader, { Vector2(-_scale.x/2, _scale.y/2), Vector2(_scale.x/2, _scale.y/2), Vector2(_scale.x/2, -_scale.y/2), Vector2(-_scale.x/2, -_scale.y/2) }, 3.0f, _position, true),
+BoxCollider::BoxCollider(Shader* _debugLineShader, maskType _mask, const Vector2& _position, const float& _zIndex, const Vector2& _scale) :
+	LineRenderer(_debugLineShader, { Vector2(-_scale.x/2.0f, _scale.y/2.0f), Vector2(_scale.x/2.0f, _scale.y/2.0f), Vector2(_scale.x/2.0f, -_scale.y/2.0f), Vector2(-_scale.x/2.0f, -_scale.y/2.0f) }, 3.0f, true, _position, _zIndex),
 	mask(_mask) {
 	if(!initialized) return;
 	colliders.push_back(this);
-}
-BoxCollider::RaycastHit::operator bool() const { return hit; }
-BoxCollider::RaycastHit BoxCollider::RaycastHit::operator||(const BoxCollider::RaycastHit& b) const {
-	RaycastHit out;
-	switch(((int)hit)+((int)b.hit)*2) {
-		case 0://neither
-			out=RaycastHit();
-			break;
-		case 1://a&&!b
-			out=RaycastHit(*this);
-			break;
-		case 2://b&&!a
-			out=b;
-			break;
-		case 3://a&&b
-			if(dist<=b.dist) out=RaycastHit(*this);// return whichever is closer
-			else out=b;
-			break;
-	}
-	return out;
-}
-BoxCollider::CollitionData::operator bool() const { return hit; }
-BoxCollider::CollitionData BoxCollider::CollitionData::operator||(const BoxCollider::CollitionData& b) const {
-	CollitionData out;
-	switch(((int)hit)+((int)b.hit)*2) {
-		case 0://neither
-			out=CollitionData();
-			break;
-		case 1://a&&!b
-			out=CollitionData(*this);
-			break;
-		case 2://b&&!a
-			out=b;
-			break;
-		case 3://a&&b
-			if(dist<=b.dist) out=CollitionData(*this);// return whichever is closer
-			else out=b;
-			break;
-	}
-	return out;
 }
 BoxCollider::RaycastHit BoxCollider::lineLineIntersection(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4) {
 	// calculate the direction of the lines
@@ -263,22 +223,21 @@ BoxCollider::RaycastHit BoxCollider::lineLineIntersection(const Vector2& p1, con
 	}
 	return RaycastHit();
 }
-BoxCollider::CollitionData BoxCollider::LineBoxCollide(const Vector2& p1, const Vector2& p2, const Vector2& boxPos, const Vector2& boxSize) {
+void BoxCollider::LineBoxCollide(const Vector2& p1, const Vector2& p2, const Vector2& boxPos, const Vector2& boxSize, CollitionData* b) {
 	float boundingRadius=(boxSize/2.0f).length();
-	//check if theres honestly any chance of collision
-	if(((p1-boxPos).length()-boundingRadius)>(p1-p2).length()) return CollitionData();
-	// check if the line has hit any of the rectangle's sides
-	CollitionData collision=CollitionData();
+	// check if theres honestly any chance of collision
+	if(((p1-boxPos).length()-boundingRadius)>(p1-p2).length()) return;
 	Vector2 halfScale=boxSize/2.0f;
-	collision=collision||CollitionData(BoxCollider::lineLineIntersection(p1, p2, boxPos-halfScale, boxPos+Vector2(-halfScale.x, halfScale.y)), Vector2(-1.0f, 0.0f));
-	collision=collision||CollitionData(BoxCollider::lineLineIntersection(p1, p2, boxPos+Vector2(halfScale.x, -halfScale.y), boxPos+halfScale), Vector2(1.0f, 0.0f));
-	collision=collision||CollitionData(BoxCollider::lineLineIntersection(p1, p2, boxPos-halfScale, boxPos+Vector2(halfScale.x, -halfScale.y)), Vector2(0.0f, -1.0f));
-	collision=collision||CollitionData(BoxCollider::lineLineIntersection(p1, p2, boxPos+Vector2(-halfScale.x, halfScale.y), boxPos+halfScale), Vector2(0.0f, 1.0f));
-	// if ANY of the above are true, the line has hit the rectangle
-	return collision;
+	// check if p1 is inside the box
+	if((boxPos.x-p1.x<=halfScale.x)&&(p1.x-boxPos.x<=halfScale.x)&&(boxPos.y-p1.y<=halfScale.y)&&(p1.y-boxPos.y<=halfScale.y)) { b->hit=false; return; }
+	// check if the line has hit any of the rectangle's sides
+	CollitionData::combine(b, BoxCollider::lineLineIntersection(p1, p2, boxPos-halfScale, boxPos+Vector2(-halfScale.x, halfScale.y)), Vector2(-1.0f, 0.0f));
+	CollitionData::combine(b, BoxCollider::lineLineIntersection(p1, p2, boxPos+Vector2(halfScale.x, -halfScale.y), boxPos+halfScale), Vector2(1.0f, 0.0f));
+	CollitionData::combine(b, BoxCollider::lineLineIntersection(p1, p2, boxPos-halfScale, boxPos+Vector2(halfScale.x, -halfScale.y)), Vector2(0.0f, -1.0f));
+	CollitionData::combine(b, BoxCollider::lineLineIntersection(p1, p2, boxPos+Vector2(-halfScale.x, halfScale.y), boxPos+halfScale), Vector2(0.0f, 1.0f));
 }
-BoxCollider::CollitionData BoxCollider::detectCollision(BoxCollider* other) {
-	if(Engine::instance->ended||!initialized) return BoxCollider::CollitionData();
+BoxCollider::CollitionData BoxCollider::detectCollision(const BoxCollider* other) {
+	if(Engine::instance->ended||!initialized) return CollitionData();
 	Vector2 worldPos=getWorldPos();
 	Vector2 worldScale=getWorldScale();
 	Vector2 otherWorldPos=other->getWorldPos();
@@ -297,77 +256,72 @@ BoxCollider::CollitionData BoxCollider::detectCollision(BoxCollider* other) {
 	if(collisionX1>0&&collisionX2>0&&collisionY1>0&&collisionY2>0) {
 		if(std::abs(collisionX2-collisionX1)/worldScale.x>std::abs(collisionY2-collisionY1)/worldScale.y) {
 			Vector2 vec(collisionX2-collisionX1, 0.0f);
-			return CollitionData(Vector2(), vec.normalized(), std::min(collisionX1, collisionX2));
+			return CollitionData(RaycastHit(Vector2(), std::min(collisionX1, collisionX2)), vec.normalized());
 		} else {
 			Vector2 vec(0.0f, collisionY2-collisionY1);
-			return CollitionData(Vector2(), vec.normalized(), std::min(collisionY1, collisionY2));
+			return CollitionData(RaycastHit(Vector2(), std::min(collisionY1, collisionY2)), vec.normalized());
 		}
 	} else {
 		return CollitionData();
 	}
 }
-BoxCollider::CollitionData BoxCollider::sweepDetectCollision(BoxCollider* other, const Vector2& vec) {
-	if(Engine::instance->ended||!initialized) return BoxCollider::CollitionData();
+void BoxCollider::sweepDetectCollision(const BoxCollider* other, const Vector2& vec, CollitionData* b) {
+	if(Engine::instance->ended||!initialized) return;
 	Vector2 worldPos=getWorldPos();
 	Vector2 worldScale=getWorldScale();
 	Vector2 otherWorldPos=other->getWorldPos();
 	Vector2 otherWorldScale=other->getWorldScale();
 	float boundingRadius=(worldScale/2.0f).length();
 	float otherBoundingRadius=(otherWorldScale/2.0f).length();
-	if(((worldPos-otherWorldPos).length()-(boundingRadius+otherBoundingRadius))-vec.length()>=0) return CollitionData();
-	return LineBoxCollide(otherWorldPos, otherWorldPos+vec, worldPos, worldScale+otherWorldScale);
+	LineBoxCollide(otherWorldPos, otherWorldPos+vec, worldPos, worldScale+otherWorldScale, b);
 }
-BoxCollider::CollitionData BoxCollider::LineCollide(const Vector2& p1, const Vector2& p2) {
-	if(Engine::instance->ended||!initialized) return BoxCollider::CollitionData();
+void BoxCollider::LineCollide(const Vector2& p1, const Vector2& p2, CollitionData* b) {
+	if(Engine::instance->ended||!initialized) return;
 	Vector2 worldPos=getWorldPos();
 	Vector2 worldScale=getWorldScale();
-	return LineBoxCollide(p1, p2, worldPos, worldScale);
+	LineBoxCollide(p1, p2, worldPos, worldScale, b);
 }
 
 Vector2 BoxCollider::forceOut(const maskType& collisionMask) {
 	if(Engine::instance->ended||!initialized) return Vector2::ZERO;
-	Vector2 oldPos=position;
+	Vector2 oldPos=getWorldPos();
+	Vector2 newPos=oldPos;
 	for(BoxCollider* collider:colliders) {
 		if((collider->mask&collisionMask)==0) continue;
 		BoxCollider::CollitionData collition=collider->detectCollision(this);
-		position+=collition.normal*collition.dist;
+		newPos+=collition.normal*collition.dist;
+		setWorldPos(newPos);
 	}
-	Vector2 vec=oldPos-position;
-	position=oldPos;
+	Vector2 vec=newPos-oldPos;
+	setWorldPos(oldPos);
 	return vec;
 }
 Vector2 BoxCollider::tryMove(const Vector2& tryVec, const maskType& collisionMask) {
 	if(Engine::instance->ended||!initialized) return Vector2::ZERO;
-	Vector2 oldPos=position;
-	BoxCollider::CollitionData hit=BoxCollider::CollitionData();
+	Vector2 oldPos=getWorldPos();
+	BoxCollider::CollitionData* hit=new BoxCollider::CollitionData();
 	for(BoxCollider* collider:colliders) {
 		if((collider->mask&collisionMask)==0) continue;
-		hit=hit||(collider->sweepDetectCollision(this, tryVec));
+		collider->sweepDetectCollision(this, tryVec, hit);
 	}
-	//if (!hit.hit) return tryVec; else return Vector2::ZERO;
-	if(hit.hit) {
-		Vector2 newVec=tryVec-(hit.normal*tryVec.dot(hit.normal));
-		if(newVec.x!=0.0f||newVec.y!=0.0f) {
-			hit=BoxCollider::CollitionData();
-			for(BoxCollider* collider:colliders) {
-				if((collider->mask&mask)==0) continue;
-				hit=hit||(collider->sweepDetectCollision(this, newVec));
-			}
-			if(!hit.hit) return newVec;
-			else return Vector2::ZERO;
-		}
-	} else return tryVec;
-	Vector2 vec=oldPos-position;
-	position=oldPos;
-	return vec;
+	if(!hit->hit) { delete hit; return tryVec; }
+	Vector2 vec=(hit->normal*tryVec.dot(hit->normal));
+	Vector2 newVec=tryVec-vec;
+	delete hit;
+	if(newVec.x==0.0f&&newVec.y==0.0f) { return newVec; }// newVec is (0,0)
+	hit=new BoxCollider::CollitionData();
+	for(BoxCollider* collider:colliders) {
+		if((collider->mask&collisionMask)==0) continue;
+		collider->sweepDetectCollision(this, newVec, hit);
+	}
+	if(!hit->hit) { delete hit; return newVec; } else { delete hit;Log("Test"); }
 }
-BoxCollider::CollitionData BoxCollider::raycast(const Vector2& p1, const Vector2& p2, const maskType& collisionMask) {
+BoxCollider::CollitionData BoxCollider::raycast(const Vector2& p1, const Vector2& p2, const maskType& collisionMask) const {
 	if(Engine::instance->ended||!initialized) return BoxCollider::CollitionData();
 	BoxCollider::CollitionData out=BoxCollider::CollitionData();
 	for(BoxCollider* collider:colliders) {
 		if((collider->mask&collisionMask)==0) continue;
-		BoxCollider::CollitionData hit=collider->LineCollide(p1, p2);
-		out=out||hit;
+		collider->LineCollide(p1, p2, &out);
 	}
 	return out;
 }

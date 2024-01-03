@@ -79,15 +79,33 @@ class BoxCollider : public LineRenderer {
 	typedef short unsigned int maskType;
 	maskType mask;
 	BoxCollider() : LineRenderer(), mask(0) { initialized=false; }
-	BoxCollider(Vector2 _position, Vector2 _scale, maskType _mask, Shader* _debugLineShader);
+	BoxCollider(Shader* _debugLineShader, maskType _mask, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE);
 	struct RaycastHit {
 		bool hit;
 		Vector2 point;
 		float dist;
 		RaycastHit() : hit(false), dist(FLT_MAX), point(Vector2()) {};
 		RaycastHit(const Vector2& _point, const float& _dist) : hit(true), point(_point), dist(_dist) {};
-		operator bool() const;
-		RaycastHit operator||(const RaycastHit& b) const;
+		operator bool() const { return hit; };
+		RaycastHit operator||(const RaycastHit& b) const {
+			RaycastHit out;
+			switch(((int)hit)+((int)b.hit)*2) {
+				case 0://neither
+					out=RaycastHit();
+					break;
+				case 1://a&&!b
+					out=RaycastHit(*this);
+					break;
+				case 2://b&&!a
+					out=b;
+					break;
+				case 3://a&&b
+					if(dist<=b.dist) out=RaycastHit(*this);// return whichever is closer
+					else out=b;
+					break;
+			}
+			return out;
+		};
 	};
 	struct CollitionData {
 		bool hit;
@@ -95,20 +113,59 @@ class BoxCollider : public LineRenderer {
 		Vector2 normal;
 		float dist;
 		CollitionData() : hit(false), dist(FLT_MAX), point(Vector2()) {};
-		CollitionData(const Vector2& _point, const Vector2& _normal, const float& _dist) : hit(true), point(_point), normal(_normal), dist(_dist) {};
 		CollitionData(const RaycastHit& raycast, const Vector2& _normal) : hit(raycast.hit), point(raycast.point), normal(_normal), dist(raycast.dist) {};
-		operator bool() const;
-		CollitionData operator||(const CollitionData& b) const;
+		static void combine(CollitionData* a, const RaycastHit& raycast, const Vector2& _normal) {
+			switch(((int)a->hit)+((int)raycast.hit)*2) {
+				case 0://neither
+					break;
+				case 1://a&&!b
+					break;
+				case 2://b&&!a
+					a->hit=raycast.hit;
+					a->point=raycast.point;
+					a->normal=_normal;
+					a->dist=raycast.dist;
+					break;
+				case 3://a&&b
+					if(raycast.dist<a->dist) {// if a is closer than new data
+						a->hit=raycast.hit;
+						a->point=raycast.point;
+						a->normal=_normal;
+						a->dist=raycast.dist;
+					}
+					break;
+			}
+		}
+		operator bool() const { return hit; }
+		CollitionData operator||(const CollitionData& b) const {
+			CollitionData out;
+			switch(((int)hit)+((int)b.hit)*2) {
+				case 0://neither
+					out=CollitionData();
+					break;
+				case 1://a&&!b
+					out=CollitionData(*this);
+					break;
+				case 2://b&&!a
+					out=b;
+					break;
+				case 3://a&&b
+					if(dist<=b.dist) out=CollitionData(*this);// return whichever is closer
+					else out=b;
+					break;
+			}
+			return out;
+		}
 	};
 	static RaycastHit lineLineIntersection(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4);
-	static CollitionData LineBoxCollide(const Vector2& p1, const Vector2& p2, const Vector2& boxPos, const Vector2& boxSize);
-	CollitionData detectCollision(BoxCollider* other);
-	CollitionData sweepDetectCollision(BoxCollider* other, const Vector2& vec);
-	CollitionData LineCollide(const Vector2& p1, const Vector2& p2);
+	static void LineBoxCollide(const Vector2& p1, const Vector2& p2, const Vector2& boxPos, const Vector2& boxSize, CollitionData* b=new CollitionData());
+	BoxCollider::CollitionData detectCollision(const BoxCollider* other);
+	void sweepDetectCollision(const BoxCollider* other, const Vector2& vec, CollitionData* b=new CollitionData());
+	void LineCollide(const Vector2& p1, const Vector2& p2, CollitionData* b=new CollitionData());
 
 	Vector2 forceOut(const maskType& collisionMask);
 	Vector2 tryMove(const Vector2& tryVec, const maskType& collisionMask);
-	BoxCollider::CollitionData raycast(const Vector2& p1, const Vector2& p2, const maskType& collisionMask);
+	BoxCollider::CollitionData raycast(const Vector2& p1, const Vector2& p2, const maskType& collisionMask) const;
 };
 extern std::vector<BoxCollider*> colliders;
 const BoxCollider::maskType PLAYERMASK=1;

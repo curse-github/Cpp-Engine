@@ -45,11 +45,13 @@ class FreeCam : public Camera, public Transform {
 	FreeCam(const float& _aspect, const Vector3& _position, const Vector3& _forward, const Vector3& _up);
 	void update();
 };
-class OrthoCam : public Camera, public Transform2D {
+class OrthoCam : public Camera, virtual public hasTransform2D {
 	public:
-	OrthoCam() : Camera(), Transform2D() { initialized=false; }
+	Vector2 scale;
+	OrthoCam() : Camera(), hasTransform2D() { initialized=false; }
 	OrthoCam(const Vector2& _position, const Vector2& _scale);
 	void update();
+	virtual Vector2 getWorldScale() const { return scale; };// makes camera scale independent of parent transform2d
 };
 
 #endif// _CAMERA_H

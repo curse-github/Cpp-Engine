@@ -100,7 +100,7 @@ void FreeCam::on_loop(const double& delta) {
 #pragma endregion// FreeCam
 #pragma region OrthoCam
 OrthoCam::OrthoCam(const Vector2& _position, const Vector2& _scale) :
-	Camera(), Transform2D(_position, 0.0f, _scale, Vector2(), 0.0f) {
+	Camera(), hasTransform2D(_position), scale(_scale) {
 	if(!initialized) return;
 	update();
 }

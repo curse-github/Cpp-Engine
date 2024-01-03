@@ -46,7 +46,7 @@ UiHandler::UiHandler() : Object() {
 void UiHandler::draw() {}
 #pragma endregion// UiHandler
 
-Clickable::Clickable(OrthoCam* _cam) : cam(_cam) {
+Clickable::Clickable(OrthoCam* _cam) : cam(_cam), hasTransform2D() {
 	UiHandler::instance->clickables.push_back(this);
 }
 void Clickable::on_click(const Vector2& pos) {}
@@ -65,7 +65,7 @@ void Button::on_release(const Vector2& pos) {
 void Button::on_hover(const Vector2& pos) { shader->setFloat4("color", hoverColor); }
 void Button::on_unhover(const Vector2& pos) { shader->setFloat4("color", color); }
 Button::Button(OrthoCam* _cam, const Vector4& _color, const Vector4& _hoverColor, const Vector4& _pressedColor, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) :
-	Clickable(_cam), Transform2D(_position, _zIndex, _scale, _anchor, 0.0f), color(_color), hoverColor(_hoverColor), pressedColor(_pressedColor), renderer(nullptr) {
+	Clickable(_cam), hasTransform2D(_position, _zIndex, _scale, _anchor), color(_color), hoverColor(_hoverColor), pressedColor(_pressedColor), renderer(nullptr) {
 	shader=new Shader("Shaders/basic.vert", "Shaders/color.frag");
 	if(!shader->initialized)return;
 	renderer=new SpriteRenderer(shader, Vector2::ZERO, _zIndex, Vector2::ONE, _anchor);

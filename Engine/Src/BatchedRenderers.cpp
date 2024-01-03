@@ -1,7 +1,7 @@
 #include "BatchedRenderers.h"
 
 #pragma region BatchedSpriteRenderer
-void BatchedSpriteRenderer::bufferQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex) {
+void BatchedSpriteRenderer::bufferQuad(const Vector4& modulate, const float& texIndex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
 	if(Engine::instance->ended||!initialized) return;
 	if(numQuads>=maxQuadCount) renderBatch();// if out of room render and reset
 	for(unsigned int i=0; i<((unsigned int)4*5); i+=5) {
@@ -70,9 +70,9 @@ BatchedSpriteRenderer::~BatchedSpriteRenderer() {
 	if(!initialized) return;
 	delete[] quadBuffer;
 }
-BatchedQuadData* BatchedSpriteRenderer::addQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex) {
+BatchedQuadData* BatchedSpriteRenderer::addQuad(const Vector4& modulate, const float& texIndex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
 	if(Engine::instance->ended||!initialized) return nullptr;
-	BatchedQuadData* ptr=new BatchedQuadData { _position, _zIndex, _scale, modulate, texIndex };
+	BatchedQuadData* ptr=new BatchedQuadData(modulate, texIndex, _position, _zIndex, _scale, _anchor);
 	quads.push_back(ptr);
 	return ptr;
 }
@@ -86,12 +86,12 @@ void BatchedSpriteRenderer::draw() {
 		glActiveTexture(GL_TEXTURE0+shader->textureIndexes[i]);
 		glBindTexture(GL_TEXTURE_2D, shader->textures[i]->ID);
 	}
-	for(BatchedQuadData* quad:quads) bufferQuad(quad->position, quad->zIndex, quad->scale, quad->modulate, quad->texIndex);
+	for(BatchedQuadData* quad:quads) bufferQuad(quad->modulate, quad->texIndex, quad->getWorldPos(), quad->zIndex, quad->getWorldScale(), quad->anchor);
 	renderBatch();
 }
 #pragma endregion// BatchedSpriteRenderer
 #pragma region StaticBatchedSpriteRenderer
-void StaticBatchedSpriteRenderer::bufferQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex) {
+void StaticBatchedSpriteRenderer::bufferQuad(const Vector4& modulate, const float& texIndex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
 	if(Engine::instance->ended||!initialized) return;
 	if(numQuads>=maxQuadCount) return;//dont try to add more than the max, this should not occur though
 	for(unsigned int i=0; i<((unsigned int)4*5); i+=5) {
@@ -155,9 +155,9 @@ StaticBatchedSpriteRenderer::~StaticBatchedSpriteRenderer() {
 	delete[] quadBuffer;
 	for(BatchedQuadData* data:quads) delete data;
 }
-BatchedQuadData* StaticBatchedSpriteRenderer::addQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex) {
+BatchedQuadData* StaticBatchedSpriteRenderer::addQuad(const Vector4& modulate, const float& texIndex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
 	if(Engine::instance->ended||!initialized) return nullptr;
-	BatchedQuadData* ptr=new BatchedQuadData { _position, _zIndex, _scale, modulate, texIndex };
+	BatchedQuadData* ptr=new BatchedQuadData(modulate, texIndex, _position, _zIndex, _scale, _anchor);
 	quads.push_back(ptr);
 	return ptr;
 }
@@ -165,7 +165,7 @@ void StaticBatchedSpriteRenderer::bind() {
 	if(Engine::instance->ended||!initialized) return;
 	quadBufferPtr=quadBuffer;
 	numQuads=0;
-	for(BatchedQuadData* quad:quads) bufferQuad(quad->position, quad->zIndex, quad->scale, quad->modulate, quad->texIndex);
+	for(BatchedQuadData* quad:quads) bufferQuad(quad->modulate, quad->texIndex, quad->getWorldPos(), quad->zIndex, quad->getWorldScale(), quad->anchor);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, maxQuadCount*4*sizeof(BatchedVertex), quadBuffer);
 }
@@ -190,7 +190,7 @@ struct TextRenderer::Character {
 	Vector2   Bearing;         // Offset from baseline to left/top of glyph
 	float Advance=0.0f;        // Offset to advance to next glyph
 };
-void BatchedTextRenderer::bufferCharacter(const int& shaderIndex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& _color, const float& texIndex) {
+void BatchedTextRenderer::bufferCharacter(const int& shaderIndex, const float& texIndex, const Vector4& color, const Vector2& _position, const float& _zIndex, const Vector2& _scale) {
 	if(Engine::instance->ended||!initialized) return;
 	if(numChars[shaderIndex]>=maxCharacterCount) renderBatch(shaderIndex);// if out of room render and reset
 	for(unsigned int i=0; i<((unsigned int)4*5); i+=5) {
@@ -198,7 +198,7 @@ void BatchedTextRenderer::bufferCharacter(const int& shaderIndex, const Vector2&
 			_position.x+SpriteRenderer::quadvertices[i+0]*_scale.x, _position.y+SpriteRenderer::quadvertices[i+1]*_scale.y,// x and y
 			_zIndex-100.0f,// z
 			SpriteRenderer::quadvertices[i+3], SpriteRenderer::quadvertices[i+4],// u and v
-			_color.x, _color.y, _color.z, _color.w,
+			color.x, color.y, color.z, color.w,
 			texIndex
 		};
 		characterBufferPtrs[shaderIndex]++;
@@ -285,9 +285,9 @@ BatchedTextRenderer::~BatchedTextRenderer() {
 	}
 	for(BatchedTextData* _text:text) delete _text;
 }
-BatchedTextData* BatchedTextRenderer::addText(const std::string& _text, const Vector4& _color, const Vector2& _position, const float& _zIndex, const float& _scale, const Vector2& _anchor) {
+BatchedTextData* BatchedTextRenderer::addText(const std::string& _text, const Vector4& color, const Vector2& _position, const float& _zIndex, const float& _scale, const Vector2& _anchor) {
 	if(Engine::instance->ended||!initialized) return nullptr;
-	BatchedTextData* ptr=new BatchedTextData { _text, _color, _position, _zIndex, _scale, _anchor };
+	BatchedTextData* ptr=new BatchedTextData(_text, color, _position, _zIndex, _scale, _anchor);
 	text.push_back(ptr);
 	return ptr;
 }
@@ -314,7 +314,7 @@ void BatchedTextRenderer::draw() {
 			curX+=1.0f+ch.Advance;
 		}
 		if(curX>tmpScale.x)tmpScale.x=curX;
-		Vector2 offset=_text->position-Vector2(tmpScale.x*(_text->anchor.x+0.5f), tmpScale.y*(_text->anchor.y-0.5f));
+		Vector2 offset=_text->getWorldPos()-Vector2(tmpScale.x*(_text->anchor.x+0.5f), tmpScale.y*(_text->anchor.y-0.5f));
 		// iterate through all characters and add to buffer
 		float x=0.0f;
 		float y=0.0f;
@@ -327,11 +327,11 @@ void BatchedTextRenderer::draw() {
 			else if(charC=='\t') { x+=1.0f+ch.Advance*4.0f; continue; }//4 character spaces
 			bufferCharacter(
 				((intC)/32)-1,
+				(float)((intC)%32),
+				_text->color,
 				(offset+Vector2(x, y)+ch.Bearing-Vector2(_text->anchor.x*ch.Size.x, (ch.Size.y)/2.0f+9.0f))*_text->scale,
 				_text->zIndex,
-				ch.Size*_text->scale,
-				_text->color,
-				(float)((intC)%32)
+				ch.Size*_text->scale
 			);
 			// now advance cursors for next glyph
 			x+=1.0f+ch.Advance;

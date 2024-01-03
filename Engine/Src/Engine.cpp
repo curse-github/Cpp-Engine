@@ -247,7 +247,7 @@ Transform2D::~Transform2D() {
 
 bool Transform2D::inRange(const Vector2& viewer, const Vector2& viewRange) {
 	if(Engine::instance->ended) return false;
-	return isActive()&&AABBOverlap(position-Vector2(anchor.x*scale.x, anchor.y*scale.y), scale, viewer, viewRange);
+	return isActive()&&AABBOverlap(getWorldPos()-Vector2(anchor.x*scale.x, anchor.y*scale.y), scale, viewer, viewRange);
 }
 bool Transform2D::inRange(const Vector2& viewer, const float& viewRange) {
 	return inRange(viewer, Vector2(viewRange));
@@ -279,9 +279,6 @@ void Transform2D::addChild(Transform2D* child) {
 	child->parent=this;
 	children.push_back(child);
 }
-Mat4x4 Transform2D::createModelMat(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor, const float& _rotAngle) {
-	return translate(Vector3(-_anchor, 0.0f))*axisRotMat(Vector3(0.0f, 0.0f, 1.0f), deg_to_rad(_rotAngle))*scaleMat(Vector3(_scale, 1.0f))*translate(Vector3(_position, _zIndex-100.0f));
-}
 Mat4x4 Transform2D::getModelMat() {
 	bool changed=false;
 	Vector2 worldPos=getWorldPos();
@@ -293,6 +290,11 @@ Mat4x4 Transform2D::getModelMat() {
 	if(lastWorldRot!=worldRot) { lastWorldRot=worldRot;changed=true; }
 	if(changed) { lastModelMat=translate(Vector3(-anchor, 0.0f))*axisRotMat(rotAxis, deg_to_rad(worldRot))*scaleMat(Vector3(worldScale, 1.0f))*translate(Vector3(worldPos, zIndex-100.0f)); }
 	return lastModelMat;
+}
+
+void Transform2D::setWorldPos(Vector2 pos) {
+	if(parent!=nullptr) pos-parent->getWorldPos();
+	else position=pos;
 }
 #pragma endregion// Transforms
 

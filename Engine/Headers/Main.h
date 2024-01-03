@@ -52,7 +52,7 @@ BatchedTextData* debugText;
 StaticBatchedSpriteRenderer* instanceRenderer;
 StaticBatchedSpriteRenderer* instanceStateRenderer;
 
-class Player : public Object, public Transform2D {
+class Player : public Object, public hasTransform2D {
 	protected:
 	SpriteRenderer* renderer;
 	StencilSimple flashlightStencil;
@@ -64,38 +64,38 @@ class Player : public Object, public Transform2D {
 	void on_loop(const double& delta) override;
 	public:
 	BoxCollider* collider;
-	Player() : Object(), Transform2D(), renderer(nullptr), collider(nullptr), flashlightStencil(StencilSimple()), sceneCam(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {}
-	Player(OrthoCam* _sceneCam, const Vector2& _position, Shader* playerShader, Shader* flashlightShader, Shader* iconShader);
+	Player() : Object(), hasTransform2D(), renderer(nullptr), collider(nullptr), flashlightStencil(StencilSimple()), sceneCam(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {}
+	Player(OrthoCam* _sceneCam, Shader* playerShader, Shader* flashlightShader, Shader* iconShader, const Vector2& _position=Vector2::ZERO);
 	void flashlightStencilOn();
 	void flashlightStencilOff();
 	void setPos(const Vector2& pos);
 };
-class Enemy : public Object, public Transform2D {
+class Enemy : public Object, public hasTransform2D {
 	protected:
 	SpriteRenderer* renderer;
 	BoxCollider* collider;
 	SpriteRenderer* iconRenderer;
 	Shader* lineShader;
 	Pathfinder* pathfinder;
-	Player* target;
+	hasTransform2D* target;
 	Vector2 lastSpottedPos;
 	std::vector<Vector2> path;
 	void setDebugLine(std::vector<Vector2> line);
 	void on_loop(const double& delta) override;
 	public:
 	LineRenderer* debugRen=nullptr;
-	Enemy() : Object(), Transform2D(), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), lineShader(nullptr), pathfinder(nullptr), target(nullptr) {}
-	Enemy(const Vector2& _position, Shader* enemyShader, Shader* iconShader, Shader* _lineShader, Pathfinder* _pathfinder, Player* _target);
+	Enemy() : Object(), hasTransform2D(), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), lineShader(nullptr), pathfinder(nullptr), target(nullptr) {}
+	Enemy(Shader* enemyShader, Shader* iconShader, Shader* _lineShader, Pathfinder* _pathfinder, hasTransform2D* _target, const Vector2& _position=Vector2::ZERO);
 };
-class Instance : virtual public Transform2D, public Clickable {
+class Instance : virtual public hasTransform2D, public Clickable {
 	protected:
 	bool broken=false;
 	BatchedQuadData* stateQuad;
 	StaticBatchedSpriteRenderer* instanceStateRenderer;
 	void on_click(const Vector2& pos) override;
 	public:
-	Instance() : Transform2D(), Clickable(), stateQuad(nullptr), instanceStateRenderer(nullptr) {};
-	Instance(OrthoCam* _cam, const Vector2& _position, const Vector2& _anchor, const float& _rotAngle, Shader* lineShader, StaticBatchedSpriteRenderer* instanceRenderer, StaticBatchedSpriteRenderer* instanceStateRenderer);
+	Instance() : hasTransform2D(), Clickable(), stateQuad(nullptr), instanceStateRenderer(nullptr) {};
+	Instance(OrthoCam* _cam, Shader* lineShader, StaticBatchedSpriteRenderer* _instanceRenderer, StaticBatchedSpriteRenderer* _instanceStateRenderer, const Vector2& _position=Vector2::ZERO, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f);
 	void fixInstance();
 	void breakInstance();
 };

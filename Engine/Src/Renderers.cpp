@@ -71,15 +71,15 @@ CubeRenderer::CubeRenderer(Shader* _shader, const Vector3& _position, const Vect
 void CubeRenderer::draw() {
 	if(Engine::instance->ended||!initialized) return;
 	Mat4x4 model=axisRotMat(rotAxis, deg_to_rad(rotAngle))*translate(position);
-	shader->bindTexture(0);
+	shader->bindTextures();
 	shader->setMat4x4("model", model);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
 #pragma endregion// CubeRenderer
 #pragma region Renderer2D
-Renderer2D::Renderer2D(Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle) :
-	Renderer(_shader), Transform2D(_position, _zIndex, _scale, _anchor, _rotAngle) {
+Renderer2D::Renderer2D(Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor, const float& _rotAngle) :
+	Renderer(_shader), hasTransform2D(_position, _zIndex, _scale, _anchor, _rotAngle) {
 	if(!initialized) return;
 };
 #pragma endregion// Renderers2D
@@ -113,13 +113,9 @@ SpriteRenderer::SpriteRenderer(Shader* _shader, const Vector2& _position, const 
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
-SpriteRenderer::SpriteRenderer(Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) : SpriteRenderer(_shader, _position, _zIndex, _scale, _anchor, 0.0f) {}
-SpriteRenderer::SpriteRenderer(Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale) : SpriteRenderer(_shader, _position, _zIndex, _scale, Vector2::Center, 0.0f) {}
-SpriteRenderer::SpriteRenderer(Shader* _shader, const Vector2& _position, const float& _zIndex) : SpriteRenderer(_shader, _position, _zIndex, Vector2::ONE, Vector2::Center, 0.0f) {}
-SpriteRenderer::SpriteRenderer(Shader* _shader, const Vector2& _position) : SpriteRenderer(_shader, _position, 0.0f, Vector2::ONE, Vector2::Center, 0.0f) {}
 void SpriteRenderer::draw() {
 	if(Engine::instance->ended||!initialized) return;
-	shader->bindTexture(0);
+	shader->bindTextures();
 	shader->setMat4x4("model", getModelMat());
 	glBindVertexArray(VAO);
 	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -180,7 +176,7 @@ int TextRenderer::initCharacterMap() {
 	characterMapInitialized=true;
 	return 1;
 }
-TextRenderer::TextRenderer(Shader* _shader, const std::string& _text, const Vector3& _color, const Vector2& _position, const float& _scale, const float& _zIndex, const Vector2& _anchor) :
+TextRenderer::TextRenderer(Shader* _shader, const std::string& _text, const Vector4& _color, const Vector2& _position, const float& _zIndex, const float& _scale, const Vector2& _anchor) :
 	Renderer2D(_shader, _position, _zIndex, Vector2::ONE, _anchor, 0.0f), text(_text), color(_color), scale(_scale) {
 	if(!initialized) return;
 	if(!characterMapInitialized) {
@@ -211,51 +207,44 @@ TextRenderer::TextRenderer(Shader* _shader, const std::string& _text, const Vect
 
 	shader->setFloat("text", 0);
 }
-TextRenderer::TextRenderer(Shader* _shader, const std::string& _text, const Vector3& _color, const Vector2& _position, const float& _scale, const float& _zIndex) : TextRenderer(_shader, _text, _color, _position, _scale, _zIndex, Vector2::Center) {}
-TextRenderer::TextRenderer(Shader* _shader, const std::string& _text, const Vector3& _color, const Vector2& _position, const float& _scale) : TextRenderer(_shader, _text, _color, _position, _scale, 0.0f, Vector2::Center) {}
 void TextRenderer::draw() {
 	if(Engine::instance->ended||!initialized) return;
-	shader->setFloat3("textColor", color);
+	shader->setFloat4("textColor", color);
 	glActiveTexture(GL_TEXTURE0);
 	glBindVertexArray(VAO);
 	// iterate through all characters to find full text block
-	float x=0.0f;
-	float maxX=0.0f;
-	float y=0.0f;
-	for(std::string::const_iterator c=text.begin(); c!=text.end(); c++) {
-		if(*c=='\n') {
-			if(x>maxX)maxX=x;
-			x=0.0f;
-			y-=9.0f;
+	Vector2 tmpScale=Vector2(0.0f, 9.0f);
+	float curX=0.0f;
+	const char* cstr=text.c_str();
+	int len=(int)text.length();
+	for(int c=0;c!=len;c++) {
+		char charC=cstr[c];
+		if(charC=='\n') {
+			if(curX>tmpScale.x)tmpScale.x=curX;
+			curX=0.0f; tmpScale.y+=9.0f;
 			continue;
 		}
-		Character ch=Characters[*c];
-		if(*c==' ') { x+=1.0f+ch.Advance; continue; }// skip one space and continue
-		else if(*c=='\t') { x+=1.0f+ch.Advance*4.0f; continue; }//4 character spaces
-		x+=ch.Advance; // bitshift by 6 to get value in pixels (2^6 = 64)
+		TextRenderer::Character ch=TextRenderer::Characters[(int)charC];
+		if(charC==' ') { curX+=1.0f+ch.Advance; continue; }// skip one space and continue
+		else if(charC=='\t') { curX+=1.0f+ch.Advance*4.0f; continue; }//4 character spaces
+		curX+=1.0f+ch.Advance;
 	}
-	if(x>maxX)maxX=x;
-	Transform2D::scale=Vector2(maxX, y)*scale;
-	//Mat4x4 casheMat=translate(Vector3(-anchor, 0.0f))*scaleMat(Vector3(scale, scale, 1.0f));
-	Vector2 offset=getWorldPos()+Vector2((Transform2D::scale.x*(-anchor.x-0.5f)), (Transform2D::scale.y*(anchor.y-0.5f)));
+	if(curX>tmpScale.x)tmpScale.x=curX;
+	Vector2 anchor=getAnchor();
+	Vector2 offset=getWorldPos()-Vector2(tmpScale.x*(anchor.x+0.5f), tmpScale.y*(anchor.y-0.5f));
 	// iterate through all characters and render each
-	x=0.0f;
-	y=0.0f;
-	std::string::const_iterator c;
-	//Log(1);
-	for(c=text.begin(); c!=text.end(); c++) {
-		if(*c=='\n') { x=0.0f;y-=9.0f; continue; } else if(*c=='\r') { x=0.0f; continue; }
-		Character ch=Characters[*c];
-		if(*c==' ') { x+=1.0f+ch.Advance; continue; }// skip one space and continue
-		else if(*c=='\t') { x+=1.0f+ch.Advance*4.0f; continue; }//4 character spaces
-		//Mat4x4 model=casheMat*scaleMat(Vector3(ch.Size, 1.0f))*translate(Vector3(offset+Vector2(((float)x)+ch.Bearing.x, ((float)y)-(ch.Size.y-ch.Bearing.y))*scale, zIndex-100.0f));
-		//shader->setMat4x4("model", model);
-		//shader->setMat4x4("model", translate(Vector3(-anchor, 0.0f))*scaleMat(Vector3(scale, scale, 1.0f))*scaleMat(Vector3(ch.Size, 1.0f))*translate(Vector3(offset+Vector2(((float)x)+ch.Bearing.x, ((float)y)-(ch.Size.y-ch.Bearing.y))*scale, zIndex-100.0f)));
-		//Log(ch.Size*scale);
-		shader->setMat4x4("model", scaleMat(Vector3(ch.Size*scale, 1.0f))*translate(Vector3(offset+(Vector2(x, y)+ch.Bearing-Vector2(anchor.x*ch.Size.x, (anchor.y+1)*ch.Size.y))*scale, zIndex-100.0f)));
+	float x=0.0f;
+	float y=0.0f;
+	for(int c=0;c!=len;c++) {
+		char charC=cstr[c];
+		int intC=(int)charC;
+		if(charC=='\n') { x=0.0f;y-=9.0f; continue; } else if(charC=='\r') { x=0.0f; continue; }
+		TextRenderer::Character ch=TextRenderer::Characters[intC];
+		if(charC==' ') { x+=1.0f+ch.Advance; continue; }// skip one space and continue
+		else if(charC=='\t') { x+=1.0f+ch.Advance*4.0f; continue; }//4 character spaces
+		shader->setMat4x4("model", scaleMat(Vector3(ch.Size*scale, 1.0f))*translate(Vector3((offset+Vector2(x, y)+ch.Bearing-Vector2(anchor.x*ch.Size.x, (ch.Size.y)/2.0f+9.0f))*scale, getZIndex()-100.0f)));
 		ch.tex->Bind(0);
 		// render quad
-		//glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, 0);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		// now advance cursors for next glyph
 		x+=1.0f+ch.Advance;
@@ -265,8 +254,8 @@ void TextRenderer::draw() {
 }
 #pragma endregion// TextRenderer
 #pragma region LineRenderer
-LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const Vector2& _position, const bool& _loop) :
-	Renderer2D(_shader, _position, 100.0f, Vector2::ONE, Vector2::Center, 0.0f), positions(_positions), width(_width), loop(_loop) {
+LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const bool& _loop, const Vector2& _position, const float& _zIndex) :
+	Renderer2D(_shader, _position, _zIndex), positions(_positions), width(_width), loop(_loop) {
 	if(!initialized) return;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -287,7 +276,7 @@ LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positio
 		verts.push_back(0.0f);
 		verts.push_back(0.0f);
 	}
-	scale=Vector2(farthestX*2.0f, farthestY*2.0f);
+	transform.scale=Vector2(farthestX*2.0f, farthestY*2.0f);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*verts.size(), &verts[0], GL_STATIC_DRAW);// fill VBO buffer with vertex data
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
@@ -296,13 +285,10 @@ LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positio
 	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
-LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const Vector2& _position) : LineRenderer(_shader, _positions, _width, _position, false) {}
-LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const bool& _loop) : LineRenderer(_shader, _positions, _width, Vector2::ZERO, _loop) {}
-LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width) : LineRenderer(_shader, _positions, _width, Vector2::ZERO, false) {}
 void LineRenderer::draw() {
 	if(Engine::instance->ended||!initialized) return;
-	shader->bindTexture(0);
-	shader->setMat4x4("model", createModelMat(position, zIndex, Vector2::ONE, Vector2::Center, 0.0f));
+	shader->bindTextures();
+	shader->setMat4x4("model", scaleMat(Vector3((transform.parent!=nullptr ? transform.parent->getWorldScale() : Vector2(1.0f, 1.0f)), 0.0f))*translate(Vector3(getWorldPos(), 100.0f-getZIndex())));
 	glBindVertexArray(VAO);
 	glLineWidth(width);
 	glDrawArrays(loop ? GL_LINE_LOOP : GL_LINE_STRIP, 0, (GLsizei)positions.size());

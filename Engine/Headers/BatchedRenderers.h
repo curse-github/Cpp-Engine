@@ -23,18 +23,18 @@ struct BatchedVertex {
 
 	float I;
 };
-struct BatchedQuadData {
-	Vector2 position;
-	float zIndex;
-	Vector2 scale;
+struct BatchedQuadData : public Transform2D {
+	public:
 	Vector4 modulate;
 	float texIndex;
+	BatchedQuadData(const Vector4& _modulate, const float& _texIndex, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center) :
+		Transform2D(_position, _zIndex, _scale, _anchor), modulate(_modulate), texIndex(_texIndex) {};
 };
 class BatchedSpriteRenderer : protected Renderer2D {
 	protected:
 	BatchedVertex* quadBuffer;
 	BatchedVertex* quadBufferPtr;
-	void bufferQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex);
+	void bufferQuad(const Vector4& modulate, const float& texIndex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor);
 	void renderBatch();
 	public:
 	using Renderer::shader;
@@ -46,14 +46,14 @@ class BatchedSpriteRenderer : protected Renderer2D {
 	BatchedSpriteRenderer() : Renderer2D(), quadBuffer(nullptr), quadBufferPtr(nullptr) { initialized=false; };
 	BatchedSpriteRenderer(Shader* _shader);
 	virtual ~BatchedSpriteRenderer();
-	BatchedQuadData* addQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex);
+	BatchedQuadData* addQuad(const Vector4& _modulate, const float& _texIndex, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
 	void draw() override;
 };
 class StaticBatchedSpriteRenderer : protected Renderer2D {
 	protected:
 	BatchedVertex* quadBuffer;
 	BatchedVertex* quadBufferPtr;
-	void bufferQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex);
+	void bufferQuad(const Vector4& _modulate, const float& _texIndex, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
 	void renderBatch();
 	public:
 	using Renderer::shader;
@@ -65,24 +65,24 @@ class StaticBatchedSpriteRenderer : protected Renderer2D {
 	StaticBatchedSpriteRenderer() : Renderer2D(), quadBuffer(nullptr), quadBufferPtr(nullptr) { initialized=false; };
 	StaticBatchedSpriteRenderer(Shader* _shader);
 	virtual ~StaticBatchedSpriteRenderer();
-	BatchedQuadData* addQuad(const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& modulate, const float& texIndex);
+	BatchedQuadData* addQuad(const Vector4& _modulate, const float& _texIndex, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
 	void bind();
 	void draw() override;
 };
 
-struct BatchedTextData {
+struct BatchedTextData : public Transform2D {
+	public:
 	std::string text;
 	Vector4 color;
-	Vector2 position;
-	float zIndex;
 	float scale;
-	Vector2 anchor;
+	BatchedTextData(const std::string& _text, const Vector4& _color, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const float& _scale=1.0f, const Vector2& _anchor=Vector2::Center) :
+		Transform2D(_position, _zIndex, Vector2(_scale), _anchor), text(_text), color(_color), scale(_scale) {};
 };
 class BatchedTextRenderer : protected Renderer2D {
 	protected:
 	std::array<BatchedVertex*, 3> characterBuffers;
 	std::array<BatchedVertex*, 3> characterBufferPtrs;
-	void bufferCharacter(const int& shaderIndex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector4& color, const float& texIndex);
+	void bufferCharacter(const int& shaderIndex, const float& texIndex, const Vector4& color, const Vector2& _position, const float& _zIndex, const Vector2& _scale);
 	void renderBatch(const int& shaderIndex);
 	std::array<std::array<Texture*, 32>, 3> textureArrays={ {
 		{ nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr },
@@ -98,7 +98,7 @@ class BatchedTextRenderer : protected Renderer2D {
 	BatchedTextRenderer() : Renderer2D(), characterBuffers({ nullptr, nullptr, nullptr }), characterBufferPtrs({ nullptr, nullptr, nullptr }) { initialized=false; };
 	BatchedTextRenderer(Camera* cam);
 	virtual ~BatchedTextRenderer();
-	BatchedTextData* addText(const std::string& _text, const Vector4& _color, const Vector2& _position, const float& _zIndex, const float& _scale, const Vector2& _anchor);
+	BatchedTextData* addText(const std::string& _text, const Vector4& color, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const float& _scale=1.0f, const Vector2& _anchor=Vector2::Center);
 	void draw() override;
 };
 #endif// _BATCH_RENDERERS_H

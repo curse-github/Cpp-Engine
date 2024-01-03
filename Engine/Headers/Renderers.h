@@ -29,21 +29,17 @@ class CubeRenderer : public Renderer, public Transform {
 	CubeRenderer(Shader* _shader, const Vector3& _position, const Vector3& _scale);
 	void draw() override;
 };
-class Renderer2D : public Renderer, public Transform2D {
+class Renderer2D : public Renderer, public hasTransform2D {
 	public:
-	Renderer2D() : Renderer(), Transform2D() { initialized=false; };
-	Renderer2D(Shader* _shader, Vector2 _position, float _zIndex, Vector2 _scale, Vector2 _anchor, float _rotAngle);
+	Renderer2D() : Renderer(), hasTransform2D() { initialized=false; };
+	Renderer2D(Shader* _shader, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f);
 };
 class SpriteRenderer : public Renderer2D {
 	public:
 	static const float quadvertices[20];
 	static const int quadindices[6];
 	SpriteRenderer() : Renderer2D() { initialized=false; }
-	SpriteRenderer(Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor, const float& _rotAngle);
-	SpriteRenderer(Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor);
-	SpriteRenderer(Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale);
-	SpriteRenderer(Shader* _shader, const Vector2& _position, const float& _zIndex);
-	SpriteRenderer(Shader* _shader, const Vector2& _position);
+	SpriteRenderer(Shader* _shader, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f);
 	void draw() override;
 };
 extern bool characterMapInitialized;
@@ -56,13 +52,12 @@ class TextRenderer : public Renderer2D {
 	using Renderer::shader;
 
 	std::string text;
-	Vector3 color;
+	Vector4 color;
 	float scale;
-	TextRenderer() : Renderer2D(), text(""), color(Vector3()), scale(0.0f) { initialized=false; }
-	TextRenderer(Shader* _shader, const std::string& _text, const Vector3& _color, const Vector2& _position, const float& _scale, const float& _zIndex, const Vector2& _anchor);
-	TextRenderer(Shader* _shader, const std::string& _text, const Vector3& _color, const Vector2& _position, const float& _scale, const float& _zIndex);
-	TextRenderer(Shader* _shader, const std::string& _text, const Vector3& _color, const Vector2& _position, const float& _scale);
+	TextRenderer() : Renderer2D(), text(""), color(Vector4()), scale(0.0f) { initialized=false; }
+	TextRenderer(Shader* _shader, const std::string& _text, const Vector4& _color, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const float& _scale=1.0f, const Vector2& _anchor=Vector2::Center);
 	void draw() override;
+	virtual Vector2 getWorldScale() const { return Vector2(scale); };// makes text scale independent of parent transform2d
 };
 class LineRenderer : public Renderer2D {
 	protected:
@@ -71,10 +66,7 @@ class LineRenderer : public Renderer2D {
 	float width;
 	bool loop;
 	LineRenderer() : Renderer2D(), positions {}, width(1.0f), loop(false) { initialized=false; }
-	LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const Vector2& _position, const bool& _loop);
-	LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const Vector2& _position);
-	LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const bool& _loop);
-	LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width);
+	LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const bool& _loop, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f);
 	void draw() override;
 };
 
