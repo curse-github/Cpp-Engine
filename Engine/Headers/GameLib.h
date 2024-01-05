@@ -18,12 +18,23 @@ Shader* createTexShader(Texture* tex, const Vector4& modulate);
 Shader* createTextShader();
 Shader* createBatchedShader(const std::vector<Texture*>& textures);
 
-struct PathfinderData;
 class Pathfinder {
 	protected:
 	static unsigned int GridToIndex(const Vector2& grid) { return (unsigned int)(grid.x*mapSize.y*2+grid.y); }
 	static unsigned int MaxIndex() { return (unsigned int)(mapSize.x*mapSize.y)*4; }
-	friend PathfinderData;
+	struct PathfinderData {
+		Vector2 Pos;
+		unsigned int FromKey;
+		float G;
+		float F;
+		bool open;
+		bool initialized;
+		PathfinderData() :
+			Pos(Vector2()), FromKey(Pathfinder::MaxIndex()), G(FLT_MAX), F(FLT_MAX), open(false), initialized(false) {}
+		PathfinderData(Vector2 _Pos, unsigned int _FromKey, float _G, float _F, bool _open) :
+			Pos(_Pos), FromKey(_FromKey), G(_G), F(_F), open(_open), initialized(true) {}
+	};
+	std::vector<PathfinderData> dataMap;
 
 	bool isWall(const Vector2& pos);
 	bool isValid(const Vector2& pos);
@@ -56,21 +67,6 @@ class Pathfinder {
 	Pathfinder();
 	std::vector<Vector2> pathfind(const Vector2& a, const Vector2& b);
 	bool allowDiagonals=true;
-};
-class FpsTracker : Object {
-	protected:
-	double lastFrames[500]={};
-	int avgFps=0;
-	int highFps=0;
-	int lowFps=0;
-	float frameTime=0;
-	void on_loop(const double& delta) override;
-	public:
-	FpsTracker();
-	int getAvgFps();
-	int getHighFps();
-	int getLowFps();
-	float getFrameTime();
 };
 
 extern bool ColliderDebug;

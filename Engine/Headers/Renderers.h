@@ -9,15 +9,14 @@ class OrthoCam;
 
 class Renderer : public Object {
 	protected:
-	Shader* shader;
 	unsigned int VAO;
 	unsigned int VBO;
 	unsigned int EBO;
 	public:
+	Shader* shader;
 	Renderer() : Object(), shader(nullptr), VAO(0), VBO(0), EBO(0) { initialized=false; }
 	Renderer(Shader* _shader);
 	virtual ~Renderer();
-	void setShader(Shader* _shader);
 	virtual void draw()=0;
 };
 class CubeRenderer : public Renderer, public Transform {

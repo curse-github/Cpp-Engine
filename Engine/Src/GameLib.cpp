@@ -52,24 +52,12 @@ bool Pathfinder::isValidMove(const Vector2& pos, const Vector2& dir) {
 	for(Vector2 obstruction : obstructionsLst) if(!isValid(pos+obstruction)) return false;
 	return true;
 }
-struct PathfinderData {
-	Vector2 Pos;
-	unsigned int FromKey;
-	float G;
-	float F;
-	bool open;
-	bool initialized;
-	PathfinderData() :
-		Pos(Vector2()), FromKey(Pathfinder::MaxIndex()), G(FLT_MAX), F(FLT_MAX), open(false), initialized(false) {}
-	PathfinderData(Vector2 _Pos, unsigned int _FromKey, float _G, float _F, bool _open) :
-		Pos(_Pos), FromKey(_FromKey), G(_G), F(_F), open(_open), initialized(true) {}
-};
 std::vector<Vector2> Pathfinder::pathfind(const Vector2& A, const Vector2& B) {
 	if(A==B||!isValid(A)||!isValid(B)||isWall(B)) return {};
 	unsigned int maxKey=Pathfinder::MaxIndex();
-	std::vector<PathfinderData> dataMap;
 	std::vector<unsigned int> openIndices;
-	dataMap.resize(maxKey);
+	if(dataMap.size()!=maxKey) dataMap.resize(maxKey);
+	for(unsigned int i=0; i<maxKey; i++) dataMap[i]=PathfinderData();
 	unsigned int tmp=Pathfinder::GridToIndex(A);
 	dataMap[tmp]=PathfinderData(A, -1, 0, calcH(A, B), true);
 	openIndices.push_back(tmp);
@@ -163,45 +151,6 @@ Shader* createBatchedShader(const std::vector<Texture*>& textures) {
 	return shader;
 }
 #pragma endregion// Shader creators
-
-#pragma region FpsTracker
-void FpsTracker::on_loop(const double& delta) {
-	if(Engine::instance->ended||!initialized) return;
-	for(unsigned int i=1; i<500; i++) { lastFrames[i-1]=lastFrames[i]; }// move values back
-	lastFrames[499]=delta;// put delta at the end
-	double sum=0.0f;
-	for(unsigned int i=0; i<500; i++) { sum+=lastFrames[i]; }// sum values
-	avgFps=(int)(500.0f/sum+0.5);
-	frameTime=(float)sum;//1000.0f*1000.0f;
-
-	highFps=0;
-	lowFps=100000;
-	for(unsigned int i=0; i<500; i++) {
-		if((1/lastFrames[i])>highFps) highFps=(int)((1/lastFrames[i])+0.5);
-		if((1/lastFrames[i])<lowFps) lowFps=(int)((1/lastFrames[i])+0.5);
-	}
-}
-FpsTracker::FpsTracker() : Object() {
-	if(!initialized) return;
-	Engine::instance->sub_loop(this);
-}
-int FpsTracker::getAvgFps() {
-	if(Engine::instance->ended||!initialized) return 0;
-	return avgFps;
-}
-int FpsTracker::getHighFps() {
-	if(Engine::instance->ended||!initialized) return 0;
-	return highFps;
-}
-int FpsTracker::getLowFps() {
-	if(Engine::instance->ended||!initialized) return 0;
-	return lowFps;
-}
-float FpsTracker::getFrameTime() {
-	if(Engine::instance->ended||!initialized) return 0;
-	return frameTime;
-}
-#pragma endregion// FpsTracker
 
 #pragma region BoxCollider
 bool ColliderDebug=false;
@@ -314,7 +263,7 @@ Vector2 BoxCollider::tryMove(const Vector2& tryVec, const maskType& collisionMas
 		if((collider->mask&collisionMask)==0) continue;
 		collider->sweepDetectCollision(this, newVec, hit);
 	}
-	if(!hit->hit) { delete hit; return newVec; } else { delete hit;Log("Test"); }
+	if(!hit->hit) { delete hit; return newVec; } else { delete hit; return Vector2::ZERO; }
 }
 BoxCollider::CollitionData BoxCollider::raycast(const Vector2& p1, const Vector2& p2, const maskType& collisionMask) const {
 	if(Engine::instance->ended||!initialized) return BoxCollider::CollitionData();

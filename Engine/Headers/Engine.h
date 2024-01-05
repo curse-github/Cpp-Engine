@@ -13,6 +13,8 @@
 typedef std::function<void(const double&)> onloopfun;
 void engine_on_error(int error, const char* description);
 class Object;
+//#define FpsAvgNum 60
+#define FpsAvgNum 1500
 class Engine {
 	protected:
 	void on_resize(int width, int height);
@@ -22,6 +24,9 @@ class Engine {
 	void on_mouse_delta(float deltaX, float deltaY);
 	void on_mouse_button(int button, int action, int mods);
 	void on_mouse_enter(int entered);
+	struct FpsData {
+		double deltaHistory[FpsAvgNum]={};
+	} fpsData;
 	public:
 	static Engine* instance;
 
@@ -33,6 +38,13 @@ class Engine {
 	Vector2 curResolution;
 	Vector2 curMousePos=Vector2(-1.0f, -1.0f);
 
+	unsigned int fpsAvg=0;
+	unsigned int fpsHigh=0;
+	unsigned int fpsLow=0;
+	float frameTimeAvg=0;
+	unsigned int drawCalls=0;
+	unsigned int curDrawCalls=0;
+
 	Engine() : window(nullptr), curResolution(Vector2()) {}
 	Engine(const Vector2& size, const char* title, const bool& vsync);
 	virtual ~Engine();
@@ -40,7 +52,10 @@ class Engine {
 	Engine(Engine&& move)=delete;
 	void operator=(const Engine& other)=delete;
 
+	void Start();
+	protected:
 	void Loop();
+	public:
 	void Close();
 	void Delete();
 	void SetCursorMode(const int& mode);
@@ -52,6 +67,7 @@ class Engine {
 	std::vector<Object*> onMouseDelta;
 	std::vector<Object*> onMouseButton;
 	std::vector<Object*> onMouseEnter;
+	std::vector<Object*> onStart;
 	std::vector<Object*> onLoop;
 	onloopfun renderLoop;
 
@@ -62,6 +78,7 @@ class Engine {
 	void sub_mouse_delta(Object* obj);
 	void sub_mouse_button(Object* obj);
 	void sub_mouse_enter(Object* obj);
+	void sub_start(Object* obj);
 	void sub_loop(Object* obj);
 
 };
@@ -74,6 +91,7 @@ class Object {
 	virtual void on_mouse_delta(const float& deltaX, const float& deltaY);
 	virtual void on_mouse_button(const int& button, const int& action, const int& mods);
 	virtual void on_mouse_enter(const int& entered);
+	virtual void on_start();
 	virtual void on_loop(const double& delta);
 	bool initialized=false;
 	Object();
@@ -242,11 +260,11 @@ void main() {\n\
 in vec2 uv;\n\
 out vec4 outColor;\n\
 uniform sampler2D text;\n\
-uniform vec3 textColor;\n\
+uniform vec4 textColor;\n\
 void main() {\n\
-	vec4 sampled=vec4(1.0, 1.0, 1.0, texture(text, uv).r);\n\
-	if(sampled.a <= 0.05) discard;\n\
-	outColor=vec4(textColor, 1.0) * sampled;\n\
+	vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, uv).r);\n\
+	if (sampled.a<=0.05) discard;\n\
+	outColor = textColor * sampled;\n\
 }\0"
 #define texBatchFragShader "#version 450 core\n\
 in vec2 uv;\n\
@@ -259,7 +277,8 @@ void main() {\n\
 	else {\n\
 		vec4 vertColor=texture(_textures[int(texIndex)],uv);\n\
 		if (vertColor.a<=0.05f) discard;\n\
-		outColor=vertColor*mod;\n\
+		if (mod.r==0.0f&&mod.g==0.0f&&mod.b==0.0f&&mod.a==0.0f) { outColor=vertColor; }\n\
+		else { outColor=vertColor*mod; }\n\
 	}\n\
 }\0"
 #define textBatchFragShader "#version 450 core\n\

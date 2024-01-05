@@ -12,10 +12,6 @@ Renderer::~Renderer() {
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
 }
-void Renderer::setShader(Shader* _shader) {
-	if(Engine::instance->ended||!initialized) return;
-	shader=_shader;
-}
 #pragma endregion// Renderer
 #pragma region CubeRenderer
 const float CubeRenderer::cubevertices[100]={
@@ -75,6 +71,7 @@ void CubeRenderer::draw() {
 	shader->setMat4x4("model", model);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+	Engine::instance->curDrawCalls++;
 }
 #pragma endregion// CubeRenderer
 #pragma region Renderer2D
@@ -91,21 +88,19 @@ const float SpriteRenderer::quadvertices[20] {
 	0.5f, -0.5f, -1.0f, 1.0f, 1.0f
 };
 const int SpriteRenderer::quadindices[6] {
-	1, 3, 2, 2, 0, 1
+	1, 3, 2,
+	2, 0, 1
 };
 SpriteRenderer::SpriteRenderer(Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor, const float& _rotAngle) :
 	Renderer2D(_shader, _position, _zIndex, _scale, _anchor, _rotAngle) {
 	if(!initialized) return;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	//glGenBuffers(1, &EBO);
 
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);// bind buffer so that following code will assign the VBO buffer
 	glBufferData(GL_ARRAY_BUFFER, sizeof(quadvertices), quadvertices, GL_STATIC_DRAW);// fill VBO buffer with vertex data
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);// bind buffer so that following code will assign the EBO buffer
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadindices), quadindices, GL_STATIC_DRAW);// fill EBO buffer with index data
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
 	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
@@ -118,8 +113,8 @@ void SpriteRenderer::draw() {
 	shader->bindTextures();
 	shader->setMat4x4("model", getModelMat());
 	glBindVertexArray(VAO);
-	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	Engine::instance->curDrawCalls++;
 }
 #pragma endregion// SpriteRenderer
 #pragma region TextRenderer
@@ -190,14 +185,11 @@ TextRenderer::TextRenderer(Shader* _shader, const std::string& _text, const Vect
 	//setup buffers
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	//glGenBuffers(1, &EBO);
 
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);// bind buffer so that following code will assign the VBO buffer
 	glBufferData(GL_ARRAY_BUFFER, sizeof(SpriteRenderer::quadvertices), &SpriteRenderer::quadvertices[0], GL_STATIC_DRAW);// fill VBO buffer with vertex data
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);// bind buffer so that following code will assign the EBO buffer
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadindices), quadindices, GL_STATIC_DRAW);// fill EBO buffer with index data
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
 	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
@@ -208,6 +200,7 @@ TextRenderer::TextRenderer(Shader* _shader, const std::string& _text, const Vect
 	shader->setFloat("text", 0);
 }
 void TextRenderer::draw() {
+	Log("Draw");
 	if(Engine::instance->ended||!initialized) return;
 	shader->setFloat4("textColor", color);
 	glActiveTexture(GL_TEXTURE0);
@@ -231,7 +224,7 @@ void TextRenderer::draw() {
 	}
 	if(curX>tmpScale.x)tmpScale.x=curX;
 	Vector2 anchor=getAnchor();
-	Vector2 offset=getWorldPos()-Vector2(tmpScale.x*(anchor.x+0.5f), tmpScale.y*(anchor.y-0.5f));
+	Vector2 offset=getWorldPos()-Vector2(tmpScale.x*(anchor.x+0.5f), tmpScale.y*(anchor.y-0.5f))*scale;
 	// iterate through all characters and render each
 	float x=0.0f;
 	float y=0.0f;
@@ -242,10 +235,13 @@ void TextRenderer::draw() {
 		TextRenderer::Character ch=TextRenderer::Characters[intC];
 		if(charC==' ') { x+=1.0f+ch.Advance; continue; }// skip one space and continue
 		else if(charC=='\t') { x+=1.0f+ch.Advance*4.0f; continue; }//4 character spaces
-		shader->setMat4x4("model", scaleMat(Vector3(ch.Size*scale, 1.0f))*translate(Vector3((offset+Vector2(x, y)+ch.Bearing-Vector2(anchor.x*ch.Size.x, (ch.Size.y)/2.0f+9.0f))*scale, getZIndex()-100.0f)));
+		Vector2 pos=offset+(Vector2(x, y)+ch.Bearing-Vector2(anchor.x*ch.Size.x, (ch.Size.y)/2.0f+9.0f))*scale;
+		Log(std::string(1, charC)+": "+pos.to_string());
+		shader->setMat4x4("model", scaleMat(Vector3(ch.Size*scale, 1.0f))*translate(Vector3(pos, getZIndex()-100.0f)));
 		ch.tex->Bind(0);
 		// render quad
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		Engine::instance->curDrawCalls++;
 		// now advance cursors for next glyph
 		x+=1.0f+ch.Advance;
 	}
@@ -292,5 +288,6 @@ void LineRenderer::draw() {
 	glBindVertexArray(VAO);
 	glLineWidth(width);
 	glDrawArrays(loop ? GL_LINE_LOOP : GL_LINE_STRIP, 0, (GLsizei)positions.size());
+	Engine::instance->curDrawCalls++;
 }
 #pragma endregion// LineRenderer

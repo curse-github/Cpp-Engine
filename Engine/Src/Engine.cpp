@@ -110,11 +110,17 @@ Engine::Engine(const Vector2& size, const char* title, const bool& vsync) : wind
 }
 Engine::~Engine() {
 	if(!initialized) return;
-	//Todo: upper bound?
 	while(objects.size()>0) {
 		Object* ptr=objects[0];
 		if(ptr) delete ptr;
 	}
+}
+void Engine::Start() {
+	if(ended||!initialized) return;
+	for(Object* obj:onStart) {
+		obj->on_start();
+	}
+	Loop();
 }
 void Engine::Loop() {
 	if(ended||!initialized) return;
@@ -122,10 +128,29 @@ void Engine::Loop() {
 	while(!glfwWindowShouldClose(window)) {
 		double delta=glfwGetTime()-lastFrameTime;
 		lastFrameTime=glfwGetTime();
-		glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
+#pragma region calc fps
+		for(unsigned int i=1; i<FpsAvgNum; i++) { fpsData.deltaHistory[i-1]=fpsData.deltaHistory[i]; }// move values back
+		fpsData.deltaHistory[FpsAvgNum-1]=delta;// put delta at the end
+		double sum=0.0f;
+		for(unsigned int i=0; i<FpsAvgNum; i++) { sum+=fpsData.deltaHistory[i]; }// sum values
+		fpsAvg=(int)(FpsAvgNum/sum+0.5);
+		frameTimeAvg=(float)sum;//1000.0f*1000.0f;
+
+		fpsHigh=0;
+		fpsLow=1000000;
+		for(unsigned int i=0; i<FpsAvgNum; i++) {
+			double fps=1/fpsData.deltaHistory[i];
+			if(fps>fpsHigh) fpsHigh=(unsigned int)(fps+0.5);
+			if(fps<fpsLow) fpsLow=(unsigned int)(fps+0.5);
+		}
+#pragma endregion// calc fps
+
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
-		for(unsigned int i=0; i<onLoop.size(); i++) {
-			onLoop[i]->on_loop(delta);
+		drawCalls=curDrawCalls;
+		curDrawCalls=0;
+		for(Object* obj:onLoop) {
+			obj->on_loop(delta);
 		}
 		renderLoop(delta);
 		glfwSwapBuffers(window);
@@ -179,6 +204,10 @@ void Engine::sub_mouse_enter(Object* obj) {
 	if(!initialized||ended||!obj->initialized) return;
 	onMouseEnter.push_back(obj);
 }
+void Engine::sub_start(Object* obj) {
+	if(!initialized||ended||!obj->initialized) return;
+	onStart.push_back(obj);
+}
 void Engine::sub_loop(Object* obj) {
 	if(!initialized||ended||!obj->initialized) return;
 	onLoop.push_back(obj);
@@ -201,6 +230,7 @@ void Object::on_mouse(const double& mouseX, const double& mouseY) {}
 void Object::on_mouse_delta(const float& deltaX, const float& deltaY) {}
 void Object::on_mouse_button(const int& button, const int& action, const int& mods) {}
 void Object::on_mouse_enter(const int& entered) {}
+void Object::on_start() {}
 void Object::on_loop(const double& delta) {}
 Object::Object() {
 	if(Engine::instance==nullptr||!Engine::instance->initialized||Engine::instance->ended) { initialized=false; return; }
@@ -242,6 +272,9 @@ Transform2D::Transform2D(const Vector2& _position, const float& _zIndex, const V
 	lastModelMat=translate(Vector3(-anchor, 0.0f))*axisRotMat(rotAxis, deg_to_rad(rotAngle))*scaleMat(Vector3(scale, 1.0f))*translate(Vector3(position, zIndex-100.0f));
 }
 Transform2D::~Transform2D() {
+	if(parent!=nullptr) {//remove child from its parents list of children
+		parent->children.erase(std::find(parent->children.begin(), parent->children.end(), this));
+	}
 	for(Transform2D* child:children) child->parent=nullptr;
 }
 

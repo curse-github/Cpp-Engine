@@ -1,39 +1,55 @@
 #include "BatchedRenderers.h"
 
 #pragma region BatchedSpriteRenderer
-void BatchedSpriteRenderer::bufferQuad(const Vector4& modulate, const float& texIndex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
+void BatchedSpriteRenderer::bufferQuad(const Vector4& modulate, Texture* tex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
 	if(Engine::instance->ended||!initialized) return;
-	if(numQuads>=maxQuadCount) renderBatch();// if out of room render and reset
+	if(numQuads>=maxQuadCount) renderBatch();// if out of room for quads in this batch, render and reset
+	float texIndex=-1.0f;
+	if(tex!=nullptr) {
+		for(unsigned int i=0; i<numTextures; i++) {
+			if(textures[i]->ID==tex->ID) { texIndex=static_cast<float>(i);break; }
+		}
+		if(texIndex==-1.0f) {
+			if(numTextures>=32) renderBatch();// if out of room for textures in this batch, render and reset
+			texIndex=static_cast<float>(numTextures);textures.push_back(tex);numTextures++;
+		}
+	}
 	for(unsigned int i=0; i<((unsigned int)4*5); i+=5) {
-		*quadBufferPtr=BatchedVertex {
-			_position.x+SpriteRenderer::quadvertices[i+0]*_scale.x, _position.y+SpriteRenderer::quadvertices[i+1]*_scale.y,
+		quadVerticesBuffer.push_back(BatchedVertex {
+			_position.x+(SpriteRenderer::quadvertices[i+0]-_anchor.x)*_scale.x, _position.y+(SpriteRenderer::quadvertices[i+1]-_anchor.y)*_scale.y,
 			_zIndex-100.0f,
 			SpriteRenderer::quadvertices[i+3], SpriteRenderer::quadvertices[i+4],
 			modulate.x, modulate.y, modulate.z, modulate.w,
 			texIndex
-		};
-		quadBufferPtr++;
+			});
 	}
 	numQuads++;
 }
 void BatchedSpriteRenderer::renderBatch() {
 	if(Engine::instance->ended||!initialized) return;
 	if(numQuads==0) return;
+	shader->use();
+	for(unsigned int i=0; i<numTextures; i++) {
+		// equivilent to 'textures[i]->Bind(i);'
+		glActiveTexture(GL_TEXTURE0+i);
+		glBindTexture(GL_TEXTURE_2D, textures[i]->ID);
+	}
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, 4*sizeof(BatchedVertex)*numQuads, quadBuffer);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, numQuads*4*sizeof(BatchedVertex), &quadVerticesBuffer[0]);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, numQuads*6, GL_UNSIGNED_INT, nullptr);
-	//glDrawArrays(GL_TRIANGLE_STRIP, 0, numQuads*4);
-	drawCalls++;
-	quadBufferPtr=quadBuffer;
+	Engine::instance->curDrawCalls++;
+	quadVerticesBuffer.clear();
 	numQuads=0;
+	textures.clear();
+	numTextures=0;
 }
-BatchedSpriteRenderer::BatchedSpriteRenderer(Shader* _shader) :
-	Renderer2D(_shader, Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f), quadBuffer(nullptr), quadBufferPtr(nullptr) {
+BatchedSpriteRenderer::BatchedSpriteRenderer(OrthoCam* _cam) :
+	Renderer2D(new Shader("Shaders/batch.vert", "Shaders/texBatch.frag"), Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f), cam(_cam) {
 	if(!initialized) return;
-
-	quadBuffer=new BatchedVertex[maxQuadCount*4];
-	quadBufferPtr=quadBuffer;
+	shader->setTextureArray("_textures");
+	cam->bindShader(shader);
+	cam->use();
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -68,57 +84,71 @@ BatchedSpriteRenderer::BatchedSpriteRenderer(Shader* _shader) :
 }
 BatchedSpriteRenderer::~BatchedSpriteRenderer() {
 	if(!initialized) return;
-	delete[] quadBuffer;
+	for(BatchedQuadData* data:quads) delete data;
 }
-BatchedQuadData* BatchedSpriteRenderer::addQuad(const Vector4& modulate, const float& texIndex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
+BatchedQuadData* BatchedSpriteRenderer::addSprite(const Vector4& modulate, Texture* tex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
 	if(Engine::instance->ended||!initialized) return nullptr;
-	BatchedQuadData* ptr=new BatchedQuadData(modulate, texIndex, _position, _zIndex, _scale, _anchor);
+	BatchedQuadData* ptr=new BatchedQuadData(modulate, tex, _position, _zIndex, _scale, _anchor);
+	quads.push_back(ptr);
+	return ptr;
+}
+BatchedQuadData* BatchedSpriteRenderer::addQuad(const Vector4& modulate, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
+	if(Engine::instance->ended||!initialized) return nullptr;
+	BatchedQuadData* ptr=new BatchedQuadData(modulate, nullptr, _position, _zIndex, _scale, _anchor);
 	quads.push_back(ptr);
 	return ptr;
 }
 void BatchedSpriteRenderer::draw() {
 	if(Engine::instance->ended||!initialized) return;
-	drawCalls=0;
-	//equivilent to shader->bindTextures();
-	shader->use();
-	for(unsigned int i=0; i<shader->numTextures; i++) {
-		// equivilent to '''textures[i]->Bind(textureIndexes[i]);'''
-		glActiveTexture(GL_TEXTURE0+shader->textureIndexes[i]);
-		glBindTexture(GL_TEXTURE_2D, shader->textures[i]->ID);
-	}
-	for(BatchedQuadData* quad:quads) bufferQuad(quad->modulate, quad->texIndex, quad->getWorldPos(), quad->zIndex, quad->getWorldScale(), quad->anchor);
+	for(BatchedQuadData* quad:quads) bufferQuad(quad->modulate, quad->tex, quad->getWorldPos(), quad->zIndex, quad->getWorldScale(), quad->anchor);
 	renderBatch();
 }
 #pragma endregion// BatchedSpriteRenderer
+
 #pragma region StaticBatchedSpriteRenderer
-void StaticBatchedSpriteRenderer::bufferQuad(const Vector4& modulate, const float& texIndex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
+void StaticBatchedSpriteRenderer::bufferQuad(const Vector4& modulate, Texture* tex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
 	if(Engine::instance->ended||!initialized) return;
 	if(numQuads>=maxQuadCount) return;//dont try to add more than the max, this should not occur though
+	float texIndex=-1.0f;
+	for(unsigned int i=0; i<numTextures; i++) {
+		if(textures[i]->ID==tex->ID) { texIndex=static_cast<float>(i);break; }
+	}
+	if(texIndex==-1.0f) {
+		if(numTextures>=32) return;// if out of room for textures in this batch, render and reset
+		texIndex=static_cast<float>(numTextures);textures.push_back(tex);numTextures++;
+	}
 	for(unsigned int i=0; i<((unsigned int)4*5); i+=5) {
-		*quadBufferPtr=BatchedVertex {
-			_position.x+SpriteRenderer::quadvertices[i+0]*_scale.x, _position.y+SpriteRenderer::quadvertices[i+1]*_scale.y,
+		quadVerticesBuffer.push_back(BatchedVertex {
+			_position.x+(SpriteRenderer::quadvertices[i+0]-_anchor.x)*_scale.x, _position.y+(SpriteRenderer::quadvertices[i+1]-_anchor.y)*_scale.y,
 			_zIndex-100.0f,
 			SpriteRenderer::quadvertices[i+3], SpriteRenderer::quadvertices[i+4],
 			modulate.x, modulate.y, modulate.z, modulate.w,
 			texIndex
-		};
-		quadBufferPtr++;
+			});
 	}
 	numQuads++;
 }
 void StaticBatchedSpriteRenderer::renderBatch() {
 	if(Engine::instance->ended||!initialized) return;
 	if(numQuads==0) return;
-	drawCalls++;
+	shader->use();
+	for(unsigned int i=0; i<numTextures; i++) {
+		// equivilent to 'textures[i]->Bind(i);'
+		glActiveTexture(GL_TEXTURE0+i);
+		glBindTexture(GL_TEXTURE_2D, textures[i]->ID);
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, numQuads*4*sizeof(BatchedVertex), &quadVerticesBuffer[0]);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, numQuads*6, GL_UNSIGNED_INT, nullptr);
-	//glDrawArrays(GL_TRIANGLE_STRIP, 0, numQuads*4);
+	Engine::instance->curDrawCalls++;
 }
-StaticBatchedSpriteRenderer::StaticBatchedSpriteRenderer(Shader* _shader) :
-	Renderer2D(_shader, Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f), quadBuffer(nullptr), quadBufferPtr(nullptr) {
+StaticBatchedSpriteRenderer::StaticBatchedSpriteRenderer(OrthoCam* _cam) :
+	Renderer2D(new Shader("Shaders/batch.vert", "Shaders/texBatch.frag"), Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f), cam(_cam) {
 	if(!initialized) return;
-	quadBuffer=new BatchedVertex[maxQuadCount*4];
-	quadBufferPtr=quadBuffer;
+	shader->setTextureArray("_textures");
+	cam->bindShader(shader);
+	cam->use();
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -152,33 +182,36 @@ StaticBatchedSpriteRenderer::StaticBatchedSpriteRenderer(Shader* _shader) :
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 StaticBatchedSpriteRenderer::~StaticBatchedSpriteRenderer() {
-	delete[] quadBuffer;
+	if(!initialized) return;
 	for(BatchedQuadData* data:quads) delete data;
 }
-BatchedQuadData* StaticBatchedSpriteRenderer::addQuad(const Vector4& modulate, const float& texIndex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
+BatchedQuadData* StaticBatchedSpriteRenderer::addSprite(const Vector4& modulate, Texture* tex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
 	if(Engine::instance->ended||!initialized) return nullptr;
-	BatchedQuadData* ptr=new BatchedQuadData(modulate, texIndex, _position, _zIndex, _scale, _anchor);
+	if(quads.size()>maxQuadCount) return nullptr;
+	BatchedQuadData* ptr=new BatchedQuadData(modulate, tex, _position, _zIndex, _scale, _anchor);
+	quads.push_back(ptr);
+	return ptr;
+}
+BatchedQuadData* StaticBatchedSpriteRenderer::addQuad(const Vector4& modulate, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
+	if(Engine::instance->ended||!initialized) return nullptr;
+	if(quads.size()>maxQuadCount) return nullptr;
+	BatchedQuadData* ptr=new BatchedQuadData(modulate, nullptr, _position, _zIndex, _scale, _anchor);
 	quads.push_back(ptr);
 	return ptr;
 }
 void StaticBatchedSpriteRenderer::bind() {
 	if(Engine::instance->ended||!initialized) return;
-	quadBufferPtr=quadBuffer;
+	quadVerticesBuffer.clear();
 	numQuads=0;
-	for(BatchedQuadData* quad:quads) bufferQuad(quad->modulate, quad->texIndex, quad->getWorldPos(), quad->zIndex, quad->getWorldScale(), quad->anchor);
+	textures.clear();
+	numTextures=0;
+	//quadVerticesBuffer.reserve(std::min(static_cast<unsigned int>(quads.size()), maxQuadCount)*4);// we know there will be 4 vertices per quad so reserve the memory for that many vertices
+	for(BatchedQuadData* quad:quads) bufferQuad(quad->modulate, quad->tex, quad->getWorldPos(), quad->zIndex, quad->getWorldScale(), quad->anchor);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, maxQuadCount*4*sizeof(BatchedVertex), quadBuffer);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, numQuads*4*sizeof(BatchedVertex), &quadVerticesBuffer[0]);
 }
 void StaticBatchedSpriteRenderer::draw() {
 	if(Engine::instance->ended||!initialized) return;
-	drawCalls+=0;
-	//equivilent to shader->bindTextures();
-	shader->use();
-	for(unsigned int i=0; i<shader->numTextures; i++) {
-		// equivilent to '''textures[i]->Bind(textureIndexes[i]);'''
-		glActiveTexture(GL_TEXTURE0+shader->textureIndexes[i]);
-		glBindTexture(GL_TEXTURE_2D, shader->textures[i]->ID);
-	}
 	renderBatch();
 }
 #pragma endregion// StaticBatchedSpriteRenderer
@@ -194,14 +227,13 @@ void BatchedTextRenderer::bufferCharacter(const int& shaderIndex, const float& t
 	if(Engine::instance->ended||!initialized) return;
 	if(numChars[shaderIndex]>=maxCharacterCount) renderBatch(shaderIndex);// if out of room render and reset
 	for(unsigned int i=0; i<((unsigned int)4*5); i+=5) {
-		*characterBufferPtrs[shaderIndex]=BatchedVertex {
+		characterBuffers[shaderIndex].push_back(BatchedVertex {
 			_position.x+SpriteRenderer::quadvertices[i+0]*_scale.x, _position.y+SpriteRenderer::quadvertices[i+1]*_scale.y,// x and y
 			_zIndex-100.0f,// z
 			SpriteRenderer::quadvertices[i+3], SpriteRenderer::quadvertices[i+4],// u and v
-			color.x, color.y, color.z, color.w,
+			color.x, color.y, color.z, color.w,// r, g, b, and a
 			texIndex
-		};
-		characterBufferPtrs[shaderIndex]++;
+			});
 	}
 	numChars[shaderIndex]++;
 }
@@ -215,16 +247,15 @@ void BatchedTextRenderer::renderBatch(const int& shaderIndex) {
 		glBindTexture(GL_TEXTURE_2D, textureArrays[shaderIndex][i]->ID);
 	}
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, 4*sizeof(BatchedVertex)*numChars[shaderIndex], characterBuffers[shaderIndex]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, 4*sizeof(BatchedVertex)*numChars[shaderIndex], &characterBuffers[shaderIndex][0]);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, numChars[shaderIndex]*6, GL_UNSIGNED_INT, nullptr);
-	drawCalls++;
-	characterBufferPtrs[shaderIndex]=characterBuffers[shaderIndex];
+	Engine::instance->curDrawCalls++;
+	characterBuffers[shaderIndex].clear();
 	numChars[shaderIndex]=0;
 }
 BatchedTextRenderer::BatchedTextRenderer(Camera* cam) :
-	Renderer2D(new Shader("Shaders/batch.vert", "Shaders/textBatch.frag"), Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f),
-	characterBuffers({ nullptr, nullptr, nullptr }), characterBufferPtrs({ nullptr, nullptr, nullptr }) {
+	Renderer2D(new Shader("Shaders/batch.vert", "Shaders/textBatch.frag"), Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f) {
 	if(!initialized) return;
 	if(!TextRenderer::characterMapInitialized) {
 		if(!TextRenderer::initCharacterMap()) {
@@ -238,9 +269,6 @@ BatchedTextRenderer::BatchedTextRenderer(Camera* cam) :
 	cam->bindShader(shader);
 	cam->use();
 	for(unsigned int shaderIndex=0; shaderIndex<3; shaderIndex++) {
-		// allocate memory for all 4 buffers
-		characterBuffers[shaderIndex]=new BatchedVertex[maxCharacterCount*3];
-		characterBufferPtrs[shaderIndex]=characterBuffers[shaderIndex];
 		// set textures from TextRenderer class into textureArrays
 		for(int i=0; i<32; i++) {
 			textureArrays[shaderIndex][i]=TextRenderer::Characters[(char)((shaderIndex+1)*32+i)].tex;
@@ -280,9 +308,6 @@ BatchedTextRenderer::BatchedTextRenderer(Camera* cam) :
 }
 BatchedTextRenderer::~BatchedTextRenderer() {
 	if(!initialized) return;
-	for(short unsigned int shaderIndex=0; shaderIndex<3; shaderIndex++) {
-		delete[] characterBuffers[shaderIndex];
-	}
 	for(BatchedTextData* _text:text) delete _text;
 }
 BatchedTextData* BatchedTextRenderer::addText(const std::string& _text, const Vector4& color, const Vector2& _position, const float& _zIndex, const float& _scale, const Vector2& _anchor) {
@@ -293,8 +318,6 @@ BatchedTextData* BatchedTextRenderer::addText(const std::string& _text, const Ve
 }
 void BatchedTextRenderer::draw() {
 	if(Engine::instance->ended||!initialized) return;
-	drawCalls=0;
-
 	for(BatchedTextData* _text:text) {
 		// iterate through all characters to find scale of full text block
 		Vector2 tmpScale=Vector2(0.0f, 9.0f);
@@ -314,7 +337,7 @@ void BatchedTextRenderer::draw() {
 			curX+=1.0f+ch.Advance;
 		}
 		if(curX>tmpScale.x)tmpScale.x=curX;
-		Vector2 offset=_text->getWorldPos()-Vector2(tmpScale.x*(_text->anchor.x+0.5f), tmpScale.y*(_text->anchor.y-0.5f));
+		Vector2 offset=_text->getWorldPos()-Vector2(tmpScale.x*(_text->anchor.x+0.5f), tmpScale.y*(_text->anchor.y-0.5f))*_text->scale;
 		// iterate through all characters and add to buffer
 		float x=0.0f;
 		float y=0.0f;
@@ -329,7 +352,7 @@ void BatchedTextRenderer::draw() {
 				((intC)/32)-1,
 				(float)((intC)%32),
 				_text->color,
-				(offset+Vector2(x, y)+ch.Bearing-Vector2(_text->anchor.x*ch.Size.x, (ch.Size.y)/2.0f+9.0f))*_text->scale,
+				offset+(Vector2(x, y)+ch.Bearing-Vector2(_text->anchor.x*ch.Size.x, (ch.Size.y)/2.0f+9.0f))*_text->scale,
 				_text->zIndex,
 				ch.Size*_text->scale
 			);
