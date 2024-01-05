@@ -8,7 +8,7 @@ void main() {
     if (texIndex>=32||texIndex<0) outColor=mod;
     else {
         vec4 vertColor=texture(_textures[int(texIndex)],uv);
-        if (vertColor.a<=0.05f) discard;
+        if (vertColor.a<=0.05f) { discard;return; }
         if (mod.r==0.0f&&mod.g==0.0f&&mod.b==0.0f&&mod.a==0.0f) { outColor=vertColor; }
         else { outColor=vertColor*mod; }
     }

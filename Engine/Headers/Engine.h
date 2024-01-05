@@ -8,6 +8,9 @@
 #include <string>
 #include <functional>
 
+#define PI 3.14159265f
+#define TAU 6.2831853f
+
 #include "EngineLib.h"
 
 typedef std::function<void(const double&)> onloopfun;

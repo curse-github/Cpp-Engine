@@ -82,10 +82,10 @@ Renderer2D::Renderer2D(Shader* _shader, const Vector2& _position, const float& _
 #pragma endregion// Renderers2D
 #pragma region SpriteRenderer
 const float SpriteRenderer::quadvertices[20] {
-	-0.5f, 0.5f, -1.0f, 0.0f, 0.0f,
-	-0.5f, -0.5f, -1.0f, 0.0f, 1.0f,
-	0.5f, 0.5f, -1.0f, 1.0f, 0.0f,
-	0.5f, -0.5f, -1.0f, 1.0f, 1.0f
+	-0.5f, 0.5f, 0.0f, 0.0f, 0.0f,
+	-0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
+	0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
+	0.5f, -0.5f, 0.0f, 1.0f, 1.0f
 };
 const int SpriteRenderer::quadindices[6] {
 	1, 3, 2,
@@ -291,3 +291,36 @@ void LineRenderer::draw() {
 	Engine::instance->curDrawCalls++;
 }
 #pragma endregion// LineRenderer
+#pragma region DotRenderer
+
+const float DotRenderer::vertices[15] {
+	cosf(90.0f/180.0f*PI), sinf(90.0f/180.0f*PI), 0.0f, 0.5f+cosf(90.0f/180.0f*PI), 0.5f+sinf(90.0f/180.0f*PI),
+	cosf(210.0f/180.0f*PI), sinf(210.0f/180.0f*PI), 0.0f, 0.5f+cosf(210.0f/180.0f*PI), 0.5f+sinf(210.0f/180.0f*PI),
+	cosf(330.0f/180.0f*PI), sinf(330.0f/180.0f*PI), 0.0f, 0.5f+cosf(330.0f/180.0f*PI), 0.5f+sinf(330.0f/180.0f*PI),
+};
+DotRenderer::DotRenderer(Shader* _shader, const float& _radius, const Vector2& _position, const float& _zIndex, const Vector2& _anchor) :
+	Renderer2D(_shader, _position, _zIndex, Vector2(_radius), _anchor, 0.0f), radius(_radius) {
+	if(!initialized) return;
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);// bind buffer so that following code will assign the VBO buffer
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);// fill VBO buffer with vertex data
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
+	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));// get vertex uv data
+	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+void DotRenderer::draw() {
+	if(Engine::instance->ended||!initialized) return;
+	shader->bindTextures();
+	shader->setMat4x4("model", getModelMat());
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	Engine::instance->curDrawCalls++;
+}
+#pragma endregion// DotRenderer

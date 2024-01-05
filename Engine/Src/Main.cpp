@@ -3,7 +3,6 @@
 
 #ifdef _DEBUG
 #include <memory>
-//#include <new>
 unsigned int allocated=0;
 void* operator new(std::size_t size) throw(std::bad_alloc) {
 	allocated+=static_cast<unsigned int>(size);
@@ -39,18 +38,18 @@ void Player::on_loop(const double& delta) {
 	sceneCam->update();
 	sceneCam->use();
 }
-Player::Player(OrthoCam* _sceneCam, const Vector3& playerModulate, Texture* playerTex, Shader* flashlightShader, const Vector2& _position) :
+Player::Player(OrthoCam* _sceneCam, const Vector3& playerModulate, Texture* playerTex, const Vector4& flashlightColor, const Vector2& _position) :
 	Object(), hasTransform2D(_position, 0.0f, Vector2(mapScale)), renderer(nullptr), collider(nullptr), flashlightStencil(StencilSimple()), sceneCam(_sceneCam), flashlightRenderer(nullptr), iconRenderer(nullptr) {
 	if(!initialized) return;
 	addChild(sceneCam);
 	sceneCam->transform.position=Vector2::ZERO;
-	renderer=spriteRenderer->addSprite(Vector4(playerModulate, 1.0f), playerTex, Vector2::ZERO, 1.0f, Vector2(playerSize));
+	renderer=spriteRenderer->addSprite(Vector4(playerModulate, 1.0f), playerTex, Vector2::ZERO, 0.0f, Vector2(playerSize));
 	addChild(renderer);
 	collider=new BoxCollider(lineShader, PLAYERMASK, Vector2::ZERO, 100.0f, playerHitbox);
 	renderer->addChild(&collider->transform);
-	flashlightRenderer=new SpriteRenderer(flashlightShader, Vector2::ZERO, 2.0f, flashlightRange);
+	flashlightRenderer=new DotRenderer(createDotColorShader(flashlightColor), flashlightRange, Vector2::ZERO, 1.0f);
 	addChild(flashlightRenderer);
-	iconRenderer=uiHandler->Sprite(Vector4(playerModulate, 0.75f), playerTex, gridToMinimap(WorldToGrid(getWorldPos())), 2.0f, Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y));
+	iconRenderer=uiHandler->Sprite(Vector4(playerModulate, 0.75f), playerTex, gridToMinimap(WorldToGrid(getWorldPos())), 1.0f, Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y));
 	transform.position+=collider->forceOut(MAPMASK|ENEMYMASK);
 	sceneCam->update();
 	sceneCam->use();
@@ -127,11 +126,11 @@ void Enemy::on_loop(const double& delta) {
 Enemy::Enemy(const Vector3& enemyModulate, Texture* enemyTex, Shader* _lineShader, Pathfinder* _pathfinder, hasTransform2D* _target, const Vector2& _position) :
 	Object(), hasTransform2D(_position, 0.0f, Vector2(mapScale), Vector2::Center, 0.0f), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), lineShader(_lineShader), pathfinder(_pathfinder), target(_target) {
 	if(!initialized) return;
-	renderer=spriteRenderer->addSprite(Vector4(enemyModulate, 1.0f), enemyTex, Vector2::ZERO, 1.0f, Vector2(playerSize));
+	renderer=spriteRenderer->addSprite(Vector4(enemyModulate, 1.0f), enemyTex, Vector2::ZERO, 0.0f, Vector2(playerSize));
 	addChild(renderer);
 	collider=new BoxCollider(lineShader, ENEMYMASK, Vector2::ZERO, 100.0f, playerHitbox);
 	renderer->addChild(&collider->transform);
-	iconRenderer=uiHandler->Sprite(Vector4(enemyModulate, 0.75f), enemyTex, gridToMinimap(WorldToGrid(getWorldPos())), 2.0f, Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), Vector2::Center);
+	iconRenderer=uiHandler->Sprite(Vector4(enemyModulate, 0.75f), enemyTex, gridToMinimap(WorldToGrid(getWorldPos())), 1.0f, Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), Vector2::Center);
 	engine->sub_loop(this);
 }
 #pragma endregion// Enemy
@@ -144,8 +143,8 @@ void Instance::on_click(const Vector2& pos) {
 Instance::Instance(ClickDetector* clickDetector, Shader* lineShader, Texture* _instanceUnlitTex, Texture* _instanceWorkingTex, Texture* _instanceBrokenTex, const Vector2& _position, const Vector2& _anchor, const float& _rotAngle) :
 	Clickable(clickDetector), hasTransform2D(_position, 0.0f, Vector2(mapScale), _anchor, _rotAngle), instanceWorkingTex(_instanceWorkingTex), instanceBrokenTex(_instanceBrokenTex) {
 	broken=((float)std::rand())/((float)RAND_MAX)<=(instanceBrokenChance/100.0f);
-	addChild(staticSpriteRenderer->addSprite(Vector4(0.5f, 0.5f, 0.5f, 1.0f), _instanceUnlitTex, Vector2::ZERO, 2.0f));
-	stateQuad=instanceStateSpritesRenderer->addSprite(Vector4::ONE, broken ? instanceBrokenTex : instanceWorkingTex, Vector2::ZERO, 3.0f);
+	addChild(staticSpriteRenderer->addSprite(Vector4(0.5f, 0.5f, 0.5f, 1.0f), _instanceUnlitTex, Vector2::ZERO, 1.0f));
+	stateQuad=instanceStateSpritesRenderer->addSprite(Vector4::ONE, broken ? instanceBrokenTex : instanceWorkingTex, Vector2::ZERO, 2.0f);
 	addChild(stateQuad);
 	addChild(new BoxCollider(lineShader, MAPMASK, Vector2::ZERO, 100.0f));
 }
@@ -192,7 +191,6 @@ int Run() {
 	}
 	// setup textures
 	Texture* playerTex=new Texture(playerTexPath);
-	Texture* flashlightTex=new Texture(flashlightTexPath);
 	Texture* enemyTex=new Texture(enemyTexPath);
 
 	Texture* backgroundTex=new Texture(mapTexPath);
@@ -202,7 +200,7 @@ int Run() {
 	Texture* instanceWorkingTex=new Texture(instanceWorkingTexPath);
 	Texture* instanceBrokenTex=new Texture(instanceBrokenTexPath);
 	if(engine->ended||
-		!playerTex->initialized||!flashlightTex->initialized||!enemyTex->initialized||
+		!playerTex->initialized||!enemyTex->initialized||
 		!backgroundTex->initialized||!minimapTex->initialized||
 		!instanceUnlitTex->initialized||!instanceWorkingTex->initialized||!instanceBrokenTex->initialized
 		) {
@@ -212,26 +210,20 @@ int Run() {
 	}
 	minimapSize=Vector2((float)minimapTex->width, (float)minimapTex->height)*minimapScale;
 	// setup shaders
-	flashlightShader=createTexShader(flashlightTex, Vector4(flashlightColor, 0.25f));
 	lineShader=createColorShader(Vector4(0.0f, 0.0f, 1.0f, 1.0f));
-	if(engine->ended||!flashlightShader->initialized||!lineShader->initialized) {
-		Log("Shaders failed to init.");
-		engine->Delete();
-		return 0;
-	}
-	cam->bindShaders({ flashlightShader, lineShader });
-	cam->use();
+	if(engine->ended||!lineShader->initialized) { Log("Shaders failed to init."); engine->Delete(); return 0; }
+	cam->bindShader(lineShader); cam->use();
 #pragma endregion// Engine setup
 	spriteRenderer=new BatchedSpriteRenderer(cam);
 	staticSpriteRenderer=new StaticBatchedSpriteRenderer(cam);
 	instanceStateSpritesRenderer=new StaticBatchedSpriteRenderer(cam);
 	uiHandler=new UiHandler(uiCam);
 	// player object
-	player=new Player(cam, playerModulate, playerTex, flashlightShader, GridToWorld(playerOffset));
+	player=new Player(cam, playerModulate, playerTex, flashlightColor, GridToWorld(playerOffset));
 	finder=std::make_unique<Pathfinder>();
 	enemy=new Enemy(enemyModulate, enemyTex, lineShader, finder.get(), player, GridToWorld(playerOffset-Vector2(0.0f, 2.0f)));
 #pragma region Map setup
-	staticSpriteRenderer->addSprite(Vector4::ZERO, backgroundTex, Vector2::ZERO, -1.0f, fullMapSize, Vector2::BottomLeft);// map background
+	staticSpriteRenderer->addSprite(Vector4::ZERO, backgroundTex, Vector2::ZERO, 0.0f, fullMapSize, Vector2::BottomLeft);// map background
 	//ColliderDebug=true;// makes hitboxes visible
 	instanceClickDetector=new ClickDetector(cam);
 	for(const std::array<int, 5>&dat:instanceData) {

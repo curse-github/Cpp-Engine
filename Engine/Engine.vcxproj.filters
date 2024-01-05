@@ -103,5 +103,11 @@
     <None Include="Shaders\textBatch.frag">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Shaders\dotColor.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\dotTex.frag">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

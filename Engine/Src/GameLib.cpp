@@ -143,11 +143,17 @@ Shader* createTextShader() {
 	Shader* shader=new Shader("Shaders/basic.vert", "Shaders/text.frag");
 	return shader;
 }
-Shader* createBatchedShader(const std::vector<Texture*>& textures) {
-	Shader* shader=new Shader("Shaders/batch.vert", "Shaders/texBatch.frag");
+Shader* createDotColorShader(const Vector4& color) {
+	Shader* shader=new Shader("Shaders/basic.vert", "Shaders/dotColor.frag");
 	if(!shader->initialized) return shader;
-	shader->setTextureArray("_textures");
-	for(unsigned int i=0; i<textures.size(); i++) shader->setTexture("_", textures[i], (int)i);
+	shader->setFloat4("color", color);
+	return shader;
+}
+Shader* createDotTexShader(Texture* tex, const Vector4& modulate) {
+	Shader* shader=new Shader("Shaders/basic.vert", "Shaders/dotTex.frag");
+	if(!shader->initialized) return shader;
+	shader->setTexture("_texture", tex, 0);
+	shader->setFloat4("modulate", modulate);
 	return shader;
 }
 #pragma endregion// Shader creators

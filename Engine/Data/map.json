@@ -13,8 +13,7 @@
   "playerSprintSpeed": 6,
   "playerTex": "Resources/ghost.png",
   "playerModulate": [ 0.35 /*r*/, 0.0 /*g*/, 0.7 /*b*/ ],
-  "flashlightTex": "Resources/circle.png",
-  "flashlightColor": [ 0.3, 0.3, 0.0 ],
+  "flashlightColor": [ 0.3 /*r*/, 0.3 /*g*/, 0.0 /*b*/, 0.25 /*a*/ ],
   "flashlightRange": 2.0,
   // enemy vars
   "enemySpeed": 5,

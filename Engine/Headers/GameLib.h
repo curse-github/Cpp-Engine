@@ -14,9 +14,10 @@ Vector2 WorldToGrid(const Vector2& world);
 Vector2 GridToWorld(const Vector2& grid);
 
 Shader* createColorShader(const Vector4& color);
-Shader* createTexShader(Texture* tex, const Vector4& modulate);
+Shader* createTexShader(Texture* tex, const Vector4& modulate=Vector4::ZERO);
 Shader* createTextShader();
-Shader* createBatchedShader(const std::vector<Texture*>& textures);
+Shader* createDotColorShader(const Vector4& color);
+Shader* createDotTexShader(Texture* tex, const Vector4& modulate=Vector4::ZERO);
 
 class Pathfinder {
 	protected:

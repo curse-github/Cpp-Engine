@@ -68,5 +68,13 @@ class LineRenderer : public Renderer2D {
 	LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const bool& _loop, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f);
 	void draw() override;
 };
+class DotRenderer : public Renderer2D {
+	public:
+	static const float vertices[15];
+	float radius;
+	DotRenderer() : Renderer2D(), radius(1.0f) { initialized=false; }
+	DotRenderer(Shader* _shader, const float& _radius, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _anchor=Vector2::Center);
+	void draw() override;
+};
 
 #endif// _RENDERERS_H

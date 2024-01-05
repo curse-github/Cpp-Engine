@@ -8,14 +8,12 @@
 #include "BatchedRenderers.h"
 #include "UI.h"
 
-#define PI 3.14159265
-#define TAU 6.2831853
-
 class Player;
 class Enemy;
 class Instance;
 
 Engine* engine;
+UiHandler* uiHandler;
 
 Player* player;
 std::unique_ptr<Pathfinder> finder;
@@ -24,14 +22,7 @@ Enemy* enemy;
 OrthoCam* cam;
 OrthoCam* uiCam;
 
-Shader* playerShader;
-Shader* flashlightShader;
-Shader* playerIconShader;
-Shader* enemyShader;
-Shader* enemyIconShader;
 Shader* lineShader;
-
-UiHandler* uiHandler;
 
 BatchedSpriteRenderer* spriteRenderer;
 StaticBatchedSpriteRenderer* staticSpriteRenderer;
@@ -44,18 +35,18 @@ BatchedTextData* debugText;
 
 class Player : public Object, public hasTransform2D {
 	protected:
-	BatchedQuadData* renderer;
-	StencilSimple flashlightStencil;
 	OrthoCam* sceneCam;
+	BatchedQuadData* renderer;
+	DotRenderer* flashlightRenderer;
+	StencilSimple flashlightStencil;
 	BatchedQuadData* iconRenderer;
 	int inputs[5]={ GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE, GLFW_RELEASE };
 	void on_key(const int& key, const int& scancode, const int& action, const int& mods) override;
 	void on_loop(const double& delta) override;
 	public:
-	SpriteRenderer* flashlightRenderer;
 	BoxCollider* collider;
 	Player() : Object(), hasTransform2D(), renderer(nullptr), collider(nullptr), flashlightStencil(StencilSimple()), sceneCam(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {}
-	Player(OrthoCam* _sceneCam, const Vector3& playerModulate, Texture* playerTex, Shader* flashlightShader, const Vector2& _position=Vector2::ZERO);
+	Player(OrthoCam* _sceneCam, const Vector3& playerModulate, Texture* playerTex, const Vector4& flashlightColor, const Vector2& _position=Vector2::ZERO);
 	void flashlightStencilOn();
 	void flashlightStencilOff();
 	void setPos(const Vector2& pos);

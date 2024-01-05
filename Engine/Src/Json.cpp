@@ -26,8 +26,7 @@ float playerSpeed;
 float playerSprintSpeed;
 std::string playerTexPath;
 Vector3 playerModulate;
-std::string flashlightTexPath;
-Vector3 flashlightColor;
+Vector4 flashlightColor;
 float flashlightRange;
 
 float enemySpeed;
@@ -80,10 +79,8 @@ void loadMapData(const std::string& mapName) {
 			playerTexPath=parseString(&data);
 		} else if(key=="playerModulate") {
 			playerModulate=parseVector3(&data);
-		} else if(key=="flashlightTex") {
-			flashlightTexPath=parseString(&data);
 		} else if(key=="flashlightColor") {
-			flashlightColor=parseVector3(&data);
+			flashlightColor=parseVector4(&data);
 		} else if(key=="flashlightRange") {
 			flashlightRange=parseFloat(&data);
 		} else if(key=="enemySpeed") {
