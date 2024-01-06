@@ -9,8 +9,8 @@ Vector2 GridToWorld(const Vector2& grid) { return Vector2(grid.x*mapScale*(1.0f+
 
 #pragma region Pathfinder
 template <typename T, unsigned int N> bool arryHas(std::array<T, N> arry, T value) { for(T aryValue : arry) if(aryValue==value) return true; return false; }
-template <typename T, unsigned int N> unsigned int arryFind(std::array<T, N> arry, T value) { for(unsigned int i=0; i<((unsigned int)((sizeof arry)/(sizeof value))); i++) if(arry[i]==value) return (int)i; return -1; }
-template <typename T> unsigned int vectorFind(std::vector<T> vec, T value) { for(unsigned int i=0; i<vec.size(); i++) if(vec[i]==value) return (int)i; return -1; }
+template <typename T, unsigned int N> unsigned int arryFind(std::array<T, N> arry, T value) { for(unsigned int i=0; i<static_cast<unsigned int>((sizeof arry)/(sizeof value)); i++) if(arry[i]==value) return static_cast<int>(i); return -1; }
+template <typename T> unsigned int vectorFind(std::vector<T> vec, T value) { for(unsigned int i=0; i<vec.size(); i++) if(vec[i]==value) return static_cast<int>(i); return -1; }
 
 Pathfinder::Pathfinder() {
 	wallMap.resize(MaxIndex());
@@ -18,7 +18,7 @@ Pathfinder::Pathfinder() {
 	for(const std::array<int, 5>&data:instanceData) {
 		for(float x=0; x<3; x++) {
 			for(float y=0; y<3; y++) {
-				wallMap[Pathfinder::GridToIndex(Vector2(((float)data[0])*2.0f+x, ((float)data[1])*2.0f+y))]=true;
+				wallMap[Pathfinder::GridToIndex(Vector2(static_cast<float>(data[0])*2.0f+x, static_cast<float>(data[1])*2.0f+y))]=true;
 			}
 		}
 	}

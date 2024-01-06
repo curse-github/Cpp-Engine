@@ -15,7 +15,7 @@ void engine_on_error(int error, const char* description) {
 void Engine::on_resize(int width, int height) {
 	if(ended||!initialized) return;
 	glViewport(0, 0, width, height);
-	curResolution=Vector2((float)width, (float)height);
+	curResolution=Vector2(static_cast<float>(width), static_cast<float>(height));
 	for(Object* obj:onResize) {
 		obj->on_resize(width, height);
 	}
@@ -35,11 +35,11 @@ void Engine::on_scroll(double xoffset, double yoffset) {
 void Engine::on_mouse(double mouseX, double mouseY) {
 	if(ended||!initialized) return;
 	if(curMousePos.x==-1||curMousePos.y==-1) {
-		curMousePos.x=(float)mouseX; curMousePos.y=(float)mouseY; return;
+		curMousePos.x=static_cast<float>(mouseX); curMousePos.y=static_cast<float>(mouseY); return;
 	}
-	float deltaX=((float)mouseX)-curMousePos.x;
-	float deltaY=curMousePos.y-((float)mouseY);
-	curMousePos=Vector2((float)mouseX, (float)mouseY);
+	float deltaX=static_cast<float>(mouseX)-curMousePos.x;
+	float deltaY=curMousePos.y-static_cast<float>(mouseY);
+	curMousePos=Vector2(static_cast<float>(mouseX), static_cast<float>(mouseY));
 	for(Object* obj:onMouse) {
 		obj->on_mouse(mouseX, mouseY);
 	}
@@ -73,7 +73,7 @@ Engine::Engine(const Vector2& size, const char* title, const bool& vsync) : wind
 		return;
 	}
 
-	window=glfwCreateWindow((int)size.x, (int)size.y, title, NULL, NULL);
+	window=glfwCreateWindow(static_cast<int>(size.x), static_cast<int>(size.y), title, NULL, NULL);
 	if(!window) {
 		ended=true;
 		glfwTerminate();
@@ -89,8 +89,8 @@ Engine::Engine(const Vector2& size, const char* title, const bool& vsync) : wind
 		Log("GLAD failed to init.");//error
 		return;
 	}
-	glViewport(0, 0, (int)size.x, (int)size.y);
-	glfwSwapInterval((int)vsync);// V-Sync: 1=on, 0=off
+	glViewport(0, 0, static_cast<int>(size.x), static_cast<int>(size.y));
+	glfwSwapInterval(static_cast<int>(vsync));// V-Sync: 1=on, 0=off
 
 	glfwSetErrorCallback(engine_on_error);
 	glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {Engine::instance->on_resize(width, height); });
@@ -135,15 +135,15 @@ void Engine::Loop() {
 		fpsData.deltaHistory[FpsAvgNum-1]=delta;// put delta at the end
 		double sum=0.0f;
 		for(unsigned int i=0; i<FpsAvgNum; i++) { sum+=fpsData.deltaHistory[i]; }// sum values
-		fpsAvg=(int)(FpsAvgNum/sum+0.5);
-		frameTimeAvg=(float)sum;//1000.0f*1000.0f;
+		fpsAvg=static_cast<int>(FpsAvgNum/sum+0.5);
+		frameTimeAvg=static_cast<float>(sum);//1000.0f*1000.0f;
 
 		fpsHigh=0;
 		fpsLow=1000000;
 		for(unsigned int i=0; i<FpsAvgNum; i++) {
 			double fps=1/fpsData.deltaHistory[i];
-			if(fps>fpsHigh) fpsHigh=(unsigned int)(fps+0.5);
-			if(fps<fpsLow) fpsLow=(unsigned int)(fps+0.5);
+			if(fps>fpsHigh) fpsHigh=static_cast<unsigned int>(fps+0.5);
+			if(fps<fpsLow) fpsLow=static_cast<unsigned int>(fps+0.5);
 		}
 #pragma endregion// calc fps
 

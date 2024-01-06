@@ -1,23 +1,64 @@
 #include "EngineLib.h"
 void Log(const std::string& out) {
 #ifdef _DEBUG
-	std::cout<<out<<std::endl;
+	DebugLog(out)
 #endif // _DEBUG
 }
 void Log(const char* out) {
 #ifdef _DEBUG
-	std::cout<<out<<std::endl;
+	DebugLog(out)
 #endif // _DEBUG
 }
-void Log(const bool& out) { Log(out ? "True" : "False"); }
-void Log(const int& out) { Log(std::to_string(out)); }
-void Log(const unsigned int& out) { Log(std::to_string(out)); }
-void Log(const float& out) { Log(std::to_string(out)); }
-void Log(const double& out) { Log(std::to_string(out)); }
-void Log(const Vector2& out) { Log(out.to_string()); }
-void Log(const Vector3& out) { Log(out.to_string()); }
-void Log(const Vector4& out) { Log(out.to_string()); }
-void Log(const Mat4x4& out) { Log(out.to_string()); }
+void Log(const char out) {
+#ifdef _DEBUG
+	DebugLog(out)
+#endif // _DEBUG
+}
+void Log(const bool& out) {
+#ifdef _DEBUG
+	DebugLog(out ? "True" : "False")
+#endif // _DEBUG
+}
+void Log(const int& out) {
+#ifdef _DEBUG
+	DebugLog(out)
+#endif // _DEBUG
+}
+void Log(const unsigned int& out) {
+#ifdef _DEBUG
+	DebugLog(out)
+#endif // _DEBUG
+}
+void Log(const float& out) {
+#ifdef _DEBUG
+	DebugLog(out)
+#endif // _DEBUG
+}
+void Log(const double& out) {
+#ifdef _DEBUG
+	DebugLog(out)
+#endif // _DEBUG
+}
+void Log(const Vector2& out) {
+#ifdef _DEBUG
+	std::cout<<out<<"\n";
+#endif // _DEBUG
+}
+void Log(const Vector3& out) {
+#ifdef _DEBUG
+	DebugLog(out)
+#endif // _DEBUG
+}
+void Log(const Vector4& out) {
+#ifdef _DEBUG
+	DebugLog(out)
+#endif // _DEBUG
+}
+void Log(const Mat4x4& out) {
+#ifdef _DEBUG
+	DebugLog(out)
+#endif // _DEBUG
+}
 
 void FsReadDiskFile(std::string* content, const std::string& filePath) {
 	std::ifstream fileStream(filePath, std::ios::in);
@@ -51,11 +92,11 @@ Vector2 Vector2::operator+(const Vector2& b) const { return Vector2(x+b.x, y+b.y
 Vector2 Vector2::operator-(const Vector2& b) const { return Vector2(x-b.x, y-b.y); }
 Vector2 Vector2::operator-() const { return Vector2(-x, -y); }
 Vector2 Vector2::operator*(const float& b) const { return Vector2(x*b, y*b); }
-Vector2 Vector2::operator*(const double& b) const { return Vector2(x*((float)b), y*((float)b)); }
-Vector2 Vector2::operator*(const int& b) const { return Vector2(x*((float)b), y*((float)b)); }
+Vector2 Vector2::operator*(const double& b) const { return Vector2(x*static_cast<float>(b), y*static_cast<float>(b)); }
+Vector2 Vector2::operator*(const int& b) const { return Vector2(x*static_cast<float>(b), y*static_cast<float>(b)); }
 Vector2 Vector2::operator/(const float& b) const { return Vector2(x/b, y/b); }
-Vector2 Vector2::operator/(const double& b) const { return Vector2(x/((float)b), y/((float)b)); }
-Vector2 Vector2::operator/(const int& b) const { return Vector2(x/((float)b), y/((float)b)); }
+Vector2 Vector2::operator/(const double& b) const { return Vector2(x/static_cast<float>(b), y/static_cast<float>(b)); }
+Vector2 Vector2::operator/(const int& b) const { return Vector2(x/static_cast<float>(b), y/static_cast<float>(b)); }
 float Vector2::operator[](const int& i) const {
 	if(i==0) return x;
 	else if(i==1) return y;
@@ -110,11 +151,11 @@ Vector3 Vector3::operator+(const Vector3& b) { return Vector3(x+b.x, y+b.y, z+b.
 Vector3 Vector3::operator-(const Vector3& b) const { return Vector3(x-b.x, y-b.y, z-b.z); }
 Vector3 Vector3::operator-() const { return Vector3(-x, -y, -z); }
 Vector3 Vector3::operator*(const float& b) const { return Vector3(x*b, y*b, z*b); }
-Vector3 Vector3::operator*(const double& b) const { return Vector3(x*((float)b), y*((float)b), z*((float)b)); }
-Vector3 Vector3::operator*(const int& b) const { return Vector3(x*((float)b), y*((float)b), z*((float)b)); }
+Vector3 Vector3::operator*(const double& b) const { return Vector3(x*static_cast<float>(b), y*static_cast<float>(b), z*static_cast<float>(b)); }
+Vector3 Vector3::operator*(const int& b) const { return Vector3(x*static_cast<float>(b), y*static_cast<float>(b), z*static_cast<float>(b)); }
 Vector3 Vector3::operator/(const float& b) const { return Vector3(x/b, y/b, z/b); }
-Vector3 Vector3::operator/(const double& b) const { return Vector3(x/((float)b), y/((float)b), z/((float)b)); }
-Vector3 Vector3::operator/(const int& b) const { return Vector3(x/((float)b), y/((float)b), z/((float)b)); }
+Vector3 Vector3::operator/(const double& b) const { return Vector3(x/static_cast<float>(b), y/static_cast<float>(b), z/static_cast<float>(b)); }
+Vector3 Vector3::operator/(const int& b) const { return Vector3(x/static_cast<float>(b), y/static_cast<float>(b), z/static_cast<float>(b)); }
 float Vector3::operator[](const int& i) const {
 	if(i==0) return x;
 	else if(i==1) return y;
@@ -154,11 +195,11 @@ Vector4 Vector4::operator+(const Vector4& b) const { return Vector4(x+b.x, y+b.y
 Vector4 Vector4::operator-(const Vector4& b) const { return Vector4(x-b.x, y-b.y, z-b.z, w-b.w); }
 Vector4 Vector4::operator-() const { return Vector4(-x, -y, -z, -w); }
 Vector4 Vector4::operator*(const float& b) const { return Vector4(x*b, y*b, z*b, w*b); }
-Vector4 Vector4::operator*(const double& b) const { return Vector4(x*((float)b), y*((float)b), z*((float)b), w*((float)b)); }
-Vector4 Vector4::operator*(const int& b) const { return Vector4(x*((float)b), y*((float)b), z*((float)b), w*((float)b)); }
+Vector4 Vector4::operator*(const double& b) const { return Vector4(x*static_cast<float>(b), y*static_cast<float>(b), z*static_cast<float>(b), w*static_cast<float>(b)); }
+Vector4 Vector4::operator*(const int& b) const { return Vector4(x*static_cast<float>(b), y*static_cast<float>(b), z*static_cast<float>(b), w*static_cast<float>(b)); }
 Vector4 Vector4::operator/(const float& b) const { return Vector4(x/b, y/b, z/b, w/b); }
-Vector4 Vector4::operator/(const double& b) const { return Vector4(x/((float)b), y/((float)b), z/((float)b), w/((float)b)); }
-Vector4 Vector4::operator/(const int& b) const { return Vector4(x/((float)b), y/((float)b), z/((float)b), w/((float)b)); }
+Vector4 Vector4::operator/(const double& b) const { return Vector4(x/static_cast<float>(b), y/static_cast<float>(b), z/static_cast<float>(b), w/static_cast<float>(b)); }
+Vector4 Vector4::operator/(const int& b) const { return Vector4(x/static_cast<float>(b), y/static_cast<float>(b), z/static_cast<float>(b), w/static_cast<float>(b)); }
 float Vector4::operator[](const int& i) const {
 	if(i==0) return x;
 	else if(i==1) return y;

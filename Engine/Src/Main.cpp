@@ -28,11 +28,11 @@ void Player::on_key(const int& key, const int& scancode, const int& action, cons
 void Player::on_loop(const double& delta) {
 	if(engine->ended||!initialized) return;
 	Vector2 inputVec=Vector2(
-		(float)(inputs[3]>=GLFW_PRESS)-(float)(inputs[1]>=GLFW_PRESS),
-		(float)(inputs[0]>=GLFW_PRESS)-(float)(inputs[2]>=GLFW_PRESS)
+		static_cast<float>(inputs[3]>=GLFW_PRESS)-static_cast<float>(inputs[1]>=GLFW_PRESS),
+		static_cast<float>(inputs[0]>=GLFW_PRESS)-static_cast<float>(inputs[2]>=GLFW_PRESS)
 	).normalized();
 	if(inputVec.x==0&&inputVec.y==0) return;
-	inputVec=inputVec*((float)delta)*((inputs[4]!=GLFW_RELEASE) ? playerSprintSpeed : playerSpeed)*mapScale*(1+spacing);
+	inputVec=inputVec*static_cast<float>(delta)*((inputs[4]!=GLFW_RELEASE) ? playerSprintSpeed : playerSpeed)*mapScale*(1+spacing);
 	transform.position+=collider->tryMove(inputVec, MAPMASK|ENEMYMASK);
 	iconRenderer->setWorldPos(gridToMinimap(WorldToGrid(getWorldPos())));
 	sceneCam->update();
@@ -104,7 +104,7 @@ void Enemy::on_loop(const double& delta) {
 		}// else setDebugLine({ hit.point });
 	}
 
-	float travelDist=enemySpeed*((float)delta)*mapScale*(1+spacing);
+	float travelDist=enemySpeed*static_cast<float>(delta)*mapScale*(1+spacing);
 	while(path.size()>0&&travelDist>0) {
 		Vector2 worldPos=getWorldPos();
 		if((worldPos-target->getWorldPos()).length()<=mapScale*(1+spacing)) { path.clear();break; }
@@ -142,7 +142,7 @@ void Instance::on_click(const Vector2& pos) {
 }
 Instance::Instance(ClickDetector* clickDetector, Shader* lineShader, Texture* _instanceUnlitTex, Texture* _instanceWorkingTex, Texture* _instanceBrokenTex, const Vector2& _position, const Vector2& _anchor, const float& _rotAngle) :
 	Clickable(clickDetector), hasTransform2D(_position, 0.0f, Vector2(mapScale), _anchor, _rotAngle), instanceWorkingTex(_instanceWorkingTex), instanceBrokenTex(_instanceBrokenTex) {
-	broken=((float)std::rand())/((float)RAND_MAX)<=(instanceBrokenChance/100.0f);
+	broken=static_cast<float>(std::rand())/static_cast<float>(RAND_MAX)<=(instanceBrokenChance/100.0f);
 	addChild(staticSpriteRenderer->addSprite(Vector4(0.5f, 0.5f, 0.5f, 1.0f), _instanceUnlitTex, Vector2::ZERO, 1.0f));
 	stateQuad=instanceStateSpritesRenderer->addSprite(Vector4::ONE, broken ? instanceBrokenTex : instanceWorkingTex, Vector2::ZERO, 2.0f);
 	addChild(stateQuad);
@@ -208,7 +208,7 @@ int Run() {
 		engine->Delete();
 		return 0;
 	}
-	minimapSize=Vector2((float)minimapTex->width, (float)minimapTex->height)*minimapScale;
+	minimapSize=Vector2(static_cast<float>(minimapTex->width), static_cast<float>(minimapTex->height))*minimapScale;
 	// setup shaders
 	lineShader=createColorShader(Vector4(0.0f, 0.0f, 1.0f, 1.0f));
 	if(engine->ended||!lineShader->initialized) { Log("Shaders failed to init."); engine->Delete(); return 0; }
@@ -227,7 +227,7 @@ int Run() {
 	//ColliderDebug=true;// makes hitboxes visible
 	instanceClickDetector=new ClickDetector(cam);
 	for(const std::array<int, 5>&dat:instanceData) {
-		Vector2 pos=GridToWorld(Vector2((float)dat[0], (float)dat[1])+Vector2(0.5f, 0.5f));
+		Vector2 pos=GridToWorld(Vector2(static_cast<float>(dat[0]), static_cast<float>(dat[1]))+Vector2(0.5f, 0.5f));
 		new Instance(instanceClickDetector, lineShader, instanceUnlitTex, instanceWorkingTex, instanceBrokenTex, pos, Vector2::Center, 0.0f);
 	}
 	staticSpriteRenderer->bind();
@@ -287,9 +287,7 @@ void Loop(const double& delta) {
 	uiHandler->draw();
 }
 void close() { engine->Close(); }
-void on_enter(std::string text) {
-	Log(text);
-}
+void on_enter(std::string text) { Log(text); }
 
 int main(int argc, char** argv) {
 	int value=Run();

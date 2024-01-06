@@ -68,16 +68,16 @@ void FreeCam::on_key(const int& key, const int& scancode, const int& action, con
 }
 void FreeCam::on_scroll(const double& xoffset, const double& yoffset) {
 	if(Engine::instance->ended||!initialized) return;
-	fov-=(float)yoffset;
+	fov-=static_cast<float>(yoffset);
 	fov=clamp(fov, 1.0f, 90.0f);
 	update();
 }
 void FreeCam::on_mouse_delta(const float& deltaX, const float& deltaY) {
 	if(Engine::instance->ended||!initialized) return;
 	if(paused) return;
-	pitch+=(float)deltaY*SENSITIVITY;
+	pitch+=static_cast<float>(deltaY*SENSITIVITY);
 	pitch=clamp(pitch, -89.0f, 89.0f);
-	yaw+=(float)deltaX*SENSITIVITY;
+	yaw+=static_cast<float>(deltaX*SENSITIVITY);
 	Vector3 dir=Vector3(
 		cos(deg_to_rad(pitch))*cos(deg_to_rad(yaw)),
 		sin(deg_to_rad(pitch)),
@@ -88,11 +88,11 @@ void FreeCam::on_mouse_delta(const float& deltaX, const float& deltaY) {
 }
 void FreeCam::on_loop(const double& delta) {
 	if(Engine::instance->ended||!initialized) return;
-	float deltaf=((float)delta);
+	float deltaf=static_cast<float>(delta);
 	Vector3 inputVec=Vector3(
-		(float)(inputs[0]>=GLFW_PRESS)-(float)(inputs[2]>=GLFW_PRESS),
-		(float)(inputs[4]>=GLFW_PRESS)-(float)(inputs[5]>=GLFW_PRESS),
-		(float)(inputs[3]>=GLFW_PRESS)-(float)(inputs[1]>=GLFW_PRESS)
+		static_cast<float>(inputs[0]>=GLFW_PRESS)-static_cast<float>(inputs[2]>=GLFW_PRESS),
+		static_cast<float>(inputs[4]>=GLFW_PRESS)-static_cast<float>(inputs[5]>=GLFW_PRESS),
+		static_cast<float>(inputs[3]>=GLFW_PRESS)-static_cast<float>(inputs[1]>=GLFW_PRESS)
 	);
 	position+=((forward*inputVec.x)+(up*inputVec.y)+(forward.cross(up).normalized()*inputVec.z)).normalized()*SPEED*deltaf;
 	update();

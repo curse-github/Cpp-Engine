@@ -155,14 +155,14 @@ int TextRenderer::initCharacterMap() {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		// now store character for later use
-		Vector2 Size((float)face->glyph->bitmap.width, (float)face->glyph->bitmap.rows);
-		Vector2 Bearing((float)face->glyph->bitmap_left, (float)face->glyph->bitmap_top);
+		Vector2 Size(static_cast<float>(face->glyph->bitmap.width), static_cast<float>(face->glyph->bitmap.rows));
+		Vector2 Bearing(static_cast<float>(face->glyph->bitmap_left), static_cast<float>(face->glyph->bitmap_top));
 
-		Characters[(int)c]=Character {
+		Characters[static_cast<unsigned int>(c)]=Character {
 			new Texture(texID),
 			Size,
 			Bearing,
-			(float)(((int)face->glyph->advance.x)>>6)// bitshift by 6 to get value in pixels (2^6 = 64)
+			static_cast<float>(static_cast<int>(face->glyph->advance.x)>>6)// bitshift by 6 to get value in pixels (2^6 = 64)
 		};
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -209,7 +209,7 @@ void TextRenderer::draw() {
 	Vector2 tmpScale=Vector2(0.0f, 9.0f);
 	float curX=0.0f;
 	const char* cstr=text.c_str();
-	int len=(int)text.length();
+	int len=static_cast<int>(text.length());
 	for(int c=0;c!=len;c++) {
 		char charC=cstr[c];
 		if(charC=='\n') {
@@ -217,7 +217,7 @@ void TextRenderer::draw() {
 			curX=0.0f; tmpScale.y+=9.0f;
 			continue;
 		}
-		TextRenderer::Character ch=TextRenderer::Characters[(int)charC];
+		TextRenderer::Character ch=TextRenderer::Characters[static_cast<int>(charC)];
 		if(charC==' ') { curX+=1.0f+ch.Advance; continue; }// skip one space and continue
 		else if(charC=='\t') { curX+=1.0f+ch.Advance*4.0f; continue; }//4 character spaces
 		curX+=1.0f+ch.Advance;
@@ -230,7 +230,7 @@ void TextRenderer::draw() {
 	float y=0.0f;
 	for(int c=0;c!=len;c++) {
 		char charC=cstr[c];
-		int intC=(int)charC;
+		int intC=static_cast<int>(charC);
 		if(charC=='\n') { x=0.0f;y-=9.0f; continue; } else if(charC=='\r') { x=0.0f; continue; }
 		TextRenderer::Character ch=TextRenderer::Characters[intC];
 		if(charC==' ') { x+=1.0f+ch.Advance; continue; }// skip one space and continue

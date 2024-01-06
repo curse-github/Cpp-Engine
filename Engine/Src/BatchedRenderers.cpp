@@ -14,7 +14,7 @@ void BatchedSpriteRenderer::bufferQuad(const Vector4& modulate, Texture* tex, co
 			texIndex=static_cast<float>(numTextures);textures.push_back(tex);numTextures++;
 		}
 	}
-	for(unsigned int i=0; i<((unsigned int)4*5); i+=5) {
+	for(unsigned int i=0; i<static_cast<unsigned int>(4*5); i+=5) {
 		quadVerticesBuffer.push_back(BatchedVertex {
 			_position.x+(SpriteRenderer::quadvertices[i+0]-_anchor.x)*_scale.x, _position.y+(SpriteRenderer::quadvertices[i+1]-_anchor.y)*_scale.y,
 			_zIndex-100.0f,
@@ -59,18 +59,17 @@ BatchedSpriteRenderer::BatchedSpriteRenderer(OrthoCam* _cam) :
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, maxQuadCount*4*sizeof(BatchedVertex), nullptr, GL_DYNAMIC_DRAW);
-	unsigned int* indices=new unsigned int[maxQuadCount*6];
-	for(unsigned int i=0; i<maxQuadCount; i++) {
-		indices[i*6+0]=(i*4+SpriteRenderer::quadindices[0]);
-		indices[i*6+1]=(i*4+SpriteRenderer::quadindices[1]);
-		indices[i*6+2]=(i*4+SpriteRenderer::quadindices[2]);
-		indices[i*6+3]=(i*4+SpriteRenderer::quadindices[3]);
-		indices[i*6+4]=(i*4+SpriteRenderer::quadindices[4]);
-		indices[i*6+5]=(i*4+SpriteRenderer::quadindices[5]);
-	}
+	// Populates index buffer without allocating memory for thousands of ints
+	const unsigned int totalIndices=maxQuadCount*6;
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*maxQuadCount*6, indices, GL_STATIC_DRAW);
-	delete[] indices;
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*totalIndices, nullptr, GL_STATIC_DRAW);
+	unsigned int* indicesData=static_cast<unsigned int*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY));// Maps the buffer to update the data directly
+	for(int i=0; i<maxQuadCount; i++) {// Populate the indices directly in the mapped buffer
+		for(int j=0; j<6; j++) {
+			indicesData[i*6+j]=i*4+SpriteRenderer::quadindices[j];
+		}
+	}
+	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)0);
 	glEnableVertexAttribArray(0);
@@ -117,7 +116,7 @@ void StaticBatchedSpriteRenderer::bufferQuad(const Vector4& modulate, Texture* t
 		if(numTextures>=32) return;// if out of room for textures in this batch, render and reset
 		texIndex=static_cast<float>(numTextures);textures.push_back(tex);numTextures++;
 	}
-	for(unsigned int i=0; i<((unsigned int)4*5); i+=5) {
+	for(unsigned int i=0; i<static_cast<unsigned int>(4*5); i+=5) {
 		quadVerticesBuffer.push_back(BatchedVertex {
 			_position.x+(SpriteRenderer::quadvertices[i+0]-_anchor.x)*_scale.x, _position.y+(SpriteRenderer::quadvertices[i+1]-_anchor.y)*_scale.y,
 			_zIndex-100.0f,
@@ -158,18 +157,17 @@ StaticBatchedSpriteRenderer::StaticBatchedSpriteRenderer(OrthoCam* _cam) :
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, maxQuadCount*4*sizeof(BatchedVertex), nullptr, GL_DYNAMIC_DRAW);
-	unsigned int* indices=new unsigned int[maxQuadCount*6];
-	for(unsigned int i=0; i<maxQuadCount; i++) {
-		indices[i*6+0]=i*4+1;
-		indices[i*6+1]=i*4+3;
-		indices[i*6+2]=i*4+2;
-		indices[i*6+3]=i*4+2;
-		indices[i*6+4]=i*4+0;
-		indices[i*6+5]=i*4+1;
-	}
+	// Populates index buffer without allocating memory for thousands of ints
+	const unsigned int totalIndices=maxQuadCount*6;
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*maxQuadCount*6, indices, GL_STATIC_DRAW);
-	delete[] indices;
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*totalIndices, nullptr, GL_STATIC_DRAW);
+	unsigned int* indicesData=static_cast<unsigned int*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY));// Maps the buffer to update the data directly
+	for(int i=0; i<maxQuadCount; i++) {// Populate the indices directly in the mapped buffer
+		for(int j=0; j<6; j++) {
+			indicesData[i*6+j]=i*4+SpriteRenderer::quadindices[j];
+		}
+	}
+	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)0);
 	glEnableVertexAttribArray(0);
@@ -226,7 +224,7 @@ struct TextRenderer::Character {
 void BatchedTextRenderer::bufferCharacter(const int& shaderIndex, const float& texIndex, const Vector4& color, const Vector2& _position, const float& _zIndex, const Vector2& _scale) {
 	if(Engine::instance->ended||!initialized) return;
 	if(numChars[shaderIndex]>=maxCharacterCount) renderBatch(shaderIndex);// if out of room render and reset
-	for(unsigned int i=0; i<((unsigned int)4*5); i+=5) {
+	for(unsigned int i=0; i<static_cast<unsigned int>(4*5); i+=5) {
 		characterBuffers[shaderIndex].push_back(BatchedVertex {
 			_position.x+SpriteRenderer::quadvertices[i+0]*_scale.x, _position.y+SpriteRenderer::quadvertices[i+1]*_scale.y,// x and y
 			_zIndex-100.0f,// z
@@ -271,7 +269,7 @@ BatchedTextRenderer::BatchedTextRenderer(Camera* cam) :
 	for(unsigned int shaderIndex=0; shaderIndex<3; shaderIndex++) {
 		// set textures from TextRenderer class into textureArrays
 		for(int i=0; i<32; i++) {
-			textureArrays[shaderIndex][i]=TextRenderer::Characters[(char)((shaderIndex+1)*32+i)].tex;
+			textureArrays[shaderIndex][i]=TextRenderer::Characters[static_cast<char>((shaderIndex+1)*32+i)].tex;
 		}
 	}
 
@@ -283,18 +281,17 @@ BatchedTextRenderer::BatchedTextRenderer(Camera* cam) :
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, maxCharacterCount*4*sizeof(BatchedVertex), nullptr, GL_DYNAMIC_DRAW);
-	unsigned int* indices=new unsigned int[maxCharacterCount*6];
-	for(unsigned int i=0; i<maxCharacterCount; i++) {
-		indices[i*6+0]=i*4+SpriteRenderer::quadindices[0];
-		indices[i*6+1]=i*4+SpriteRenderer::quadindices[1];
-		indices[i*6+2]=i*4+SpriteRenderer::quadindices[2];
-		indices[i*6+3]=i*4+SpriteRenderer::quadindices[3];
-		indices[i*6+4]=i*4+SpriteRenderer::quadindices[4];
-		indices[i*6+5]=i*4+SpriteRenderer::quadindices[5];
-	}
+	// Populates index buffer without allocating memory for thousands of ints
+	const unsigned int totalIndices=maxCharacterCount*6;
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*maxCharacterCount*6, indices, GL_STATIC_DRAW);
-	delete[] indices;
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*totalIndices, nullptr, GL_STATIC_DRAW);
+	unsigned int* indicesData=static_cast<unsigned int*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY));// Maps the buffer to update the data directly
+	for(int i=0; i<maxCharacterCount; i++) {// Populate the indices directly in the mapped buffer
+		for(int j=0; j<6; j++) {
+			indicesData[i*6+j]=i*4+SpriteRenderer::quadindices[j];
+		}
+	}
+	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)0);
 	glEnableVertexAttribArray(0);
@@ -323,7 +320,7 @@ void BatchedTextRenderer::draw() {
 		Vector2 tmpScale=Vector2(0.0f, 9.0f);
 		float curX=0.0f;
 		const char* cstr=_text->text.c_str();
-		int len=(int)_text->text.length();
+		int len=static_cast<int>(_text->text.length());
 		for(int c=0;c!=len;c++) {
 			char charC=cstr[c];
 			if(charC=='\n') {
@@ -331,7 +328,7 @@ void BatchedTextRenderer::draw() {
 				curX=0.0f; tmpScale.y+=9.0f;
 				continue;
 			}
-			TextRenderer::Character ch=TextRenderer::Characters[(int)charC];
+			TextRenderer::Character ch=TextRenderer::Characters[static_cast<int>(charC)];
 			if(charC==' ') { curX+=1.0f+ch.Advance; continue; }// skip one space and continue
 			else if(charC=='\t') { curX+=1.0f+ch.Advance*4.0f; continue; }//4 character spaces
 			curX+=1.0f+ch.Advance;
@@ -343,14 +340,14 @@ void BatchedTextRenderer::draw() {
 		float y=0.0f;
 		for(int c=0;c!=len;c++) {
 			char charC=cstr[c];
-			int intC=(int)charC;
+			int intC=static_cast<int>(charC);
 			if(charC=='\n') { x=0.0f;y-=9.0f; continue; } else if(charC=='\r') { x=0.0f; continue; }
 			TextRenderer::Character ch=TextRenderer::Characters[intC];
 			if(charC==' ') { x+=1.0f+ch.Advance; continue; }// skip one space and continue
 			else if(charC=='\t') { x+=1.0f+ch.Advance*4.0f; continue; }//4 character spaces
 			bufferCharacter(
 				((intC)/32)-1,
-				(float)((intC)%32),
+				static_cast<float>((intC)%32),
 				_text->color,
 				offset+(Vector2(x, y)+ch.Bearing-Vector2(_text->anchor.x*ch.Size.x, (ch.Size.y)/2.0f+9.0f))*_text->scale,
 				_text->zIndex,

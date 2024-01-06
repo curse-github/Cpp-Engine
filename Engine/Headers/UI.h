@@ -97,6 +97,8 @@ class Button : virtual public hasTransform2D, public UiElement {
 	void on_release(const Vector2& pos) override;
 	void on_hover(const Vector2& pos) override;
 	void on_unhover(const Vector2& pos) override;
+
+	void on_key(const int& key, const int& scancode, const int& action, const int& mods) override;
 	public:
 	typedef std::function<void()> voidfun;
 	BatchedQuadData* quad;

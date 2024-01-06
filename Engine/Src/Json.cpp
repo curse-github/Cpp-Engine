@@ -1,10 +1,11 @@
 #include "Json.h"
 bool startsWith(std::string str, std::string start);
-std::string stringCut(std::string* str, const int& num);
-void cutComment(std::string* str);
+std::string stringCut(std::string* str, const size_t& len);
+bool cutComment(std::string* str);
 void cutEmptySpace(std::string* str);
-void cutSemicolon(std::string* str);
-void cutComma(std::string* str);
+bool cutSemicolon(std::string* str);
+bool cutComma(std::string* str);
+
 std::string parseString(std::string* json);
 int parseInt(std::string* json);
 float parseFloat(std::string* json);
@@ -50,7 +51,7 @@ void loadMapData(const std::string& mapName) {
 	FsReadDiskFile(&data, "Data/"+mapName+".json");
 	cutEmptySpace(&data);
 	if(!startsWith(data, "{")) return;
-	stringCut(&data, 1);
+	stringCut(&data, static_cast<size_t>(1));
 	cutEmptySpace(&data);
 	while(!startsWith(data, "}")) {
 		std::string key=parseString(&data);
@@ -106,35 +107,35 @@ void loadMapData(const std::string& mapName) {
 			for(unsigned int i=0; i<limit; i++) {
 				horizontalWallData.push_back(parseVector3(&data));
 				if(!startsWith(data, ",")) break;
-				stringCut(&data, 1);
+				stringCut(&data, static_cast<size_t>(1));
 			}
 			cutEmptySpace(&data);
 			if(!startsWith(data, "]")) return;
-			stringCut(&data, 1);
+			stringCut(&data, static_cast<size_t>(1));
 		} else if(key=="verticalWallData") {
 			cutEmptySpace(&data);
 			if(!startsWith(data, "[")) return;
-			stringCut(&data, 1);
+			stringCut(&data, static_cast<size_t>(1));
 			//maximum 500 iterations
 			unsigned int limit=500;
 			for(unsigned int i=0; i<limit; i++) {
 				verticalWallData.push_back(parseVector3(&data));
 				if(!startsWith(data, ",")) break;
-				stringCut(&data, 1);
+				stringCut(&data, static_cast<size_t>(1));
 			}
 			cutEmptySpace(&data);
 			if(!startsWith(data, "]")) return;
-			stringCut(&data, 1);
+			stringCut(&data, static_cast<size_t>(1));
 		} else if(key=="instanceData") {
 			cutEmptySpace(&data);
 			if(!startsWith(data, "[")) return;
-			stringCut(&data, 1);
+			stringCut(&data, static_cast<size_t>(1));
 			//maximum 500 iterations
 			unsigned int limit=500;
 			for(unsigned int i=0; i<limit; i++) {
 				cutEmptySpace(&data);
 				if(!startsWith(data, "[")) return;
-				stringCut(&data, 1);
+				else stringCut(&data, static_cast<size_t>(1));
 				int one=parseInt(&data);
 				cutComma(&data);
 				int two=parseInt(&data);
@@ -146,15 +147,15 @@ void loadMapData(const std::string& mapName) {
 				int five=parseInt(&data);
 				cutEmptySpace(&data);
 				if(!startsWith(data, "]")) return;
-				stringCut(&data, 1);
+				else stringCut(&data, static_cast<size_t>(1));
 				std::array<int, 5> tmp={ one, two, three, four, five };
 				instanceData.push_back(tmp);
 				if(!startsWith(data, ",")) break;
-				stringCut(&data, 1);
+				else stringCut(&data, static_cast<size_t>(1));
 			}
 			cutEmptySpace(&data);
 			if(!startsWith(data, "]")) return;
-			stringCut(&data, 1);
+			stringCut(&data, static_cast<size_t>(1));
 		} else {
 			Log("Unknown key \""+key+"\"");
 			return;
@@ -163,33 +164,36 @@ void loadMapData(const std::string& mapName) {
 		cutEmptySpace(&data);
 	}
 	if(!startsWith(data, "}")) return;
-	stringCut(&data, 1);
+	stringCut(&data, static_cast<size_t>(1));
 	fullMapSize=mapSize*(1.0f+spacing)*mapScale;
 	parsedMap=true;
 	return;
 }
 bool startsWith(std::string str, std::string start) {
-	return str.substr(0, std::min((int)start.size(), (int)str.size()))==start;
+	return str.substr(static_cast<size_t>(0), std::min(start.size(), str.size()))==start;
 }
-std::string stringCut(std::string* str, const int& num) {
-	int len=std::min(num, (int)str->size());
-	std::string tmp=str->substr(0, len);
-	(*str)=str->substr(len, str->size());
+std::string stringCut(std::string* str, const size_t& len) {
+	size_t minLen=std::min(len, str->size());
+	std::string tmp=str->substr(static_cast<size_t>(0), minLen);
+	(*str)=str->substr(minLen, str->size());
 	return tmp;
 }
-void cutComment(std::string* str) {
+bool cutComment(std::string* str) {
 	if(startsWith(*str, "//")) {
-		stringCut(str, 2);
+		stringCut(str, static_cast<size_t>(2));
 		while(!startsWith(*str, "\n")) {
-			stringCut(str, 1);
+			stringCut(str, static_cast<size_t>(1));
 		}
+		return true;
 	} else if(startsWith(*str, "/*")) {
-		stringCut(str, 2);
+		stringCut(str, static_cast<size_t>(2));
 		while(!startsWith(*str, "*/")) {
-			stringCut(str, 1);
+			stringCut(str, static_cast<size_t>(1));
 		}
-		stringCut(str, 2);
+		stringCut(str, static_cast<size_t>(2));
+		return true;
 	}
+	return false;
 }
 void cutEmptySpace(std::string* str) {
 	if(startsWith(*str, "//")||startsWith(*str, "/*")) {
@@ -199,31 +203,33 @@ void cutEmptySpace(std::string* str) {
 		startsWith(*str, "\r")||startsWith(*str, "\t")||
 		startsWith(*str, "\b"))&&str->size()>0
 		) {
-		stringCut(str, 1);
+		stringCut(str, static_cast<size_t>(1));
 		if(startsWith(*str, "//")||startsWith(*str, "/*")) {
 			cutComment(str);
 		}
 	}
 }
-void cutSemicolon(std::string* str) {
+bool cutSemicolon(std::string* str) {
 	cutEmptySpace(str);
-	if(!startsWith(*str, ":")) return;
-	stringCut(str, 1);
+	if(!startsWith(*str, ":")) return false;
+	stringCut(str, static_cast<size_t>(1));
+	return true;
 }
-void cutComma(std::string* str) {
+bool cutComma(std::string* str) {
 	cutEmptySpace(str);
-	if(!startsWith(*str, ",")) return;
-	stringCut(str, 1);
+	if(!startsWith(*str, ",")) return false;
+	stringCut(str, static_cast<size_t>(1));
+	return true;
 }
 std::string parseString(std::string* json) {
 	cutEmptySpace(json);
 	if(!startsWith(*json, "\"")&&!startsWith(*json, "\'")) return "";
-	stringCut(json, 1);
+	stringCut(json, static_cast<size_t>(1));
 	std::string str="";
 	while(!startsWith(*json, "\"")&&!startsWith(*json, "\'")) {
-		str+=stringCut(json, 1);
+		str+=stringCut(json, static_cast<size_t>(1));
 	}
-	stringCut(json, 1);
+	stringCut(json, static_cast<size_t>(1));
 	return str;
 }
 int parseInt(std::string* json) {
@@ -234,7 +240,7 @@ int parseInt(std::string* json) {
 		startsWith(*json, "4")||startsWith(*json, "5")||
 		startsWith(*json, "6")||startsWith(*json, "7")||
 		startsWith(*json, "8")||startsWith(*json, "9")) {
-		str+=stringCut(json, 1);
+		str+=stringCut(json, static_cast<size_t>(1));
 	}
 	return std::stoi(str);
 }
@@ -247,26 +253,26 @@ float parseFloat(std::string* json) {
 		startsWith(*json, "6")||startsWith(*json, "7")||
 		startsWith(*json, "8")||startsWith(*json, "9")||
 		startsWith(*json, ".")||startsWith(*json, "-")) {
-		str+=stringCut(json, 1);
+		str+=stringCut(json, static_cast<size_t>(1));
 	}
 	return std::stof(str);
 }
 Vector2 parseVector2(std::string* json) {
 	cutEmptySpace(json);
 	if(!startsWith(*json, "[")) return Vector2();
-	stringCut(json, 1);
+	stringCut(json, static_cast<size_t>(1));
 	float x=parseFloat(json);
 	cutComma(json);
 	float y=parseFloat(json);
 	cutEmptySpace(json);
 	if(!startsWith(*json, "]")) return Vector2();
-	stringCut(json, 1);
+	stringCut(json, static_cast<size_t>(1));
 	return Vector2(x, y);
 }
 Vector3 parseVector3(std::string* json) {
 	cutEmptySpace(json);
 	if(!startsWith(*json, "[")) return Vector3();
-	stringCut(json, 1);
+	stringCut(json, static_cast<size_t>(1));
 	float x=parseFloat(json);
 	cutComma(json);
 	float y=parseFloat(json);
@@ -274,13 +280,13 @@ Vector3 parseVector3(std::string* json) {
 	float z=parseFloat(json);
 	cutEmptySpace(json);
 	if(!startsWith(*json, "]")) return Vector3();
-	stringCut(json, 1);
+	stringCut(json, static_cast<size_t>(1));
 	return Vector3(x, y, z);
 }
 Vector4 parseVector4(std::string* json) {
 	cutEmptySpace(json);
 	if(!startsWith(*json, "[")) return Vector4();
-	stringCut(json, 1);
+	stringCut(json, static_cast<size_t>(1));
 	float x=parseFloat(json);
 	cutComma(json);
 	float y=parseFloat(json);
@@ -290,6 +296,6 @@ Vector4 parseVector4(std::string* json) {
 	float w=parseFloat(json);
 	cutEmptySpace(json);
 	if(!startsWith(*json, "]")) return Vector4();
-	stringCut(json, 1);
+	stringCut(json, static_cast<size_t>(1));
 	return Vector4(x, y, z, w);
 }

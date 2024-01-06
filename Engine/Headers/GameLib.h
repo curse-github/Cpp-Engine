@@ -21,8 +21,8 @@ Shader* createDotTexShader(Texture* tex, const Vector4& modulate=Vector4::ZERO);
 
 class Pathfinder {
 	protected:
-	static unsigned int GridToIndex(const Vector2& grid) { return (unsigned int)(grid.x*mapSize.y*2+grid.y); }
-	static unsigned int MaxIndex() { return (unsigned int)(mapSize.x*mapSize.y)*4; }
+	static unsigned int GridToIndex(const Vector2& grid) { return static_cast<unsigned int>(grid.x*mapSize.y*2+grid.y); }
+	static unsigned int MaxIndex() { return static_cast<unsigned int>(mapSize.x*mapSize.y)*4; }
 	struct PathfinderData {
 		Vector2 Pos;
 		unsigned int FromKey;
@@ -86,7 +86,7 @@ class BoxCollider : public LineRenderer {
 		operator bool() const { return hit; };
 		RaycastHit operator||(const RaycastHit& b) const {
 			RaycastHit out;
-			switch(((int)hit)+((int)b.hit)*2) {
+			switch(static_cast<int>(hit)+static_cast<int>(b.hit)*2) {
 				case 0://neither
 					out=RaycastHit();
 					break;
@@ -112,7 +112,7 @@ class BoxCollider : public LineRenderer {
 		CollitionData() : hit(false), dist(FLT_MAX), point(Vector2()) {};
 		CollitionData(const RaycastHit& raycast, const Vector2& _normal) : hit(raycast.hit), point(raycast.point), normal(_normal), dist(raycast.dist) {};
 		static void combine(CollitionData* a, const RaycastHit& raycast, const Vector2& _normal) {
-			switch(((int)a->hit)+((int)raycast.hit)*2) {
+			switch(static_cast<int>(a->hit)+static_cast<int>(raycast.hit)*2) {
 				case 0://neither
 					break;
 				case 1://a&&!b
@@ -136,7 +136,7 @@ class BoxCollider : public LineRenderer {
 		operator bool() const { return hit; }
 		CollitionData operator||(const CollitionData& b) const {
 			CollitionData out;
-			switch(((int)hit)+((int)b.hit)*2) {
+			switch(static_cast<int>(hit)+static_cast<int>(b.hit)*2) {
 				case 0://neither
 					out=CollitionData();
 					break;

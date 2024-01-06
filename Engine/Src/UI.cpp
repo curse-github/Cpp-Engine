@@ -136,6 +136,13 @@ void Button::on_unhover(const Vector2& pos) {
 	quad->modulate=color;
 	if(onunhover) onunhover();
 }
+void Button::on_key(const int& key, const int& scancode, const int& action, const int& mods) {
+	if(Engine::instance->ended||!initialized) return;
+	if(action>GLFW_RELEASE&&key==GLFW_KEY_ENTER) {
+		on_click(Vector2::ZERO);
+		on_release(Vector2::ZERO);
+	}
+}
 Button::Button(UiHandler* _handler, ClickDetector* _detector, const Vector4& _color, const Vector4& _hoverColor, const Vector4& _pressedColor, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) :
 	hasTransform2D(_position, _zIndex, _scale, _anchor), UiElement(_handler, _detector), quad(nullptr), color(_color), hoverColor(_hoverColor), pressedColor(_pressedColor) {
 	if(Engine::instance->ended||!initialized) { return;initialized=false; }
@@ -164,7 +171,7 @@ void TextInput::on_key(const int& key, const int& scancode, const int& action, c
 			if(key>=GLFW_KEY_A&&key<=GLFW_KEY_Z) {// letter values
 				bool shift=(mods&GLFW_MOD_SHIFT)>0;
 				bool capsLock=(mods&GLFW_MOD_CAPS_LOCK)>0;
-				value+=(char)(key+((shift^capsLock) ? 0 : 32));// shift character by 32 if not caps
+				value+=static_cast<char>(key+((shift^capsLock) ? 0 : 32));// shift character by 32 if not caps
 			} else {// non letter values
 				if((mods&GLFW_MOD_SHIFT)>0) {
 					switch(key) {
@@ -191,18 +198,18 @@ void TextInput::on_key(const int& key, const int& scancode, const int& action, c
 						case GLFW_KEY_RIGHT_BRACKET: value+='}'; break;// ']'
 						case GLFW_KEY_GRAVE_ACCENT: value+='`'; break;// '`'
 					}
-				} else {
-					value+=(char)key;
-				}
+				} else value+=static_cast<char>(key);
 			}
 			update();
 		} else if(key==GLFW_KEY_BACKSPACE) {
 			if(!value.empty()) value.erase(value.size()-1);
 			update();
 		} else if(key==GLFW_KEY_ENTER) {
-			if(onenter) onenter(value);
-			if(!value.empty()&&clearOnEnter) value="";
-			update();
+			if(!value.empty()) {
+				if(onenter) onenter(value);
+				if(clearOnEnter) value="";
+				update();
+			}
 		}
 	}
 }

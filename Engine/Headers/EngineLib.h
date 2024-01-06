@@ -6,20 +6,22 @@
 #include <string>
 #include <fstream>
 
+#define DebugLog(x) std::cout << (x) << "\n";
 void Log(const std::string& out);
 void Log(const char* out);
+void Log(const char out);
 void Log(const bool& out);
 void Log(const int& out);
 void Log(const unsigned int& out);
 void Log(const float& out);
 void Log(const double& out);
 class Vector2;
-void Log(const Vector2& out);
 class Vector3;
-void Log(const Vector3& out);
 class Vector4;
-void Log(const Vector4& out);
 class Mat4x4;
+void Log(const Vector2& out);
+void Log(const Vector3& out);
+void Log(const Vector4& out);
 void Log(const Mat4x4& out);
 
 void FsReadDiskFile(std::string* content, const std::string& filePath);
@@ -57,6 +59,9 @@ class Vector2 {
 	bool operator!=(const Vector2& b) const;
 	std::string to_string() const;
 	operator std::string() const;
+	friend std::ostream& operator<<(std::ostream& o, const Vector2& rhs) {
+		o<<rhs.to_string(); return o;
+	}
 	static const Vector2 ZERO;
 	static const Vector2 ONE;
 	static const Vector2 RIGHT;
@@ -107,6 +112,9 @@ class Vector3 {
 	bool operator!=(const Vector3& b) const;
 	std::string to_string() const;
 	operator std::string() const;
+	friend std::ostream& operator<<(std::ostream& o, const Vector3& rhs) {
+		o<<rhs.to_string(); return o;
+	}
 	static const Vector3 ZERO;
 	static const Vector3 ONE;
 	static const Vector3 RIGHT;
@@ -147,6 +155,9 @@ class Vector4 {
 	bool operator!=(const Vector4& b) const;
 	std::string to_string() const;
 	operator std::string() const;
+	friend std::ostream& operator<<(std::ostream& o, const Vector4& rhs) {
+		o<<rhs.to_string(); return o;
+	}
 	static const Vector4 ZERO;
 	static const Vector4 ONE;
 	static const Vector4 RIGHT;
@@ -169,6 +180,9 @@ class Mat4x4 {
 	Vector3 operator*(const Vector3& b) const;
 	Mat4x4 operator*(const Mat4x4& b) const;
 	std::string to_string() const;
+	friend std::ostream& operator<<(std::ostream& o, const Mat4x4& rhs) {
+		o<<rhs.to_string(); return o;
+	}
 };
 float deg_to_rad(const float& deg);
 float rad_to_deg(const float& deg);
