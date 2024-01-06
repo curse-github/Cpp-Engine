@@ -197,9 +197,11 @@ void TextInput::on_key(const int& key, const int& scancode, const int& action, c
 			}
 			update();
 		} else if(key==GLFW_KEY_BACKSPACE) {
-			if(!value.empty()) {
-				value.erase(value.size()-1);
-			}
+			if(!value.empty()) value.erase(value.size()-1);
+			update();
+		} else if(key==GLFW_KEY_ENTER) {
+			if(onenter) onenter(value);
+			if(!value.empty()&&clearOnEnter) value="";
 			update();
 		}
 	}

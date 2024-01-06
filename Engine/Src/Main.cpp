@@ -241,13 +241,16 @@ int Run() {
 #pragma endregion// Map setup
 	// setup UI
 	uiHandler->Sprite(Vector4(Vector3::ONE, 0.75f), minimapTex, Vector2(0.0f, viewRange.y*2.0f), 0.0f, minimapSize, Vector2::TopLeft);// minimap
+
 	Button* testButton=uiHandler->createButton(
 		Vector4(0.125f, 0.125f, 0.125f, 1.0f), Vector4(0.1f, 0.1f, 0.1f, 1.0f), Vector4(0.0f, 0.0f, 1.0f, 1.0f),
 		Vector2(viewRange.x*2.0f, 0.0f), 0.0f, Vector2(25.0f, 25.0f), Vector2::BottomRight);
 	testButton->addChild(uiHandler->Text("X", Vector4(1.0f, 0.0f, 0.0f, 1.0f), Vector2(6.0f, 4.0f), 15.0f, 2.0f, Vector2::BottomRight));
 	testButton->onrelease=close;
+
 	TextInput* testInput=uiHandler->createTextInput("", "Type here.",
 		Vector2(viewRange.x*2.0f-25.0f, 0.0f), 0.0f, Vector2(400.0f, 25.0f), Vector2::BottomRight);
+	testInput->onenter=on_enter;
 
 	fpsText=uiHandler->Text("Fps Avg:,high:,low:", Vector4(0.75f, 0.25f, 0.25f, 1.0f), viewRange*2.0f+Vector2(-464.0f, -1.0f), 15.0f, 2.0f, Vector2::TopLeft);;
 #ifdef _DEBUG
@@ -284,6 +287,9 @@ void Loop(const double& delta) {
 	uiHandler->draw();
 }
 void close() { engine->Close(); }
+void on_enter(std::string text) {
+	Log(text);
+}
 
 int main(int argc, char** argv) {
 	int value=Run();

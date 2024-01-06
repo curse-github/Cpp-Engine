@@ -91,5 +91,6 @@ Vector2 viewRange(480.0f, 270.0f);
 int Run();
 void Loop(const double& delta);
 void close();
+void on_enter(std::string text);
 int main(int argc, char** argv);
 #endif// _MAIN_H

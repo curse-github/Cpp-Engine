@@ -126,6 +126,9 @@ class TextInput : virtual public hasTransform2D, public UiElement {
 	BatchedTextData* text;
 	std::string placeholder="";
 	std::string value="";
+	bool clearOnEnter=true;
+	typedef std::function<void(std::string)> enterfun;
+	enterfun onenter;
 	void update();
 
 	TextInput() : hasTransform2D(), UiElement(), quad(nullptr), text(nullptr) { initialized=false; };
