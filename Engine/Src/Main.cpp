@@ -244,12 +244,15 @@ int Run() {
 	Button* testButton=uiHandler->createButton(
 		Vector4(0.125f, 0.125f, 0.125f, 1.0f), Vector4(0.1f, 0.1f, 0.1f, 1.0f), Vector4(0.0f, 0.0f, 1.0f, 1.0f),
 		Vector2(viewRange.x*2.0f, 0.0f), 0.0f, Vector2(25.0f, 25.0f), Vector2::BottomRight);
-	testButton->onclick=close;
+	testButton->addChild(uiHandler->Text("X", Vector4(1.0f, 0.0f, 0.0f, 1.0f), Vector2(6.0f, 4.0f), 15.0f, 2.0f, Vector2::BottomRight));
+	testButton->onrelease=close;
+	TextInput* testInput=uiHandler->createTextInput("", "Type here.",
+		Vector2(viewRange.x*2.0f-25.0f, 0.0f), 0.0f, Vector2(400.0f, 25.0f), Vector2::BottomRight);
+
 	fpsText=uiHandler->Text("Fps Avg:,high:,low:", Vector4(0.75f, 0.25f, 0.25f, 1.0f), viewRange*2.0f+Vector2(-464.0f, -1.0f), 15.0f, 2.0f, Vector2::TopLeft);;
 #ifdef _DEBUG
 	debugText=uiHandler->Text("Pos:\nTime:\nMemory:\nDraw calls:", Vector4(0.75f, 0.75f, 0.75f, 1.0f), Vector2(1.0f, 1.0f), 15.0f, 2.0f, Vector2::BottomLeft);
 #endif// _DEBUG
-	testButton->addChild(uiHandler->Text("X", Vector4(1.0f, 0.0f, 0.0f, 1.0f), Vector2(6.0f, 4.0f), 15.0f, 2.0f, Vector2::BottomRight));
 	// run main loop
 	engine->renderLoop=Loop;
 	Log("Engine initialized successfully.");

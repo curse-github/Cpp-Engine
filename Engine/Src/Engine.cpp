@@ -105,6 +105,8 @@ Engine::Engine(const Vector2& size, const char* title, const bool& vsync) : wind
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_CULL_FACE);
+	// makes caps lock detectable
+	glfwSetInputMode(window, GLFW_LOCK_KEY_MODS, GLFW_TRUE);
 
 	initialized=true;
 }
@@ -373,6 +375,8 @@ Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) :
 		if(fragmentPath=="Shaders/color.frag") fragmentShaderSourceStr=colorFragShader;
 		else if(fragmentPath=="Shaders/tex.frag") fragmentShaderSourceStr=texFragShader;
 		else if(fragmentPath=="Shaders/text.frag") fragmentShaderSourceStr=textFragShader;
+		else if(fragmentPath=="Shaders/dotColor.frag") fragmentShaderSourceStr=dotColorFragShader;
+		else if(fragmentPath=="Shaders/dotTex.frag") fragmentShaderSourceStr=dotTexFragShader;
 		else if(fragmentPath=="Shaders/texBatch.frag") fragmentShaderSourceStr=texBatchFragShader;
 		else if(fragmentPath=="Shaders/textBatch.frag") fragmentShaderSourceStr=textBatchFragShader;
 		if(fragmentShaderSourceStr.size()==0) {

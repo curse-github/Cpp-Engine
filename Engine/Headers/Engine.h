@@ -269,6 +269,26 @@ void main() {\n\
 	if (sampled.a<=0.05) discard;\n\
 	outColor = textColor * sampled;\n\
 }\0"
+#define dotColorFragShader "#version 330 core\n\
+in vec2 uv;\n\
+out vec4 outColor;\n\
+uniform vec4 color;\n\
+void main() {\n\
+	if ((pow(uv.x-0.5f,2)+pow(uv.y-0.5f,2))>0.25f) { discard;return; }\n\
+	else outColor = color;\n\
+}\0"
+#define dotTexFragShader "#version 330 core\n\
+in vec2 uv;\n\
+out vec4 outColor;\n\
+uniform sampler2D _texture;\n\
+uniform vec4 modulate=vec4(1.0,1.0,1.0,1.0);\n\
+void main() {\n\
+	if ((pow(uv.x-0.5f,2)+pow(uv.y-0.5f,2))>0.25f) { discard;return; }\n\
+	vec4 vertcolor = texture(_texture,uv);\n\
+	if (vertcolor.a<0.05) { discard;return; }\n\
+	if (modulate.r==0.0f&&modulate.g==0.0f&&modulate.b==0.0f&&modulate.a==0.0f) outColor = vertcolor;\n\
+	else outColor = vertcolor*modulate;\n\
+}\0"
 #define texBatchFragShader "#version 450 core\n\
 in vec2 uv;\n\
 in vec4 mod;\n\

@@ -71,11 +71,16 @@ const Vector2 Vector2::ZERO=Vector2(0.0f, 0.0f);
 const Vector2 Vector2::ONE=Vector2(1.0f, 1.0f);
 const Vector2 Vector2::RIGHT=Vector2(1.0f, 0.0f);
 const Vector2 Vector2::UP=Vector2(0.0f, 1.0f);
+
 const Vector2 Vector2::Center=Vector2(0.0f, 0.0f);
 const Vector2 Vector2::TopRight=Vector2(0.5f, 0.5f);
+const Vector2 Vector2::TopCenter=Vector2(0.0f, 0.5f);
 const Vector2 Vector2::TopLeft=Vector2(-0.5f, 0.5f);
+const Vector2 Vector2::LeftCenter=Vector2(-0.5f, 0.0f);
 const Vector2 Vector2::BottomLeft=Vector2(-0.5f, -0.5f);
+const Vector2 Vector2::BottomCenter=Vector2(0.0f, -0.5f);
 const Vector2 Vector2::BottomRight=Vector2(0.5f, -0.5f);
+const Vector2 Vector2::RightCenter=Vector2(0.5f, 0.0f);
 
 Vector3::Vector3() { x=0; y=0; z=0; }
 Vector3::Vector3(const Vector2& v, const float& _z) { x=v.x; y=v.y; z=_z; }

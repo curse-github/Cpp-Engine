@@ -61,11 +61,16 @@ class Vector2 {
 	static const Vector2 ONE;
 	static const Vector2 RIGHT;
 	static const Vector2 UP;
+
 	static const Vector2 Center;
 	static const Vector2 TopRight;
+	static const Vector2 TopCenter;
 	static const Vector2 TopLeft;
+	static const Vector2 LeftCenter;
 	static const Vector2 BottomLeft;
+	static const Vector2 BottomCenter;
 	static const Vector2 BottomRight;
+	static const Vector2 RightCenter;
 };
 
 class Vector3 {

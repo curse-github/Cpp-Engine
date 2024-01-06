@@ -292,7 +292,6 @@ void LineRenderer::draw() {
 }
 #pragma endregion// LineRenderer
 #pragma region DotRenderer
-
 const float DotRenderer::vertices[15] {
 	cosf(90.0f/180.0f*PI), sinf(90.0f/180.0f*PI), 0.0f, 0.5f+cosf(90.0f/180.0f*PI), 0.5f+sinf(90.0f/180.0f*PI),
 	cosf(210.0f/180.0f*PI), sinf(210.0f/180.0f*PI), 0.0f, 0.5f+cosf(210.0f/180.0f*PI), 0.5f+sinf(210.0f/180.0f*PI),
