@@ -43,6 +43,8 @@ class BatchedSpriteRenderer : protected Renderer2D {
 	using Renderer::shader;
 	using Object::initialized;
 	const unsigned short int maxQuadCount=10000;
+	const unsigned short int maxVertices=maxQuadCount*4;
+	const unsigned short int maxIndices=maxQuadCount*6;
 	unsigned short int numQuads=0;
 	BatchedSpriteRenderer() : Renderer2D(), cam(nullptr) { initialized=false; };
 	BatchedSpriteRenderer(OrthoCam* _cam);
@@ -64,6 +66,8 @@ class StaticBatchedSpriteRenderer : protected Renderer2D {
 	using Renderer::shader;
 	using Object::initialized;
 	const unsigned short int maxQuadCount=10000;
+	const unsigned short int maxVertices=maxQuadCount*4;
+	const unsigned short int maxIndices=maxQuadCount*6;
 	unsigned short int numQuads=0;
 	StaticBatchedSpriteRenderer() : Renderer2D(), cam(nullptr) { initialized=false; };
 	StaticBatchedSpriteRenderer(OrthoCam* _cam);
@@ -97,6 +101,8 @@ class BatchedTextRenderer : protected Renderer2D {
 	using Renderer::shader;
 	using Object::initialized;
 	const unsigned short int maxCharacterCount=3333;
+	const unsigned short int maxVertices=maxCharacterCount*4;
+	const unsigned short int maxIndices=maxCharacterCount*6;
 	std::array<unsigned short int, 3> numChars={ 0, 0, 0 };
 	BatchedTextRenderer() : Renderer2D() { initialized=false; };
 	BatchedTextRenderer(Camera* cam);

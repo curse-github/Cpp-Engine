@@ -200,6 +200,47 @@ class Texture : public Object {
 	void Bind(const unsigned int& location);
 };
 
+class VertexBufferObject;
+class IndexBufferObject;
+
+class VertexArrayObject {
+	public:
+	unsigned int VAO;
+	VertexArrayObject() : VAO(0) {};
+	VertexArrayObject(const bool& thing);
+	~VertexArrayObject();
+	void drawTris(const unsigned int& count);
+	void drawTrisIndexed(const unsigned int& count);
+	void drawTriStrip(const unsigned int& count);
+	void drawTriStripIndexed(const unsigned int& count);
+	void DrawLines(const unsigned int& count);
+	void DrawLine(const unsigned int& count);
+	void DrawLineLoop(const unsigned int& count);
+};
+class VertexBufferObject {
+	public:
+	unsigned int VBO;
+	VertexArrayObject* VAO;
+	VertexBufferObject() : VBO(0), VAO(nullptr) {};
+	VertexBufferObject(VertexArrayObject* _VAO);
+	~VertexBufferObject();
+	void staticFill(const float* vertices, const size_t& len);
+	void dynamicDefine(const size_t& len);
+	void dynamicSub(const float* vertices, const size_t& len);
+	void dynamicSub(const void* offset, const float* vertices, const size_t& len);
+	void applyAttributes(std::vector<unsigned int> attributes);
+};
+class IndexBufferObject {
+	public:
+	unsigned int EBO;// Element buffer object
+	VertexArrayObject* VAO;
+	IndexBufferObject() : EBO(0), VAO(nullptr) {};
+	IndexBufferObject(VertexArrayObject* _VAO);
+	~IndexBufferObject();
+	void fill(const unsigned int* indices, const size_t& len);
+	void fillRepeated(const unsigned int* indices, const size_t& len, const size_t& count, const unsigned int& numVertices);
+};
+
 class StencilSimple {
 	public:
 	StencilSimple() {}

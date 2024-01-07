@@ -34,11 +34,8 @@ void BatchedSpriteRenderer::renderBatch() {
 		glActiveTexture(GL_TEXTURE0+i);
 		glBindTexture(GL_TEXTURE_2D, textures[i]->ID);
 	}
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, numQuads*4*sizeof(BatchedVertex), &quadVerticesBuffer[0]);
-	glBindVertexArray(VAO);
-	glDrawElements(GL_TRIANGLES, numQuads*6, GL_UNSIGNED_INT, nullptr);
-	Engine::instance->curDrawCalls++;
+	VBO->dynamicSub((float*)(&quadVerticesBuffer[0]), 10*4*numQuads);//10 floats per vertex, 4 vertices per quad
+	VAO->drawTrisIndexed(numQuads*6);
 	quadVerticesBuffer.clear();
 	numQuads=0;
 	textures.clear();
@@ -51,35 +48,9 @@ BatchedSpriteRenderer::BatchedSpriteRenderer(OrthoCam* _cam) :
 	cam->bindShader(shader);
 	cam->use();
 
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, maxQuadCount*4*sizeof(BatchedVertex), nullptr, GL_DYNAMIC_DRAW);
-	// Populates index buffer without allocating memory for thousands of ints
-	const unsigned int totalIndices=maxQuadCount*6;
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*totalIndices, nullptr, GL_STATIC_DRAW);
-	unsigned int* indicesData=static_cast<unsigned int*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY));// Maps the buffer to update the data directly
-	for(int i=0; i<maxQuadCount; i++) {// Populate the indices directly in the mapped buffer
-		for(int j=0; j<6; j++) {
-			indicesData[i*6+j]=i*4+SpriteRenderer::quadindices[j];
-		}
-	}
-	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)0);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)(3*sizeof(float)));
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)(5*sizeof(float)));
-	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)(9*sizeof(float)));
-	glEnableVertexAttribArray(3);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	VBO->dynamicDefine(10*maxVertices);
+	IBO->fillRepeated(SpriteRenderer::quadindices, 6, maxQuadCount, 4);
+	VBO->applyAttributes({ 3, 2, 4, 1 });
 }
 BatchedSpriteRenderer::~BatchedSpriteRenderer() {
 	if(!initialized) return;
@@ -99,6 +70,8 @@ BatchedQuadData* BatchedSpriteRenderer::addQuad(const Vector4& modulate, const V
 }
 void BatchedSpriteRenderer::draw() {
 	if(Engine::instance->ended||!initialized) return;
+	// reserve space for vertices equal to the amount of quads x 4
+	if(quads.size()<=maxQuadCount) quadVerticesBuffer.reserve(quads.size()*4); else quadVerticesBuffer.reserve(maxVertices);
 	for(BatchedQuadData* quad:quads) bufferQuad(quad->modulate, quad->tex, quad->getWorldPos(), quad->zIndex, quad->getWorldScale(), quad->anchor);
 	renderBatch();
 }
@@ -132,15 +105,9 @@ void StaticBatchedSpriteRenderer::renderBatch() {
 	if(numQuads==0) return;
 	shader->use();
 	for(unsigned int i=0; i<numTextures; i++) {
-		// equivilent to 'textures[i]->Bind(i);'
-		glActiveTexture(GL_TEXTURE0+i);
-		glBindTexture(GL_TEXTURE_2D, textures[i]->ID);
+		textures[i]->Bind(i);
 	}
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, numQuads*4*sizeof(BatchedVertex), &quadVerticesBuffer[0]);
-	glBindVertexArray(VAO);
-	glDrawElements(GL_TRIANGLES, numQuads*6, GL_UNSIGNED_INT, nullptr);
-	Engine::instance->curDrawCalls++;
+	VAO->drawTrisIndexed(numQuads*6);
 }
 StaticBatchedSpriteRenderer::StaticBatchedSpriteRenderer(OrthoCam* _cam) :
 	Renderer2D(new Shader("Shaders/batch.vert", "Shaders/texBatch.frag"), Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f), cam(_cam) {
@@ -149,35 +116,9 @@ StaticBatchedSpriteRenderer::StaticBatchedSpriteRenderer(OrthoCam* _cam) :
 	cam->bindShader(shader);
 	cam->use();
 
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, maxQuadCount*4*sizeof(BatchedVertex), nullptr, GL_DYNAMIC_DRAW);
-	// Populates index buffer without allocating memory for thousands of ints
-	const unsigned int totalIndices=maxQuadCount*6;
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*totalIndices, nullptr, GL_STATIC_DRAW);
-	unsigned int* indicesData=static_cast<unsigned int*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY));// Maps the buffer to update the data directly
-	for(int i=0; i<maxQuadCount; i++) {// Populate the indices directly in the mapped buffer
-		for(int j=0; j<6; j++) {
-			indicesData[i*6+j]=i*4+SpriteRenderer::quadindices[j];
-		}
-	}
-	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)0);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)(3*sizeof(float)));
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)(5*sizeof(float)));
-	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)(9*sizeof(float)));
-	glEnableVertexAttribArray(3);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	VBO->dynamicDefine(10*maxVertices);
+	IBO->fillRepeated(SpriteRenderer::quadindices, 6, maxQuadCount, 4);
+	VBO->applyAttributes({ 3, 2, 4, 1 });
 }
 StaticBatchedSpriteRenderer::~StaticBatchedSpriteRenderer() {
 	if(!initialized) return;
@@ -205,8 +146,7 @@ void StaticBatchedSpriteRenderer::bind() {
 	numTextures=0;
 	//quadVerticesBuffer.reserve(std::min(static_cast<unsigned int>(quads.size()), maxQuadCount)*4);// we know there will be 4 vertices per quad so reserve the memory for that many vertices
 	for(BatchedQuadData* quad:quads) bufferQuad(quad->modulate, quad->tex, quad->getWorldPos(), quad->zIndex, quad->getWorldScale(), quad->anchor);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, numQuads*4*sizeof(BatchedVertex), &quadVerticesBuffer[0]);
+	VBO->dynamicSub((float*)(&quadVerticesBuffer[0]), 10*4*numQuads);//10 floats per vertex, 4 vertices per quad
 }
 void StaticBatchedSpriteRenderer::draw() {
 	if(Engine::instance->ended||!initialized) return;
@@ -244,11 +184,8 @@ void BatchedTextRenderer::renderBatch(const int& shaderIndex) {
 		glActiveTexture(GL_TEXTURE0+i);
 		glBindTexture(GL_TEXTURE_2D, textureArrays[shaderIndex][i]->ID);
 	}
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, 4*sizeof(BatchedVertex)*numChars[shaderIndex], &characterBuffers[shaderIndex][0]);
-	glBindVertexArray(VAO);
-	glDrawElements(GL_TRIANGLES, numChars[shaderIndex]*6, GL_UNSIGNED_INT, nullptr);
-	Engine::instance->curDrawCalls++;
+	VBO->dynamicSub((float*)(&characterBuffers[shaderIndex][0]), 10*4*numChars[shaderIndex]);//10 floats per vertex, 4 vertices per quad
+	VAO->drawTrisIndexed(numChars[shaderIndex]*6);
 	characterBuffers[shaderIndex].clear();
 	numChars[shaderIndex]=0;
 }
@@ -273,35 +210,9 @@ BatchedTextRenderer::BatchedTextRenderer(Camera* cam) :
 		}
 	}
 
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, maxCharacterCount*4*sizeof(BatchedVertex), nullptr, GL_DYNAMIC_DRAW);
-	// Populates index buffer without allocating memory for thousands of ints
-	const unsigned int totalIndices=maxCharacterCount*6;
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*totalIndices, nullptr, GL_STATIC_DRAW);
-	unsigned int* indicesData=static_cast<unsigned int*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY));// Maps the buffer to update the data directly
-	for(int i=0; i<maxCharacterCount; i++) {// Populate the indices directly in the mapped buffer
-		for(int j=0; j<6; j++) {
-			indicesData[i*6+j]=i*4+SpriteRenderer::quadindices[j];
-		}
-	}
-	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)0);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)(3*sizeof(float)));
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)(5*sizeof(float)));
-	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(BatchedVertex), (void*)(9*sizeof(float)));
-	glEnableVertexAttribArray(3);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	VBO->dynamicDefine(10*maxVertices);
+	IBO->fillRepeated(SpriteRenderer::quadindices, 6, maxCharacterCount, 4);
+	VBO->applyAttributes({ 3, 2, 4, 1 });
 }
 BatchedTextRenderer::~BatchedTextRenderer() {
 	if(!initialized) return;

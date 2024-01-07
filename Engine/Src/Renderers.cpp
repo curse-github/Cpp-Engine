@@ -3,14 +3,11 @@
 #include <freetype/freetype.h>
 
 #pragma region Renderer
-Renderer::Renderer(Shader* _shader) : Object(), shader(_shader), VAO(0), VBO(0), EBO(0) {
+Renderer::Renderer(Shader* _shader) : Object(), shader(_shader), VAO(nullptr), VBO(nullptr), IBO(nullptr) {
 	if(!initialized||(shader==nullptr)||!shader->initialized) initialized=false;
-}
-Renderer::~Renderer() {
-	if(!initialized) return;
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
-	glDeleteBuffers(1, &EBO);
+	VAO=new VertexArrayObject(true);
+	VBO=new VertexBufferObject(VAO);
+	IBO=new IndexBufferObject(VAO);
 }
 #pragma endregion// Renderer
 #pragma region CubeRenderer
@@ -36,7 +33,7 @@ const float CubeRenderer::cubevertices[100]={
 	-0.5f, 0.5f, 0.5f, 0.0f, 0.0f,//18
 	0.5f, 0.5f, 0.5f, 1.0f, 0.0f,//19
 };
-const int CubeRenderer::cubeindices[36]={
+const unsigned int CubeRenderer::cubeindices[36]={
 	0, 1, 2, 2, 3, 0,
 	4, 5, 6, 6, 7, 4,
 	8, 9, 10, 10, 11, 8,
@@ -47,21 +44,9 @@ const int CubeRenderer::cubeindices[36]={
 CubeRenderer::CubeRenderer(Shader* _shader, const Vector3& _position, const Vector3& _scale, const Vector3& _rotAxis, const float& _rotAngle) :
 	Renderer(_shader), Transform(_position, _scale, _rotAxis, _rotAngle) {
 	if(!initialized) return;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);// bind buffer so that following code will assign the VBO buffer
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cubevertices), cubevertices, GL_STATIC_DRAW);// fill VBO buffer with vertex data
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);// bind buffer so that following code will assign the EBO buffer
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cubeindices), cubeindices, GL_STATIC_DRAW);// fill EBO buffer with index data
-	// start, length, type, ?, total size, offset
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
-	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));// get vertex uv data
-	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
+	VBO->staticFill(cubevertices, 100);
+	IBO->fill(cubeindices, 36);
+	VBO->applyAttributes({ 3, 2 });
 }
 CubeRenderer::CubeRenderer(Shader* _shader, const Vector3& _position, const Vector3& _scale) : CubeRenderer(_shader, _position, _scale, Vector3::UP, 0.0f) {}
 void CubeRenderer::draw() {
@@ -69,9 +54,7 @@ void CubeRenderer::draw() {
 	Mat4x4 model=axisRotMat(rotAxis, deg_to_rad(rotAngle))*translate(position);
 	shader->bindTextures();
 	shader->setMat4x4("model", model);
-	glBindVertexArray(VAO);
-	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-	Engine::instance->curDrawCalls++;
+	VAO->drawTrisIndexed(36);
 }
 #pragma endregion// CubeRenderer
 #pragma region Renderer2D
@@ -87,33 +70,21 @@ const float SpriteRenderer::quadvertices[20] {
 	0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
 	0.5f, -0.5f, 0.0f, 1.0f, 1.0f
 };
-const int SpriteRenderer::quadindices[6] {
+const unsigned int SpriteRenderer::quadindices[6] {
 	1, 3, 2,
 	2, 0, 1
 };
 SpriteRenderer::SpriteRenderer(Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor, const float& _rotAngle) :
 	Renderer2D(_shader, _position, _zIndex, _scale, _anchor, _rotAngle) {
 	if(!initialized) return;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);// bind buffer so that following code will assign the VBO buffer
-	glBufferData(GL_ARRAY_BUFFER, sizeof(quadvertices), quadvertices, GL_STATIC_DRAW);// fill VBO buffer with vertex data
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
-	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));// get vertex uv data
-	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	VBO->staticFill(quadvertices, 20);
+	VBO->applyAttributes({ 3, 2 });
 }
 void SpriteRenderer::draw() {
 	if(Engine::instance->ended||!initialized) return;
 	shader->bindTextures();
 	shader->setMat4x4("model", getModelMat());
-	glBindVertexArray(VAO);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	VAO->drawTriStrip(4);
 	Engine::instance->curDrawCalls++;
 }
 #pragma endregion// SpriteRenderer
@@ -182,29 +153,14 @@ TextRenderer::TextRenderer(Shader* _shader, const std::string& _text, const Vect
 			return;
 		}
 	}
-	//setup buffers
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);// bind buffer so that following code will assign the VBO buffer
-	glBufferData(GL_ARRAY_BUFFER, sizeof(SpriteRenderer::quadvertices), &SpriteRenderer::quadvertices[0], GL_STATIC_DRAW);// fill VBO buffer with vertex data
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
-	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));// get vertex uv data
-	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
+	VBO->staticFill(SpriteRenderer::quadvertices, 20);
+	VBO->applyAttributes({ 3, 2 });
 	shader->setFloat("text", 0);
 }
 void TextRenderer::draw() {
 	Log("Draw");
 	if(Engine::instance->ended||!initialized) return;
 	shader->setFloat4("textColor", color);
-	glActiveTexture(GL_TEXTURE0);
-	glBindVertexArray(VAO);
 	// iterate through all characters to find full text block
 	Vector2 tmpScale=Vector2(0.0f, 9.0f);
 	float curX=0.0f;
@@ -240,25 +196,16 @@ void TextRenderer::draw() {
 		shader->setMat4x4("model", scaleMat(Vector3(ch.Size*scale, 1.0f))*translate(Vector3(pos, getZIndex()-100.0f)));
 		ch.tex->Bind(0);
 		// render quad
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		Engine::instance->curDrawCalls++;
+		VAO->drawTriStrip(4);
 		// now advance cursors for next glyph
 		x+=1.0f+ch.Advance;
 	}
-	glBindVertexArray(0);
-	glBindTexture(GL_TEXTURE_2D, 0);
 }
 #pragma endregion// TextRenderer
 #pragma region LineRenderer
 LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const bool& _loop, const Vector2& _position, const float& _zIndex) :
 	Renderer2D(_shader, _position, _zIndex), positions(_positions), width(_width), loop(_loop) {
 	if(!initialized) return;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);// bind buffer so that following code will assign the VBO buffer
 	float farthestX=0.0f;
 	float farthestY=0.0f;
 	std::vector<float> verts;
@@ -273,22 +220,15 @@ LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positio
 		verts.push_back(0.0f);
 	}
 	transform.scale=Vector2(farthestX*2.0f, farthestY*2.0f);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*verts.size(), &verts[0], GL_STATIC_DRAW);// fill VBO buffer with vertex data
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
-	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));// get vertex uv data
-	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	VBO->staticFill(&verts[0], verts.size());
+	VBO->applyAttributes({ 3, 2 });
 }
 void LineRenderer::draw() {
 	if(Engine::instance->ended||!initialized) return;
 	shader->bindTextures();
 	shader->setMat4x4("model", scaleMat(Vector3((transform.parent!=nullptr ? transform.parent->getWorldScale() : Vector2(1.0f, 1.0f)), 0.0f))*translate(Vector3(getWorldPos(), 100.0f-getZIndex())));
-	glBindVertexArray(VAO);
-	glLineWidth(width);
-	glDrawArrays(loop ? GL_LINE_LOOP : GL_LINE_STRIP, 0, (GLsizei)positions.size());
-	Engine::instance->curDrawCalls++;
+	if(loop) VAO->DrawLineLoop(static_cast<unsigned int>(positions.size()));
+	else VAO->DrawLine(static_cast<unsigned int>(positions.size()));
 }
 #pragma endregion// LineRenderer
 #pragma region DotRenderer
@@ -300,26 +240,13 @@ const float DotRenderer::vertices[15] {
 DotRenderer::DotRenderer(Shader* _shader, const float& _radius, const Vector2& _position, const float& _zIndex, const Vector2& _anchor) :
 	Renderer2D(_shader, _position, _zIndex, Vector2(_radius), _anchor, 0.0f), radius(_radius) {
 	if(!initialized) return;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);// bind buffer so that following code will assign the VBO buffer
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);// fill VBO buffer with vertex data
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);// get vertex position data
-	glEnableVertexAttribArray(0);// bind data above to (location = 1) in vertex shader
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));// get vertex uv data
-	glEnableVertexAttribArray(1);// bind data above to (location = 2) in vertex shader
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	VBO->staticFill(vertices, 15);
+	VBO->applyAttributes({ 3, 2 });
 }
 void DotRenderer::draw() {
 	if(Engine::instance->ended||!initialized) return;
 	shader->bindTextures();
 	shader->setMat4x4("model", getModelMat());
-	glBindVertexArray(VAO);
-	glDrawArrays(GL_TRIANGLES, 0, 3);
-	Engine::instance->curDrawCalls++;
+	VAO->drawTris(3);
 }
 #pragma endregion// DotRenderer

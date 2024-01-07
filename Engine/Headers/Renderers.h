@@ -9,20 +9,19 @@ class OrthoCam;
 
 class Renderer : public Object {
 	protected:
-	unsigned int VAO;
-	unsigned int VBO;
-	unsigned int EBO;
+	VertexArrayObject* VAO;
+	VertexBufferObject* VBO;
+	IndexBufferObject* IBO;
 	public:
 	Shader* shader;
-	Renderer() : Object(), shader(nullptr), VAO(0), VBO(0), EBO(0) { initialized=false; }
+	Renderer() : Object(), shader(nullptr), VAO(nullptr), VBO(nullptr), IBO(nullptr) { initialized=false; }
 	Renderer(Shader* _shader);
-	virtual ~Renderer();
 	virtual void draw()=0;
 };
 class CubeRenderer : public Renderer, public Transform {
 	public:
 	static const float cubevertices[100];
-	static const int cubeindices[36];
+	static const unsigned int cubeindices[36];
 	CubeRenderer() : Renderer(), Transform() { initialized=false; }
 	CubeRenderer(Shader* _shader, const Vector3& _position, const Vector3& _scale, const Vector3& _rotAxis, const float& _rotAngle);
 	CubeRenderer(Shader* _shader, const Vector3& _position, const Vector3& _scale);
@@ -36,7 +35,7 @@ class Renderer2D : public Renderer, public hasTransform2D {
 class SpriteRenderer : public Renderer2D {
 	public:
 	static const float quadvertices[20];
-	static const int quadindices[6];
+	static const unsigned int quadindices[6];
 	SpriteRenderer() : Renderer2D() { initialized=false; }
 	SpriteRenderer(Shader* _shader, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f);
 	void draw() override;

@@ -556,6 +556,128 @@ void Texture::Bind(const unsigned int& location) {
 }
 #pragma endregion// Texture
 
+#pragma region VertexArrayObject
+VertexArrayObject::VertexArrayObject(const bool& thing) : VAO(0) {
+	glGenVertexArrays(1, &VAO);
+};
+VertexArrayObject::~VertexArrayObject() {
+	glDeleteVertexArrays(1, &VAO);
+}
+void VertexArrayObject::drawTris(const unsigned int& count) {
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, count);
+	glBindVertexArray(0);
+	Engine::instance->curDrawCalls++;
+}
+void VertexArrayObject::drawTrisIndexed(const unsigned int& count) {
+	glBindVertexArray(VAO);
+	glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+	glBindVertexArray(0);
+	Engine::instance->curDrawCalls++;
+}
+void VertexArrayObject::drawTriStrip(const unsigned int& count) {
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, count);
+	glBindVertexArray(0);
+	Engine::instance->curDrawCalls++;
+}
+void VertexArrayObject::drawTriStripIndexed(const unsigned int& count) {
+	glBindVertexArray(VAO);
+	glDrawElements(GL_TRIANGLE_STRIP, count, GL_UNSIGNED_INT, nullptr);
+	glBindVertexArray(0);
+	Engine::instance->curDrawCalls++;
+}
+void VertexArrayObject::DrawLines(const unsigned int& count) {
+	glBindVertexArray(VAO);
+	glDrawElements(GL_LINE, count, GL_UNSIGNED_INT, nullptr);
+	glBindVertexArray(0);
+	Engine::instance->curDrawCalls++;
+}
+void VertexArrayObject::DrawLine(const unsigned int& count) {
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_LINE_STRIP, 0, count);
+	glBindVertexArray(0);
+	Engine::instance->curDrawCalls++;
+}
+void VertexArrayObject::DrawLineLoop(const unsigned int& count) {
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_LINE_LOOP, 0, count);
+	glBindVertexArray(0);
+	Engine::instance->curDrawCalls++;
+}
+#pragma endregion// VertexArrayObject
+#pragma region VertexBufferObject
+VertexBufferObject::VertexBufferObject(VertexArrayObject* _VAO) : VBO(0), VAO(_VAO) {
+	glGenBuffers(1, &VBO);
+};
+VertexBufferObject::~VertexBufferObject() {
+	glDeleteBuffers(1, &VBO);
+}
+void VertexBufferObject::staticFill(const float* vertices, const size_t& len) {
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*len, vertices, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+void VertexBufferObject::dynamicDefine(const size_t& len) {
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*len, nullptr, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+void VertexBufferObject::dynamicSub(const float* vertices, const size_t& len) {
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float)*len, vertices);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+void VertexBufferObject::dynamicSub(const void* offset, const float* vertices, const size_t& len) {
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferSubData(GL_ARRAY_BUFFER, (GLintptr)offset, sizeof(float)*len, vertices);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+void VertexBufferObject::applyAttributes(std::vector<unsigned int> attributes) {
+	glBindVertexArray(VAO->VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	unsigned int total=0;
+	for(const unsigned int& attr:attributes)total+=attr;
+	unsigned int count=0;
+	for(unsigned int i=0;i<attributes.size();i++) {
+		//index, size of location, type(GL_FLOAT), normalized(GL_FALSE), stride between vertexes, offset of current attribute
+		glVertexAttribPointer(i, attributes[i], GL_FLOAT, GL_FALSE, sizeof(float)*total, (void*)(count*sizeof(float)));
+		glEnableVertexAttribArray(i);// bind data above to (location = 1) in vertex shader
+		count+=attributes[i];
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+#pragma endregion// VertexBufferObject
+#pragma region IndexBufferObject
+IndexBufferObject::IndexBufferObject(VertexArrayObject* _VAO) : EBO(0), VAO(_VAO) {
+	glGenBuffers(1, &EBO);
+};
+IndexBufferObject::~IndexBufferObject() {
+	glDeleteBuffers(1, &EBO);
+}
+void IndexBufferObject::fill(const unsigned int* indices, const size_t& len) {
+	glBindVertexArray(VAO->VAO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);// bind buffer so that following code will assign the EBO buffer
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*len, indices, GL_STATIC_DRAW);// fill EBO buffer with index data
+	glBindVertexArray(0);
+}
+void IndexBufferObject::fillRepeated(const unsigned int* indices, const size_t& len, const size_t& count, const unsigned int& numVertices) {
+	glBindVertexArray(VAO->VAO);
+	// Populates index buffer without allocating memory for thousands of ints
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*len*count, nullptr, GL_STATIC_DRAW);
+	unsigned int* indicesData=static_cast<unsigned int*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY));// Maps the buffer to update the data directly
+	for(unsigned int i=0; i<static_cast<unsigned int>(count); i++) {// Populate the indices directly in the mapped buffer
+		for(unsigned int j=0; j<static_cast<unsigned int>(len); j++) {
+			indicesData[i*len+j]=i*numVertices+SpriteRenderer::quadindices[j];
+		}
+	}
+	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+	glBindVertexArray(0);
+}
+#pragma endregion// ElementBufferObject
+
 #pragma region StencilSimple
 void StencilSimple::Enable() {
 	glEnable(GL_STENCIL_TEST);
