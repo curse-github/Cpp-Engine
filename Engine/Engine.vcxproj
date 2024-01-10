@@ -45,6 +45,7 @@
     <None Include="Data\map.json" />
     <None Include="Shaders\dotColor.frag" />
     <None Include="Shaders\dotTex.frag" />
+    <None Include="Shaders\dotTexBatch.frag" />
     <None Include="Shaders\texBatch.frag">
       <FileType>Document</FileType>
     </None>

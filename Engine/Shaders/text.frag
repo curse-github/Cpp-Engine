@@ -1,4 +1,4 @@
-#version 330 core
+#version 450 core
 in vec2 uv;
 out vec4 outColor;
 uniform sampler2D text;

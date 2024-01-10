@@ -213,9 +213,10 @@ class VertexArrayObject {
 	void drawTrisIndexed(const unsigned int& count);
 	void drawTriStrip(const unsigned int& count);
 	void drawTriStripIndexed(const unsigned int& count);
-	void DrawLines(const unsigned int& count);
-	void DrawLine(const unsigned int& count);
-	void DrawLineLoop(const unsigned int& count);
+	void drawLines(const unsigned int& count, const float& width=1.0f, const bool& smooth=false);
+	void drawLinesIndexed(const unsigned int& count, const float& width=1.0f, const bool& smooth=false);
+	void drawLine(const unsigned int& count, const float& width=1.0f, const bool& loop=false, const bool& smooth=false);
+	void drawLineIndexed(const unsigned int& count, const float& width=1.0f, const bool& loop=false, const bool& smooth=false);
 };
 class VertexBufferObject {
 	public:
@@ -225,9 +226,11 @@ class VertexBufferObject {
 	VertexBufferObject(VertexArrayObject* _VAO);
 	~VertexBufferObject();
 	void staticFill(const float* vertices, const size_t& len);
+	void staticFill(std::vector<float> vertices);
 	void dynamicDefine(const size_t& len);
 	void dynamicSub(const float* vertices, const size_t& len);
 	void dynamicSub(const void* offset, const float* vertices, const size_t& len);
+	void dynamicSub(std::vector<float> vertices);
 	void applyAttributes(std::vector<unsigned int> attributes);
 };
 class IndexBufferObject {
@@ -237,8 +240,13 @@ class IndexBufferObject {
 	IndexBufferObject() : EBO(0), VAO(nullptr) {};
 	IndexBufferObject(VertexArrayObject* _VAO);
 	~IndexBufferObject();
-	void fill(const unsigned int* indices, const size_t& len);
-	void fillRepeated(const unsigned int* indices, const size_t& len, const size_t& count, const unsigned int& numVertices);
+	void staticFill(const unsigned int* indices, const size_t& len);
+	void staticFill(std::vector<unsigned int> indices);
+	void staticFillRepeated(const unsigned int* indices, const size_t& len, const size_t& count, const unsigned int& numIndices);
+	void dynamicDefine(const size_t& len);
+	void dynamicSub(const unsigned int* indices, const size_t& len);
+	void dynamicSub(const void* offset, const unsigned int* indices, const size_t& len);
+	void dynamicSub(std::vector<unsigned int> indices);
 };
 
 class StencilSimple {
@@ -255,18 +263,18 @@ class StencilSimple {
 //#include "BatchedRenderers.h"
 
 #pragma region Shader Embedded Code
-#define vsShader "#version 330 core\n\
-layout(location=0) in vec3 vecPos;\n\
-layout(location=1) in vec2 vecUV;\n\
+#define basicVertShader "#version 450 core\n\
+layout (location = 0) in vec3 vecPos;\n\
+layout (location = 1) in vec2 vecUV;\n\
 uniform mat4 model;\n\
 uniform mat4 view;\n\
 uniform mat4 projection;\n\
 out vec2 uv;\n\
 void main() {\n\
-	gl_Position=projection * view * model * vec4(vecPos, 1.0);\n\
-	uv=vecUV;\n\
+	gl_Position = projection*view*model*vec4(vecPos, 1.0);\n\
+	uv = vecUV;\n\
 }\0"
-#define batchVsShader "#version 450 core\n\
+#define batchVertShader "#version 450 core\n\
 layout (location = 0) in vec3 vecPos;\n\
 layout (location = 1) in vec2 vecUV;\n\
 layout (location = 2) in vec4 vecMod;\n\
@@ -278,39 +286,39 @@ out vec4 mod;\n\
 out float texIndex;\n\
 void main() {\n\
 	gl_Position = projection*view*vec4(vecPos, 1.0);\n\
-	uv = vecUV;\n\
+	uv=vecUV;\n\
 	mod=vecMod;\n\
 	texIndex=vecTexIndex;\n\
 }\0"
-#define colorFragShader "#version 330 core\n\
-out vec4 FragColor;\n\
+#define colorFragShader "#version 450 core\n\
+out vec4 outColor;\n\
 in vec2 uv;\n\
 uniform vec4 color;\n\
 void main() {\n\
-	FragColor = color;\n\
+	outColor = color;\n\
 }\0"
-#define texFragShader "#version 330 core\n\
+#define texFragShader "#version 450 core\n\
 in vec2 uv;\n\
 out vec4 outColor;\n\
 uniform sampler2D _texture;\n\
-uniform vec4 modulate=vec4(1.0, 1.0, 1.0, 1.0);\n\
+uniform vec4 modulate=vec4(1.0,1.0,1.0,1.0);\n\
 void main() {\n\
-	vec4 vertcolor=texture(_texture, uv);\n\
-	if(vertcolor.a < 0.05) discard;\n\
-	if(modulate.r == 0 && modulate.g == 0 && modulate.b == 0 && modulate.a == 0) outColor=vertcolor;\n\
-	else outColor=vertcolor * modulate;\n\
+	vec4 vertcolor = texture(_texture,uv);\n\
+	if (vertcolor.a<0.05) { discard;return; }\n\
+	if (modulate.r==0.0f&&modulate.g==0.0f&&modulate.b==0.0f&&modulate.a==0.0f) outColor = vertcolor;\n\
+	else outColor = vertcolor*modulate;\n\
 }\0"
-#define textFragShader "#version 330 core\n\
+#define textFragShader "#version 450 core\n\
 in vec2 uv;\n\
 out vec4 outColor;\n\
 uniform sampler2D text;\n\
 uniform vec4 textColor;\n\
 void main() {\n\
 	vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, uv).r);\n\
-	if (sampled.a<=0.05) discard;\n\
+	if (sampled.a<=0.05) { discard;return; }\n\
 	outColor = textColor * sampled;\n\
 }\0"
-#define dotColorFragShader "#version 330 core\n\
+#define dotColorFragShader "#version 450 core\n\
 in vec2 uv;\n\
 out vec4 outColor;\n\
 uniform vec4 color;\n\
@@ -318,7 +326,7 @@ void main() {\n\
 	if ((pow(uv.x-0.5f,2)+pow(uv.y-0.5f,2))>0.25f) { discard;return; }\n\
 	else outColor = color;\n\
 }\0"
-#define dotTexFragShader "#version 330 core\n\
+#define dotTexFragShader "#version 450 core\n\
 in vec2 uv;\n\
 out vec4 outColor;\n\
 uniform sampler2D _texture;\n\
@@ -340,7 +348,7 @@ void main() {\n\
 	if (texIndex>=32||texIndex<0) outColor=mod;\n\
 	else {\n\
 		vec4 vertColor=texture(_textures[int(texIndex)],uv);\n\
-		if (vertColor.a<=0.05f) discard;\n\
+		if (vertColor.a<=0.05f) { discard;return; }\n\
 		if (mod.r==0.0f&&mod.g==0.0f&&mod.b==0.0f&&mod.a==0.0f) { outColor=vertColor; }\n\
 		else { outColor=vertColor*mod; }\n\
 	}\n\
@@ -353,8 +361,24 @@ out vec4 outColor;\n\
 uniform sampler2D _textures[32];\n\
 void main() {\n\
 	vec4 vertColor=vec4(1.0f,1.0f,1.0f,texture(_textures[int(texIndex)],uv).r);\n\
-	if (vertColor.a<=0.05f) discard;\n\
+	if (vertColor.a<=0.05f) { discard;return; }\n\
 	outColor=mod;\n\
+}\0"
+#define dotTexBatchFragShader "#version 450 core\n\
+in vec2 uv;\n\
+in vec4 mod;\n\
+in float texIndex;\n\
+out vec4 outColor;\n\
+uniform sampler2D _textures[32];\n\
+void main() {\n\
+	if ((pow(uv.x-0.5f,2)+pow(uv.y-0.5f,2))>0.25f) { discard;return; }\n\
+	if (texIndex>=32||texIndex<0) outColor=mod;\n\
+	else {\n\
+		vec4 vertColor=texture(_textures[int(texIndex)],uv);\n\
+		if (vertColor.a<=0.05f) { discard;return; }\n\
+		if (mod.r==0.0f&&mod.g==0.0f&&mod.b==0.0f&&mod.a==0.0f) { outColor=vertColor; }\n\
+		else { outColor=vertColor*mod; }\n\
+	}\n\
 }\0"
 #pragma endregion
 #endif// _ENGINE_H

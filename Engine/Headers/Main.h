@@ -56,17 +56,15 @@ class Enemy : public Object, public hasTransform2D {
 	BatchedQuadData* renderer;
 	BoxCollider* collider;
 	BatchedQuadData* iconRenderer;
-	Shader* lineShader;
 	Pathfinder* pathfinder;
 	hasTransform2D* target;
 	Vector2 lastSpottedPos;
 	std::vector<Vector2> path;
-	void setDebugLine(std::vector<Vector2> line);
 	void on_loop(const double& delta) override;
 	public:
 	LineRenderer* debugRen=nullptr;
-	Enemy() : Object(), hasTransform2D(), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), lineShader(nullptr), pathfinder(nullptr), target(nullptr) {}
-	Enemy(const Vector3& enemyModulate, Texture* enemyTex, Shader* _lineShader, Pathfinder* _pathfinder, hasTransform2D* _target, const Vector2& _position=Vector2::ZERO);
+	Enemy() : Object(), hasTransform2D(), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), pathfinder(nullptr), target(nullptr) {}
+	Enemy(const Vector3& enemyModulate, Texture* enemyTex, Pathfinder* _pathfinder, hasTransform2D* _target, const Vector2& _position=Vector2::ZERO);
 };
 ClickDetector* instanceClickDetector;
 class Instance : virtual public hasTransform2D, public Clickable {
@@ -81,7 +79,7 @@ class Instance : virtual public hasTransform2D, public Clickable {
 	virtual void on_unhover(const Vector2& pos) override {};
 	public:
 	Instance() : hasTransform2D(), Clickable(), stateQuad(nullptr), instanceWorkingTex(nullptr), instanceBrokenTex(nullptr) {};
-	Instance(ClickDetector* clickDetector, Shader* lineShader, Texture* _instanceUnlitTex, Texture* _instanceWorkingTex, Texture* _instanceBrokenTex, const Vector2& _position=Vector2::ZERO, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f);
+	Instance(ClickDetector* clickDetector, Texture* _instanceUnlitTex, Texture* _instanceWorkingTex, Texture* _instanceBrokenTex, const Vector2& _position=Vector2::ZERO, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f);
 	void fixInstance();
 	void breakInstance();
 };

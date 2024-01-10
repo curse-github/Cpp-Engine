@@ -341,8 +341,8 @@ Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) :
 	FsReadDiskFile(&vertexShaderSourceStr, vertexPath);
 	if(vertexShaderSourceStr.size()==0) {
 		Log("File \""+vertexPath+"\" failed to read.");//error
-		if(vertexPath=="Shaders/basic.vert") vertexShaderSourceStr=vsShader;
-		else if(vertexPath=="Shaders/batch.vert") vertexShaderSourceStr=batchVsShader;
+		if(vertexPath=="Shaders/basic.vert") vertexShaderSourceStr=basicVertShader;
+		else if(vertexPath=="Shaders/batch.vert") vertexShaderSourceStr=batchVertShader;
 		if(vertexShaderSourceStr.size()==0) {
 			Engine::instance->Delete();
 			return;
@@ -379,6 +379,7 @@ Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) :
 		else if(fragmentPath=="Shaders/dotTex.frag") fragmentShaderSourceStr=dotTexFragShader;
 		else if(fragmentPath=="Shaders/texBatch.frag") fragmentShaderSourceStr=texBatchFragShader;
 		else if(fragmentPath=="Shaders/textBatch.frag") fragmentShaderSourceStr=textBatchFragShader;
+		else if(fragmentPath=="Shaders/dotTexBatch.frag") fragmentShaderSourceStr=dotTexBatchFragShader;
 		if(fragmentShaderSourceStr.size()==0) {
 			glDeleteShader(vertexShader);
 			Engine::instance->Delete();
@@ -565,7 +566,7 @@ VertexArrayObject::~VertexArrayObject() {
 }
 void VertexArrayObject::drawTris(const unsigned int& count) {
 	glBindVertexArray(VAO);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, count);
+	glDrawArrays(GL_TRIANGLES, 0, count);
 	glBindVertexArray(0);
 	Engine::instance->curDrawCalls++;
 }
@@ -587,21 +588,31 @@ void VertexArrayObject::drawTriStripIndexed(const unsigned int& count) {
 	glBindVertexArray(0);
 	Engine::instance->curDrawCalls++;
 }
-void VertexArrayObject::DrawLines(const unsigned int& count) {
+void VertexArrayObject::drawLines(const unsigned int& count, const float& width, const bool& smooth) {
 	glBindVertexArray(VAO);
-	glDrawElements(GL_LINE, count, GL_UNSIGNED_INT, nullptr);
+	glLineWidth(width);
+	glDrawArrays(GL_LINES, 0, count);
 	glBindVertexArray(0);
 	Engine::instance->curDrawCalls++;
 }
-void VertexArrayObject::DrawLine(const unsigned int& count) {
+void VertexArrayObject::drawLinesIndexed(const unsigned int& count, const float& width, const bool& smooth) {
 	glBindVertexArray(VAO);
-	glDrawArrays(GL_LINE_STRIP, 0, count);
+	glLineWidth(width);
+	glDrawElements(GL_LINES, count, GL_UNSIGNED_INT, nullptr);
 	glBindVertexArray(0);
 	Engine::instance->curDrawCalls++;
 }
-void VertexArrayObject::DrawLineLoop(const unsigned int& count) {
+void VertexArrayObject::drawLine(const unsigned int& count, const float& width, const bool& loop, const bool& smooth) {
 	glBindVertexArray(VAO);
-	glDrawArrays(GL_LINE_LOOP, 0, count);
+	glLineWidth(width);
+	glDrawArrays(loop ? GL_LINE_LOOP : GL_LINE_STRIP, 0, count);
+	glBindVertexArray(0);
+	Engine::instance->curDrawCalls++;
+}
+void VertexArrayObject::drawLineIndexed(const unsigned int& count, const float& width, const bool& loop, const bool& smooth) {
+	glBindVertexArray(VAO);
+	glLineWidth(width);
+	glDrawElements(loop ? GL_LINE_LOOP : GL_LINE_STRIP, count, GL_UNSIGNED_INT, nullptr);
 	glBindVertexArray(0);
 	Engine::instance->curDrawCalls++;
 }
@@ -618,6 +629,9 @@ void VertexBufferObject::staticFill(const float* vertices, const size_t& len) {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*len, vertices, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
+void VertexBufferObject::staticFill(std::vector<float> vertices) {
+	staticFill(static_cast<float*>(&vertices[0]), vertices.size());
+}
 void VertexBufferObject::dynamicDefine(const size_t& len) {
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*len, nullptr, GL_DYNAMIC_DRAW);
@@ -632,6 +646,9 @@ void VertexBufferObject::dynamicSub(const void* offset, const float* vertices, c
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferSubData(GL_ARRAY_BUFFER, (GLintptr)offset, sizeof(float)*len, vertices);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+void VertexBufferObject::dynamicSub(std::vector<float> vertices) {
+	dynamicSub(static_cast<float*>(&vertices[0]), vertices.size());
 }
 void VertexBufferObject::applyAttributes(std::vector<unsigned int> attributes) {
 	glBindVertexArray(VAO->VAO);
@@ -656,13 +673,16 @@ IndexBufferObject::IndexBufferObject(VertexArrayObject* _VAO) : EBO(0), VAO(_VAO
 IndexBufferObject::~IndexBufferObject() {
 	glDeleteBuffers(1, &EBO);
 }
-void IndexBufferObject::fill(const unsigned int* indices, const size_t& len) {
+void IndexBufferObject::staticFill(const unsigned int* indices, const size_t& len) {
 	glBindVertexArray(VAO->VAO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);// bind buffer so that following code will assign the EBO buffer
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*len, indices, GL_STATIC_DRAW);// fill EBO buffer with index data
 	glBindVertexArray(0);
 }
-void IndexBufferObject::fillRepeated(const unsigned int* indices, const size_t& len, const size_t& count, const unsigned int& numVertices) {
+void IndexBufferObject::staticFill(std::vector<unsigned int> indices) {
+	staticFill(static_cast<unsigned int*>(&indices[0]), indices.size());
+}
+void IndexBufferObject::staticFillRepeated(const unsigned int* indices, const size_t& len, const size_t& count, const unsigned int& numIndices) {
 	glBindVertexArray(VAO->VAO);
 	// Populates index buffer without allocating memory for thousands of ints
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -670,11 +690,29 @@ void IndexBufferObject::fillRepeated(const unsigned int* indices, const size_t& 
 	unsigned int* indicesData=static_cast<unsigned int*>(glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY));// Maps the buffer to update the data directly
 	for(unsigned int i=0; i<static_cast<unsigned int>(count); i++) {// Populate the indices directly in the mapped buffer
 		for(unsigned int j=0; j<static_cast<unsigned int>(len); j++) {
-			indicesData[i*len+j]=i*numVertices+SpriteRenderer::quadindices[j];
+			indicesData[i*len+j]=i*numIndices+SpriteRenderer::quadindices[j];
 		}
 	}
 	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 	glBindVertexArray(0);
+}
+void IndexBufferObject::dynamicDefine(const size_t& len) {
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*len, nullptr, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+void IndexBufferObject::dynamicSub(const unsigned int* indices, const size_t& len) {
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(unsigned int)*len, indices);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+void IndexBufferObject::dynamicSub(const void* offset, const unsigned int* indices, const size_t& len) {
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, (GLintptr)offset, sizeof(unsigned int)*len, indices);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+void IndexBufferObject::dynamicSub(std::vector<unsigned int> indices) {
+	dynamicSub(static_cast<unsigned int*>(&indices[0]), indices.size());
 }
 #pragma endregion// ElementBufferObject
 

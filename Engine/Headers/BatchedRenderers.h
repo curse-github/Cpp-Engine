@@ -110,4 +110,73 @@ class BatchedTextRenderer : protected Renderer2D {
 	BatchedTextData* addText(const std::string& _text, const Vector4& color, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const float& _scale=1.0f, const Vector2& _anchor=Vector2::Center);
 	void draw() override;
 };
+
+struct BatchedLineData : public Transform2D {
+	public:
+	std::vector<Vector2> positions;
+	bool loop;
+	Vector4 color;
+	BatchedLineData(std::vector<Vector2>&& _positions, const bool& _loop, const Vector4& _color, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f) :
+		Transform2D(_position, _zIndex, Vector2::ONE, Vector2::Center), positions(_positions), loop(_loop), color(_color) {};
+};
+struct BatchedRectData : public Transform2D {
+	public:
+	Vector4 color;
+	BatchedRectData(const Vector4& _color, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f) :
+		Transform2D(_position, _zIndex, Vector2::ONE, Vector2::Center), color(_color) {};
+};
+class BatchedLineRenderer : protected Renderer2D {
+	protected:
+	std::vector<BatchedLineData*> lines;
+	std::vector<BatchedRectData*> rects;
+	std::vector<BatchedVertex> verticesBuffer;
+	void bufferVertex(const Vector2& vertexPos, const Vector4& color, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE);
+	void bufferLine(const std::vector<Vector2>& positions, const bool& loop, const Vector4& color, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE);
+	void bufferRect(const Vector4& color, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE);
+	void renderBatch();
+	public:
+	OrthoCam* cam;
+	float width;
+	using Renderer::shader;
+	using Object::initialized;
+	const unsigned int maxVertices=40000;
+	unsigned int numVertices=0;
+	BatchedLineRenderer() : Renderer2D(), cam(nullptr), width(1.0f) { initialized=false; };
+	BatchedLineRenderer(OrthoCam* _cam, const float& width=1.0f);
+	virtual ~BatchedLineRenderer();
+	BatchedLineData* addLine(std::vector<Vector2>&& positions, const bool& loop, const Vector4& color, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f);
+	BatchedRectData* addRect(const Vector4& color, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f);
+	void draw() override;
+};
+
+struct BatchedDotData : public Transform2D {
+	public:
+	Vector4 modulate;
+	Texture* tex;
+	float radius;
+	BatchedDotData(const Vector4& _modulate, Texture* _tex, const float& _radius, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center) :
+		Transform2D(_position, _zIndex, _scale, _anchor), modulate(_modulate), tex(_tex), radius(_radius) {};
+};
+class BatchedDotRenderer : protected Renderer2D {
+	protected:
+	std::vector<BatchedDotData*> dots;
+	std::vector<BatchedVertex> dotVerticesBuffer;
+	unsigned int numTextures=0;
+	std::vector<Texture*> textures;
+	void bufferDot(const Vector4& _modulate, Texture* tex, const float& radius, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
+	void renderBatch();
+	public:
+	OrthoCam* cam;
+	using Renderer::shader;
+	using Object::initialized;
+	const unsigned short int maxDotCount=10000;
+	const unsigned short int maxVertices=maxDotCount*3;
+	unsigned short int numDots=0;
+	BatchedDotRenderer() : Renderer2D(), cam(nullptr) { initialized=false; };
+	BatchedDotRenderer(OrthoCam* _cam);
+	virtual ~BatchedDotRenderer();
+	BatchedDotData* addTexturedDot(const Vector4& _modulate, Texture* tex, const float& _radius, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
+	BatchedDotData* addDot(const Vector4& _modulate, const float& radius, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
+	void draw() override;
+};
 #endif// _BATCH_RENDERERS_H

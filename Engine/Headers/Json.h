@@ -19,7 +19,7 @@ extern float playerSprintSpeed;
 extern std::string playerTexPath;
 extern Vector3 playerModulate;
 extern Vector4 flashlightColor;
-extern float flashlightRange;
+extern float flashlightRadius;
 
 extern float enemySpeed;
 extern std::string enemyTexPath;

@@ -45,7 +45,7 @@ CubeRenderer::CubeRenderer(Shader* _shader, const Vector3& _position, const Vect
 	Renderer(_shader), Transform(_position, _scale, _rotAxis, _rotAngle) {
 	if(!initialized) return;
 	VBO->staticFill(cubevertices, 100);
-	IBO->fill(cubeindices, 36);
+	IBO->staticFill(cubeindices, 36);
 	VBO->applyAttributes({ 3, 2 });
 }
 CubeRenderer::CubeRenderer(Shader* _shader, const Vector3& _position, const Vector3& _scale) : CubeRenderer(_shader, _position, _scale, Vector3::UP, 0.0f) {}
@@ -203,7 +203,7 @@ void TextRenderer::draw() {
 }
 #pragma endregion// TextRenderer
 #pragma region LineRenderer
-LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const bool& _loop, const Vector2& _position, const float& _zIndex) :
+LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const bool& _loop, const float& _width, const Vector2& _position, const float& _zIndex) :
 	Renderer2D(_shader, _position, _zIndex), positions(_positions), width(_width), loop(_loop) {
 	if(!initialized) return;
 	float farthestX=0.0f;
@@ -227,15 +227,14 @@ void LineRenderer::draw() {
 	if(Engine::instance->ended||!initialized) return;
 	shader->bindTextures();
 	shader->setMat4x4("model", scaleMat(Vector3((transform.parent!=nullptr ? transform.parent->getWorldScale() : Vector2(1.0f, 1.0f)), 0.0f))*translate(Vector3(getWorldPos(), 100.0f-getZIndex())));
-	if(loop) VAO->DrawLineLoop(static_cast<unsigned int>(positions.size()));
-	else VAO->DrawLine(static_cast<unsigned int>(positions.size()));
+	VAO->drawLine(static_cast<unsigned int>(positions.size()), width, loop, true);
 }
 #pragma endregion// LineRenderer
 #pragma region DotRenderer
 const float DotRenderer::vertices[15] {
-	cosf(90.0f/180.0f*PI), sinf(90.0f/180.0f*PI), 0.0f, 0.5f+cosf(90.0f/180.0f*PI), 0.5f+sinf(90.0f/180.0f*PI),
-	cosf(210.0f/180.0f*PI), sinf(210.0f/180.0f*PI), 0.0f, 0.5f+cosf(210.0f/180.0f*PI), 0.5f+sinf(210.0f/180.0f*PI),
-	cosf(330.0f/180.0f*PI), sinf(330.0f/180.0f*PI), 0.0f, 0.5f+cosf(330.0f/180.0f*PI), 0.5f+sinf(330.0f/180.0f*PI),
+	2.0f*cosf(90.0f/180.0f*PI), 2.0f*sinf(90.0f/180.0f*PI), 0.0f, 0.5f+cosf(90.0f/180.0f*PI), 0.5f+sinf(90.0f/180.0f*PI),
+	2.0f*cosf(210.0f/180.0f*PI), 2.0f*sinf(210.0f/180.0f*PI), 0.0f, 0.5f+cosf(210.0f/180.0f*PI), 0.5f+sinf(210.0f/180.0f*PI),
+	2.0f*cosf(330.0f/180.0f*PI), 2.0f*sinf(330.0f/180.0f*PI), 0.0f, 0.5f+cosf(330.0f/180.0f*PI), 0.5f+sinf(330.0f/180.0f*PI),
 };
 DotRenderer::DotRenderer(Shader* _shader, const float& _radius, const Vector2& _position, const float& _zIndex, const Vector2& _anchor) :
 	Renderer2D(_shader, _position, _zIndex, Vector2(_radius), _anchor, 0.0f), radius(_radius) {

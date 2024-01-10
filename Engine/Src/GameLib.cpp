@@ -159,12 +159,14 @@ Shader* createDotTexShader(Texture* tex, const Vector4& modulate) {
 #pragma endregion// Shader creators
 
 #pragma region BoxCollider
-bool ColliderDebug=false;
 std::vector<BoxCollider*> colliders;
-BoxCollider::BoxCollider(Shader* _debugLineShader, maskType _mask, const Vector2& _position, const float& _zIndex, const Vector2& _scale) :
-	LineRenderer(_debugLineShader, { Vector2(-_scale.x/2.0f, _scale.y/2.0f), Vector2(_scale.x/2.0f, _scale.y/2.0f), Vector2(_scale.x/2.0f, -_scale.y/2.0f), Vector2(-_scale.x/2.0f, -_scale.y/2.0f) }, 3.0f, true, _position, _zIndex),
+bool ColliderDebug=false;
+BatchedLineRenderer* ColliderDebugLineRenderer;
+BoxCollider::BoxCollider(maskType _mask, const Vector2& _position, const float& _zIndex, const Vector2& _scale) :
+	hasTransform2D(_position, _zIndex, _scale, Vector2::Center, 0.0f),
 	mask(_mask) {
-	if(!initialized) return;
+	initialized=true;
+	addChild(ColliderDebugLineRenderer->addRect(Vector4(0.0f, 0.0f, 1.0f, 1.0f), Vector2::ZERO, _zIndex));
 	colliders.push_back(this);
 }
 BoxCollider::RaycastHit BoxCollider::lineLineIntersection(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4) {

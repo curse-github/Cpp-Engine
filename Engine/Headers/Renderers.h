@@ -64,7 +64,7 @@ class LineRenderer : public Renderer2D {
 	float width;
 	bool loop;
 	LineRenderer() : Renderer2D(), positions {}, width(1.0f), loop(false) { initialized=false; }
-	LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const float& _width, const bool& _loop, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f);
+	LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const bool& _loop, const float& _width, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f);
 	void draw() override;
 };
 class DotRenderer : public Renderer2D {

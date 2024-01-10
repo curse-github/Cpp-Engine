@@ -3,7 +3,6 @@
 #pragma region BatchedSpriteRenderer
 void BatchedSpriteRenderer::bufferQuad(const Vector4& modulate, Texture* tex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
 	if(Engine::instance->ended||!initialized) return;
-	if(numQuads>=maxQuadCount) renderBatch();// if out of room for quads in this batch, render and reset
 	float texIndex=-1.0f;
 	if(tex!=nullptr) {
 		for(unsigned int i=0; i<numTextures; i++) {
@@ -15,25 +14,22 @@ void BatchedSpriteRenderer::bufferQuad(const Vector4& modulate, Texture* tex, co
 		}
 	}
 	for(unsigned int i=0; i<static_cast<unsigned int>(4*5); i+=5) {
-		quadVerticesBuffer.push_back(BatchedVertex {
+		quadVerticesBuffer.push_back((BatchedVertex&&)BatchedVertex {
 			_position.x+(SpriteRenderer::quadvertices[i+0]-_anchor.x)*_scale.x, _position.y+(SpriteRenderer::quadvertices[i+1]-_anchor.y)*_scale.y,
-			_zIndex-100.0f,
-			SpriteRenderer::quadvertices[i+3], SpriteRenderer::quadvertices[i+4],
-			modulate.x, modulate.y, modulate.z, modulate.w,
-			texIndex
-			});
+				_zIndex-100.0f,
+				SpriteRenderer::quadvertices[i+3], SpriteRenderer::quadvertices[i+4],
+				modulate.x, modulate.y, modulate.z, modulate.w,
+				texIndex
+		});
 	}
 	numQuads++;
+	if(numQuads>=maxQuadCount) renderBatch();// if out of room for quads in this batch, render and reset
 }
 void BatchedSpriteRenderer::renderBatch() {
 	if(Engine::instance->ended||!initialized) return;
 	if(numQuads==0) return;
 	shader->use();
-	for(unsigned int i=0; i<numTextures; i++) {
-		// equivilent to 'textures[i]->Bind(i);'
-		glActiveTexture(GL_TEXTURE0+i);
-		glBindTexture(GL_TEXTURE_2D, textures[i]->ID);
-	}
+	for(unsigned int i=0; i<numTextures; i++) textures[i]->Bind(i);
 	VBO->dynamicSub((float*)(&quadVerticesBuffer[0]), 10*4*numQuads);//10 floats per vertex, 4 vertices per quad
 	VAO->drawTrisIndexed(numQuads*6);
 	quadVerticesBuffer.clear();
@@ -49,12 +45,12 @@ BatchedSpriteRenderer::BatchedSpriteRenderer(OrthoCam* _cam) :
 	cam->use();
 
 	VBO->dynamicDefine(10*maxVertices);
-	IBO->fillRepeated(SpriteRenderer::quadindices, 6, maxQuadCount, 4);
+	IBO->staticFillRepeated(SpriteRenderer::quadindices, 6, maxQuadCount, 4);
 	VBO->applyAttributes({ 3, 2, 4, 1 });
 }
 BatchedSpriteRenderer::~BatchedSpriteRenderer() {
 	if(!initialized) return;
-	for(BatchedQuadData* data:quads) delete data;
+	for(BatchedQuadData* quad:quads) delete quad;
 }
 BatchedQuadData* BatchedSpriteRenderer::addSprite(const Vector4& modulate, Texture* tex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
 	if(Engine::instance->ended||!initialized) return nullptr;
@@ -90,13 +86,13 @@ void StaticBatchedSpriteRenderer::bufferQuad(const Vector4& modulate, Texture* t
 		texIndex=static_cast<float>(numTextures);textures.push_back(tex);numTextures++;
 	}
 	for(unsigned int i=0; i<static_cast<unsigned int>(4*5); i+=5) {
-		quadVerticesBuffer.push_back(BatchedVertex {
+		quadVerticesBuffer.push_back((BatchedVertex&&)BatchedVertex {
 			_position.x+(SpriteRenderer::quadvertices[i+0]-_anchor.x)*_scale.x, _position.y+(SpriteRenderer::quadvertices[i+1]-_anchor.y)*_scale.y,
-			_zIndex-100.0f,
-			SpriteRenderer::quadvertices[i+3], SpriteRenderer::quadvertices[i+4],
-			modulate.x, modulate.y, modulate.z, modulate.w,
-			texIndex
-			});
+				_zIndex-100.0f,
+				SpriteRenderer::quadvertices[i+3], SpriteRenderer::quadvertices[i+4],
+				modulate.x, modulate.y, modulate.z, modulate.w,
+				texIndex
+		});
 	}
 	numQuads++;
 }
@@ -104,9 +100,7 @@ void StaticBatchedSpriteRenderer::renderBatch() {
 	if(Engine::instance->ended||!initialized) return;
 	if(numQuads==0) return;
 	shader->use();
-	for(unsigned int i=0; i<numTextures; i++) {
-		textures[i]->Bind(i);
-	}
+	for(unsigned int i=0; i<numTextures; i++) textures[i]->Bind(i);
 	VAO->drawTrisIndexed(numQuads*6);
 }
 StaticBatchedSpriteRenderer::StaticBatchedSpriteRenderer(OrthoCam* _cam) :
@@ -117,12 +111,12 @@ StaticBatchedSpriteRenderer::StaticBatchedSpriteRenderer(OrthoCam* _cam) :
 	cam->use();
 
 	VBO->dynamicDefine(10*maxVertices);
-	IBO->fillRepeated(SpriteRenderer::quadindices, 6, maxQuadCount, 4);
+	IBO->staticFillRepeated(SpriteRenderer::quadindices, 6, maxQuadCount, 4);
 	VBO->applyAttributes({ 3, 2, 4, 1 });
 }
 StaticBatchedSpriteRenderer::~StaticBatchedSpriteRenderer() {
 	if(!initialized) return;
-	for(BatchedQuadData* data:quads) delete data;
+	for(BatchedQuadData* quad:quads) delete quad;
 }
 BatchedQuadData* StaticBatchedSpriteRenderer::addSprite(const Vector4& modulate, Texture* tex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
 	if(Engine::instance->ended||!initialized) return nullptr;
@@ -163,17 +157,17 @@ struct TextRenderer::Character {
 };
 void BatchedTextRenderer::bufferCharacter(const int& shaderIndex, const float& texIndex, const Vector4& color, const Vector2& _position, const float& _zIndex, const Vector2& _scale) {
 	if(Engine::instance->ended||!initialized) return;
-	if(numChars[shaderIndex]>=maxCharacterCount) renderBatch(shaderIndex);// if out of room render and reset
 	for(unsigned int i=0; i<static_cast<unsigned int>(4*5); i+=5) {
-		characterBuffers[shaderIndex].push_back(BatchedVertex {
+		characterBuffers[shaderIndex].push_back((BatchedVertex&&)BatchedVertex {
 			_position.x+SpriteRenderer::quadvertices[i+0]*_scale.x, _position.y+SpriteRenderer::quadvertices[i+1]*_scale.y,// x and y
-			_zIndex-100.0f,// z
-			SpriteRenderer::quadvertices[i+3], SpriteRenderer::quadvertices[i+4],// u and v
-			color.x, color.y, color.z, color.w,// r, g, b, and a
-			texIndex
-			});
+				_zIndex-100.0f,// z
+				SpriteRenderer::quadvertices[i+3], SpriteRenderer::quadvertices[i+4],// u and v
+				color.x, color.y, color.z, color.w,// r, g, b, and a
+				texIndex
+		});
 	}
 	numChars[shaderIndex]++;
+	if(numChars[shaderIndex]>=maxCharacterCount) renderBatch(shaderIndex);// if out of room render and reset
 }
 void BatchedTextRenderer::renderBatch(const int& shaderIndex) {
 	if(Engine::instance->ended||!initialized) return;
@@ -211,7 +205,7 @@ BatchedTextRenderer::BatchedTextRenderer(Camera* cam) :
 	}
 
 	VBO->dynamicDefine(10*maxVertices);
-	IBO->fillRepeated(SpriteRenderer::quadindices, 6, maxCharacterCount, 4);
+	IBO->staticFillRepeated(SpriteRenderer::quadindices, 6, maxCharacterCount, 4);
 	VBO->applyAttributes({ 3, 2, 4, 1 });
 }
 BatchedTextRenderer::~BatchedTextRenderer() {
@@ -273,3 +267,165 @@ void BatchedTextRenderer::draw() {
 	}
 }
 #pragma endregion// BatchedTextRenderer
+
+#pragma region BatchedLineRenderer
+void BatchedLineRenderer::bufferVertex(const Vector2& vertexPos, const Vector4& color, const Vector2& _position, const float& _zIndex, const Vector2& _scale) {
+	if(Engine::instance->ended||!initialized) return;
+	verticesBuffer.push_back((BatchedVertex&&)BatchedVertex {
+		_position.x+vertexPos.x*_scale.x, _position.y+vertexPos.y*_scale.y,
+			_zIndex-100.0f,
+			0.0f, 0.0f,// no uvs
+			color.x, color.y, color.z, color.w,
+			-1.0f// no texture
+	});
+	numVertices++;
+}
+void BatchedLineRenderer::bufferLine(const std::vector<Vector2>& positions, const bool& loop, const Vector4& color, const Vector2& _position, const float& _zIndex, const Vector2& _scale) {
+	if(Engine::instance->ended||!initialized) return;
+	for(const Vector2& pos:positions) {
+	}
+	size_t len=positions.size();
+	for(unsigned int i=0; i<len-1; i++) {
+		bufferVertex(positions[i], color, _position, _zIndex, _scale);
+		bufferVertex(positions[i+1u], color, _position, _zIndex, _scale);
+		if(numVertices>=maxVertices) renderBatch();// if out of room for lines in this batch, render and reset
+	}
+	if(loop) {
+		bufferVertex(positions[0], color, _position, _zIndex, _scale);
+		bufferVertex(positions[len-1u], color, _position, _zIndex, _scale);
+		if(numVertices>=maxVertices) renderBatch();// if out of room for lines in this batch, render and reset
+	}
+	if(numVertices>=maxVertices) renderBatch();// if out of room for lines in this batch, render and reset
+}
+void BatchedLineRenderer::bufferRect(const Vector4& color, const Vector2& _position, const float& _zIndex, const Vector2& _scale) {
+	if(Engine::instance->ended||!initialized) return;
+	//{ Vector2(-0.5f, 0.5f), Vector2(0.5f, 0.5f), Vector2(0.5f, -0.5f), Vector2(-0.5f, -0.5f) }
+	bufferVertex(Vector2(-0.5f, 0.5f), color, _position, _zIndex, _scale);
+	bufferVertex(Vector2(0.5f, 0.5f), color, _position, _zIndex, _scale);
+	if(numVertices>=maxVertices) renderBatch();// if out of room for lines in this batch, render and reset
+	bufferVertex(Vector2(0.5f, 0.5f), color, _position, _zIndex, _scale);
+	bufferVertex(Vector2(0.5f, -0.5f), color, _position, _zIndex, _scale);
+	if(numVertices>=maxVertices) renderBatch();// if out of room for lines in this batch, render and reset
+	bufferVertex(Vector2(0.5f, -0.5f), color, _position, _zIndex, _scale);
+	bufferVertex(Vector2(-0.5f, -0.5f), color, _position, _zIndex, _scale);
+	if(numVertices>=maxVertices) renderBatch();// if out of room for lines in this batch, render and reset
+	bufferVertex(Vector2(-0.5f, -0.5f), color, _position, _zIndex, _scale);
+	bufferVertex(Vector2(-0.5f, 0.5f), color, _position, _zIndex, _scale);
+	if(numVertices>=maxVertices) renderBatch();// if out of room for lines in this batch, render and reset
+}
+void BatchedLineRenderer::renderBatch() {
+	if(Engine::instance->ended||!initialized) return;
+	if(numVertices==0) return;
+	shader->use();
+	VBO->dynamicSub((float*)(&verticesBuffer[0]), 10*numVertices);//10 floats per vertex
+	VAO->drawLines(numVertices, width, false);
+	verticesBuffer.clear();
+	numVertices=0;
+}
+BatchedLineRenderer::BatchedLineRenderer(OrthoCam* _cam, const float& _width) :
+	Renderer2D(new Shader("Shaders/batch.vert", "Shaders/texBatch.frag"), Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f), cam(_cam), width(_width) {
+	if(!initialized) return;
+	cam->bindShader(shader);
+	cam->use();
+
+	VBO->dynamicDefine(10*maxVertices);
+	VBO->applyAttributes({ 3, 2, 4, 1 });
+}
+BatchedLineRenderer::~BatchedLineRenderer() {
+	if(!initialized) return;
+	for(BatchedLineData* line:lines) delete line;
+}
+BatchedLineData* BatchedLineRenderer::addLine(std::vector<Vector2>&& positions, const bool& loop, const Vector4& color, const Vector2& _position, const float& _zIndex) {
+	if(Engine::instance->ended||!initialized) return nullptr;
+	BatchedLineData* ptr=new BatchedLineData((std::vector<Vector2>&&)positions, loop, color, _position, _zIndex);
+	lines.push_back(ptr);
+	return ptr;
+}
+BatchedRectData* BatchedLineRenderer::addRect(const Vector4& color, const Vector2& _position, const float& _zIndex) {
+	if(Engine::instance->ended||!initialized) return nullptr;
+	BatchedRectData* ptr=new BatchedRectData(color, _position, _zIndex);
+	rects.push_back(ptr);
+	return ptr;
+}
+void BatchedLineRenderer::draw() {
+	if(Engine::instance->ended||!initialized) return;
+	for(BatchedLineData* line:lines) bufferLine(line->positions, line->loop, line->color, line->getWorldPos(), line->zIndex, line->getWorldScale());
+	for(BatchedRectData* rect:rects) bufferRect(rect->color, rect->getWorldPos(), rect->zIndex, rect->getWorldScale());
+	renderBatch();
+}
+#pragma endregion// BatchedLineRenderer
+
+#pragma region BatchedDotRenderer
+void BatchedDotRenderer::bufferDot(const Vector4& modulate, Texture* tex, const float& _radius, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
+	if(Engine::instance->ended||!initialized) return;
+	float texIndex=-1.0f;
+	if(tex!=nullptr) {
+		for(unsigned int i=0u; i<numTextures; i++) {
+			if(textures[i]->ID==tex->ID) { texIndex=static_cast<float>(i);break; }
+		}
+		if(texIndex==-1.0f) {
+			if(numTextures>=32u) renderBatch();// if out of room for textures in this batch, render and reset
+			texIndex=static_cast<float>(numTextures);textures.push_back(tex);numTextures++;
+		}
+	}
+	for(unsigned int i=0u; i<3u*5u; i+=5u) {
+		Log(Vector2(_position.x+(DotRenderer::vertices[i]-_anchor.x)*_radius*_scale.x, _position.y+(DotRenderer::vertices[i+1u]-_anchor.y)*_radius*_scale.y));
+		dotVerticesBuffer.push_back((BatchedVertex&&)BatchedVertex {
+			_position.x+(DotRenderer::vertices[i]-_anchor.x)*_radius*_scale.x, _position.y+(DotRenderer::vertices[i+1u]-_anchor.y)*_radius*_scale.y,
+				_zIndex-100.0f,
+				DotRenderer::vertices[i+3u], DotRenderer::vertices[i+4u],
+				modulate.x, modulate.y, modulate.z, modulate.w,
+				texIndex
+		});
+	}
+	Log("");
+	numDots++;
+	if(numDots>=maxDotCount) renderBatch();// if out of room for quads in this batch, render and reset
+}
+void BatchedDotRenderer::renderBatch() {
+	if(Engine::instance->ended||!initialized) return;
+	if(numDots==0u) return;
+	shader->use();
+	for(unsigned int i=0u; i<numTextures; i++) textures[i]->Bind(i);
+	VBO->dynamicSub((float*)(&dotVerticesBuffer[0u]), 10u*3u*numDots);//10 floats per vertex, 4 vertices per quad
+	VAO->drawTris(numDots*3u);
+	dotVerticesBuffer.clear();
+	numDots=0u;
+	textures.clear();
+	numTextures=0u;
+}
+BatchedDotRenderer::BatchedDotRenderer(OrthoCam* _cam) :
+	Renderer2D(new Shader("Shaders/batch.vert", "Shaders/dotTexBatch.frag"), Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f), cam(_cam) {
+	if(!initialized) return;
+	shader->setTextureArray("_textures");
+	cam->bindShader(shader);
+	cam->use();
+
+	VBO->dynamicDefine(10u*maxVertices);
+	VBO->applyAttributes({ 3u, 2u, 4u, 1u });
+}
+BatchedDotRenderer::~BatchedDotRenderer() {
+	if(!initialized) return;
+	for(BatchedDotData* dot:dots) delete dot;
+}
+BatchedDotData* BatchedDotRenderer::addTexturedDot(const Vector4& modulate, Texture* tex, const float& radius, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
+	if(Engine::instance->ended||!initialized) return nullptr;
+	BatchedDotData* ptr=new BatchedDotData(modulate, tex, radius, _position, _zIndex, _scale, _anchor);
+	dots.push_back(ptr);
+	return ptr;
+}
+BatchedDotData* BatchedDotRenderer::addDot(const Vector4& modulate, const float& radius, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
+	if(Engine::instance->ended||!initialized) return nullptr;
+	BatchedDotData* ptr=new BatchedDotData(modulate, nullptr, radius, _position, _zIndex, _scale, _anchor);
+	dots.push_back(ptr);
+	return ptr;
+}
+void BatchedDotRenderer::draw() {
+	if(Engine::instance->ended||!initialized) return;
+	// reserve space for vertices equal to the amount of dots x 4
+	if(dots.size()<=maxDotCount) dotVerticesBuffer.reserve(dots.size()*3); else dotVerticesBuffer.reserve(maxVertices);
+	for(BatchedDotData* dot:dots) bufferDot(dot->modulate, dot->tex, dot->radius, dot->getWorldPos(), dot->zIndex, dot->getWorldScale(), dot->anchor);
+	Log("\n\n\n\n");
+	renderBatch();
+}
+#pragma endregion

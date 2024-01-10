@@ -71,12 +71,14 @@ class Pathfinder {
 };
 
 extern bool ColliderDebug;
-class BoxCollider : public LineRenderer {
+extern BatchedLineRenderer* ColliderDebugLineRenderer;
+class BoxCollider : public hasTransform2D {
 	public:
+	bool initialized=false;
 	typedef short unsigned int maskType;
 	maskType mask;
-	BoxCollider() : LineRenderer(), mask(0) { initialized=false; }
-	BoxCollider(Shader* _debugLineShader, maskType _mask, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE);
+	BoxCollider() : hasTransform2D(), mask(0) { initialized=false; }
+	BoxCollider(maskType _mask, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE);
 	struct RaycastHit {
 		bool hit;
 		Vector2 point;
