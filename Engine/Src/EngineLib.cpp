@@ -71,7 +71,7 @@ Vector4 Mat4x4::operator*(const Vector4& b) const {
 	);
 }
 Vector3 Mat4x4::operator*(const Vector3& b) const {
-	return operator*(Vector4(b, 1.0f)).toXYZ();
+	return operator*(Vector4(b, 1.0f)).XYZ();
 }
 Mat4x4 Mat4x4::operator*(const Mat4x4& b) const {
 	if(b.isIdentity) return *this;

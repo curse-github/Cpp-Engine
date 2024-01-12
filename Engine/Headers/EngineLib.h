@@ -162,7 +162,8 @@ class vec3 {
 	vec3(vec3<T>&& move) noexcept : x(move.x), y(move.y), z(move.z) {};// nothing to actually move but allow the function to be used
 	vec3<T> operator=(const vec3<T>& copy) { x=copy.x;y=copy.y;z=copy.z; return copy; };
 	vec3<T> operator=(vec3<T>&& move) noexcept { x=move.x;y=move.y;z=move.z; return move; };
-	vec3<T> toXY() { return vec3<T>(x, y); };
+	vec2<T> XY() { return vec2<T>(x, y); };
+	vec2<T> YZ() { return vec2<T>(y, z); };
 	template<typename U>
 	operator vec3<U>() const { return vec3<U>(static_cast<U>(x), static_cast<U>(y)); };
 	void operator+=(const vec3<T>& rhs) { x+=rhs.x; y+=rhs.y; };
@@ -241,10 +242,10 @@ class vec4 {
 	vec4(const T& _x, const T& _y, const T& _z, const T& _w) : x(_x), y(_y), z(_z), w(_w) {};
 	explicit vec4(const T& scalar) : x(scalar), y(scalar), z(scalar), w(scalar) {};// from a single value
 
-	vec4(const vec2<T>& xy, const T& _z, const T& _w) : x(xy.x),y(xy.y),z(_z),w(_w) {};
-	vec4(const T& _x, const vec2<T>& yz, const T& _w) : x(_x),y(yz.x),z(yz.y),w(_w) {};
-	vec4(const T& _x, const T& _y, const vec2<T>& zw) : x(_x),y(_y),z(zw.x),w(zw.y) {};
-	vec4(const vec2<T>& xy, const vec2<T>& zw) : x(xy.x),y(xy.y),z(zw.x),w(zw.y) {};
+	vec4(const vec2<T>& xy, const T& _z, const T& _w) : x(xy.x), y(xy.y), z(_z), w(_w) {};
+	vec4(const T& _x, const vec2<T>& yz, const T& _w) : x(_x), y(yz.x), z(yz.y), w(_w) {};
+	vec4(const T& _x, const T& _y, const vec2<T>& zw) : x(_x), y(_y), z(zw.x), w(zw.y) {};
+	vec4(const vec2<T>& xy, const vec2<T>& zw) : x(xy.x), y(xy.y), z(zw.x), w(zw.y) {};
 	vec4(const vec3<T>& xyz, const T& _w) : x(xyz.x), y(xyz.y), z(xyz.z), w(_w) {};
 	vec4(const T& _x, const vec3<T>& yzw) : x(_x), y(yzw.x), z(yzw.y), w(yzw.z) {};
 
@@ -252,8 +253,11 @@ class vec4 {
 	vec4(vec4<T>&& move) noexcept : x(move.x), y(move.y), z(move.z), w(move.w) {};// nothing to actually move but allow the function to be used
 	vec4<T> operator=(const vec4<T>& copy) { x=copy.x;y=copy.y;z=copy.z;w=copy.w; return copy; };
 	vec4<T> operator=(vec4<T>&& move) noexcept { x=move.x;y=move.y;z=move.z;w=move.w; return move; };
-	vec3<T> toXYZ() { return vec3<T>(x, y, z); };
-	vec3<T> toYZW() { return vec3<T>(y, z, w); };
+	vec3<T> XYZ() { return vec3<T>(x, y, z); };
+	vec3<T> YZW() { return vec3<T>(y, z, w); };
+	vec2<T> XY() { return vec2<T>(x, y); };
+	vec2<T> YZ() { return vec2<T>(y, z); };
+	vec2<T> ZW() { return vec2<T>(z, w); };
 	template<typename U>
 	operator vec4<U>() const { return vec4<U>(static_cast<U>(x), static_cast<U>(y), static_cast<U>(w)); };
 	void operator+=(const vec4<T>& rhs) { x+=rhs.x; y+=rhs.y; w+=rhs.w; };

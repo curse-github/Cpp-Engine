@@ -47,7 +47,7 @@ Player::Player(OrthoCam* _sceneCam, const Vector3& playerModulate, Texture* play
 	sceneCam->transform.position=Vector2::ZERO;
 	renderer=spriteRenderer->addSprite(Vector4(playerModulate, 1.0f), playerTex, Vector2::ZERO, 2.0f, Vector2(playerSize));
 	addChild(renderer);
-	collider=new BoxCollider(PLAYERMASK, Vector2::ZERO, 100.0f, playerHitbox);
+	collider=new BoxCollider(PLAYERMASK, false, Vector2::ZERO, 100.0f, playerHitbox);
 	renderer->addChild(&collider->transform);
 	flashlightRenderer=new DotRenderer(createDotColorShader(flashlightColor), flashlightRadius, Vector2::ZERO, 1.0f);
 	_sceneCam->bindShader(flashlightRenderer->shader);
@@ -120,7 +120,7 @@ Enemy::Enemy(const Vector3& enemyModulate, Texture* enemyTex, Pathfinder* _pathf
 	if(!initialized) return;
 	renderer=spriteRenderer->addSprite(Vector4(enemyModulate, 1.0f), enemyTex, Vector2::ZERO, 2.0f, Vector2(playerSize));
 	addChild(renderer);
-	collider=new BoxCollider(ENEMYMASK, Vector2::ZERO, 100.0f, playerHitbox);
+	collider=new BoxCollider(ENEMYMASK, false, Vector2::ZERO, 100.0f, playerHitbox);
 	renderer->addChild(&collider->transform);
 	iconRenderer=uiHandler->Sprite(Vector4(enemyModulate, 0.75f), enemyTex, gridToMinimap(WorldToGrid(getWorldPos())), 1.0f, Vector2(minimapSize.x/mapSize.x, minimapSize.y/mapSize.y), Vector2::Center);
 	engine->sub_loop(this);
@@ -138,7 +138,7 @@ Instance::Instance(ClickDetector* clickDetector, Texture* _instanceUnlitTex, Tex
 	addChild(staticSpriteRenderer->addSprite(Vector4(0.5f, 0.5f, 0.5f, 1.0f), _instanceUnlitTex, Vector2::ZERO, 1.0f));
 	stateQuad=instanceStateSpritesRenderer->addSprite(Vector4::ONE, broken ? instanceBrokenTex : instanceWorkingTex, Vector2::ZERO, 2.0f);
 	addChild(stateQuad);
-	addChild(new BoxCollider(MAPMASK, Vector2::ZERO, 100.0f));
+	addChild(new BoxCollider(MAPMASK, true, Vector2::ZERO, 100.0f));
 }
 void Instance::fixInstance() {
 	broken=false;
@@ -208,6 +208,7 @@ int Run() {
 	instanceStateSpritesRenderer=new StaticBatchedSpriteRenderer(cam);
 	uiHandler=new UiHandler(uiCam);
 	ColliderDebugLineRenderer=new BatchedLineRenderer(cam, 3.0f);
+	StaticColliderDebugLineRenderer=new StaticBatchedLineRenderer(cam, 3.0f);
 	// player object
 	player=new Player(cam, playerModulate, playerTex, flashlightColor, GridToWorld(playerOffset));
 	finder=std::make_unique<Pathfinder>();
@@ -223,10 +224,10 @@ int Run() {
 	staticSpriteRenderer->bind();
 	instanceStateSpritesRenderer->bind();
 	for(const Vector3& line:horizontalWallData) {// horizontal walls
-		new BoxCollider(MAPMASK, GridToWorld(Vector2((line.z+line.y)/2.0f, line.x)), 100.0f, Vector2(((line.z-line.y)*(1.0f+spacing)+spacing*3.0f), spacing*3.0f)*mapScale);
+		new BoxCollider(MAPMASK, true, GridToWorld(Vector2((line.z+line.y)/2.0f, line.x)), 100.0f, Vector2(((line.z-line.y)*(1.0f+spacing)+spacing*3.0f), spacing*3.0f)*mapScale);
 	}
 	for(const Vector3& line:verticalWallData) {// vertical walls
-		new BoxCollider(MAPMASK, GridToWorld(Vector2(line.x, (line.z+line.y)/2.0f)), 100.0f, Vector2(spacing*3.0f, ((line.z-line.y)*(1.0f+spacing)+spacing*3.0f))*mapScale);
+		new BoxCollider(MAPMASK, true, GridToWorld(Vector2(line.x, (line.z+line.y)/2.0f)), 100.0f, Vector2(spacing*3.0f, ((line.z-line.y)*(1.0f+spacing)+spacing*3.0f))*mapScale);
 	}
 #pragma endregion// Map setup
 	// setup UI
@@ -269,10 +270,8 @@ void Loop(const double& delta) {
 	player->flashlightStencilOff();
 	//debug stuff
 	if(enemy->debugRen) enemy->debugRen->draw();
-	if(ColliderDebug) ColliderDebugLineRenderer->draw();
-	// draw ui
-	glClear(GL_DEPTH_BUFFER_BIT);
-	uiHandler->draw();
+	if(ColliderDebug) { ColliderDebugLineRenderer->draw();StaticColliderDebugLineRenderer->draw(); }
+	uiHandler->draw();// draws ui
 }
 void close() { engine->Close(); }
 void on_enter(std::string text) { Log(text); }

@@ -162,11 +162,13 @@ Shader* createDotTexShader(Texture* tex, const Vector4& modulate) {
 std::vector<BoxCollider*> colliders;
 bool ColliderDebug=false;
 BatchedLineRenderer* ColliderDebugLineRenderer;
-BoxCollider::BoxCollider(maskType _mask, const Vector2& _position, const float& _zIndex, const Vector2& _scale) :
+StaticBatchedLineRenderer* StaticColliderDebugLineRenderer;
+BoxCollider::BoxCollider(maskType _mask, const bool& _isStatic, const Vector2& _position, const float& _zIndex, const Vector2& _scale) :
 	hasTransform2D(_position, _zIndex, _scale, Vector2::Center, 0.0f),
-	mask(_mask) {
+	mask(_mask), isStatic(_isStatic) {
 	initialized=true;
-	addChild(ColliderDebugLineRenderer->addRect(Vector4(0.0f, 0.0f, 1.0f, 1.0f), Vector2::ZERO, _zIndex));
+	if(isStatic) { addChild(StaticColliderDebugLineRenderer->addRect(Vector4(1.0f, 0.0f, 0.0f, 1.0f), Vector2::ZERO, _zIndex)); StaticColliderDebugLineRenderer->bind(); }// make a static collider outline
+	else addChild(ColliderDebugLineRenderer->addRect(Vector4(0.0f, 0.0f, 1.0f, 1.0f), Vector2::ZERO, _zIndex));// make a non-static collider outline
 	colliders.push_back(this);
 }
 BoxCollider::RaycastHit BoxCollider::lineLineIntersection(const Vector2& p1, const Vector2& p2, const Vector2& p3, const Vector2& p4) {
