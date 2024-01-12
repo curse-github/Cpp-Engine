@@ -4,7 +4,7 @@
 
 #pragma region Renderer
 Renderer::Renderer(Shader* _shader) : Object(), shader(_shader), VAO(nullptr), VBO(nullptr), IBO(nullptr) {
-	if(!initialized||(shader==nullptr)||!shader->initialized) initialized=false;
+	engine_assert(shader!=nullptr, "[Renderer]: shader is nullptr");
 	VAO=new VertexArrayObject(true);
 	VBO=new VertexBufferObject(VAO);
 	IBO=new IndexBufferObject(VAO);
@@ -43,14 +43,12 @@ const unsigned int CubeRenderer::cubeindices[36]={
 };
 CubeRenderer::CubeRenderer(Shader* _shader, const Vector3& _position, const Vector3& _scale, const Vector3& _rotAxis, const float& _rotAngle) :
 	Renderer(_shader), Transform(_position, _scale, _rotAxis, _rotAngle) {
-	if(!initialized) return;
 	VBO->staticFill(cubevertices, 100);
 	IBO->staticFill(cubeindices, 36);
 	VBO->applyAttributes({ 3, 2 });
 }
 CubeRenderer::CubeRenderer(Shader* _shader, const Vector3& _position, const Vector3& _scale) : CubeRenderer(_shader, _position, _scale, Vector3::UP, 0.0f) {}
 void CubeRenderer::draw() {
-	if(Engine::instance->ended||!initialized) return;
 	Mat4x4 model=axisRotMat(rotAxis, deg_to_rad(rotAngle))*translate(position);
 	shader->bindTextures();
 	shader->setMat4x4("model", model);
@@ -59,9 +57,7 @@ void CubeRenderer::draw() {
 #pragma endregion// CubeRenderer
 #pragma region Renderer2D
 Renderer2D::Renderer2D(Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor, const float& _rotAngle) :
-	Renderer(_shader), hasTransform2D(_position, _zIndex, _scale, _anchor, _rotAngle) {
-	if(!initialized) return;
-};
+	Renderer(_shader), hasTransform2D(_position, _zIndex, _scale, _anchor, _rotAngle) {};
 #pragma endregion// Renderers2D
 #pragma region SpriteRenderer
 const float SpriteRenderer::quadvertices[20] {
@@ -76,12 +72,10 @@ const unsigned int SpriteRenderer::quadindices[6] {
 };
 SpriteRenderer::SpriteRenderer(Shader* _shader, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor, const float& _rotAngle) :
 	Renderer2D(_shader, _position, _zIndex, _scale, _anchor, _rotAngle) {
-	if(!initialized) return;
 	VBO->staticFill(quadvertices, 20);
 	VBO->applyAttributes({ 3, 2 });
 }
 void SpriteRenderer::draw() {
-	if(Engine::instance->ended||!initialized) return;
 	shader->bindTextures();
 	shader->setMat4x4("model", getModelMat());
 	VAO->drawTriStrip(4);
@@ -90,7 +84,7 @@ void SpriteRenderer::draw() {
 #pragma endregion// SpriteRenderer
 #pragma region TextRenderer
 struct TextRenderer::Character {
-	Texture* tex=new Texture();// ID handle of the glyph texture
+	Texture* tex=nullptr;// ID handle of the glyph texture
 	Vector2   Size;		       // Size of glyph
 	Vector2   Bearing;         // Offset from baseline to left/top of glyph
 	float Advance=0.0f;        // Offset to advance to next glyph
@@ -144,22 +138,14 @@ int TextRenderer::initCharacterMap() {
 }
 TextRenderer::TextRenderer(Shader* _shader, const std::string& _text, const Vector4& _color, const Vector2& _position, const float& _zIndex, const float& _scale, const Vector2& _anchor) :
 	Renderer2D(_shader, _position, _zIndex, Vector2::ONE, _anchor, 0.0f), text(_text), color(_color), scale(_scale) {
-	if(!initialized) return;
-	if(!characterMapInitialized) {
-		if(!initCharacterMap()) {
-			initialized=false;
-			Log("Error initializing font \"Fonts/MonocraftBetterBrackets.ttf\"");//error
-			Engine::instance->Delete();
-			return;
-		}
+	if(!TextRenderer::characterMapInitialized) {
+		engine_assert(TextRenderer::initCharacterMap(), "[TextRenderer]: Error initializing font \"Fonts/MonocraftBetterBrackets.ttf\"");
 	}
 	VBO->staticFill(SpriteRenderer::quadvertices, 20);
 	VBO->applyAttributes({ 3, 2 });
 	shader->setFloat("text", 0);
 }
 void TextRenderer::draw() {
-	Log("Draw");
-	if(Engine::instance->ended||!initialized) return;
 	shader->setFloat4("textColor", color);
 	// iterate through all characters to find full text block
 	Vector2 tmpScale=Vector2(0.0f, 9.0f);
@@ -204,7 +190,6 @@ void TextRenderer::draw() {
 #pragma region LineRenderer
 LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positions, const bool& _loop, const float& _width, const Vector2& _position, const float& _zIndex) :
 	Renderer2D(_shader, _position, _zIndex), positions(_positions), width(_width), loop(_loop) {
-	if(!initialized) return;
 	float farthestX=0.0f;
 	float farthestY=0.0f;
 	std::vector<float> verts;
@@ -223,7 +208,6 @@ LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positio
 	VBO->applyAttributes({ 3, 2 });
 }
 void LineRenderer::draw() {
-	if(Engine::instance->ended||!initialized) return;
 	shader->bindTextures();
 	shader->setMat4x4("model", scaleMat(Vector3((transform.parent!=nullptr ? transform.parent->getWorldScale() : Vector2(1.0f, 1.0f)), 0.0f))*translate(Vector3(getWorldPos(), 100.0f-getZIndex())));
 	VAO->drawLine(static_cast<unsigned int>(positions.size()), width, loop, true);
@@ -237,12 +221,10 @@ const float DotRenderer::vertices[15] {
 };
 DotRenderer::DotRenderer(Shader* _shader, const float& _radius, const Vector2& _position, const float& _zIndex, const Vector2& _anchor) :
 	Renderer2D(_shader, _position, _zIndex, Vector2(_radius), _anchor, 0.0f), radius(_radius) {
-	if(!initialized) return;
 	VBO->staticFill(vertices, 15);
 	VBO->applyAttributes({ 3, 2 });
 }
 void DotRenderer::draw() {
-	if(Engine::instance->ended||!initialized) return;
 	shader->bindTextures();
 	shader->setMat4x4("model", getModelMat());
 	VAO->drawTris(3);

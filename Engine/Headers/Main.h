@@ -45,7 +45,6 @@ class Player : public Object, public hasTransform2D {
 	void on_loop(const double& delta) override;
 	public:
 	BoxCollider* collider;
-	Player() : Object(), hasTransform2D(), renderer(nullptr), collider(nullptr), flashlightStencil(StencilSimple()), sceneCam(nullptr), flashlightRenderer(nullptr), iconRenderer(nullptr) {}
 	Player(OrthoCam* _sceneCam, const Vector3& playerModulate, Texture* playerTex, const Vector4& flashlightColor, const Vector2& _position=Vector2::ZERO);
 	void flashlightStencilOn();
 	void flashlightStencilOff();
@@ -63,7 +62,6 @@ class Enemy : public Object, public hasTransform2D {
 	void on_loop(const double& delta) override;
 	public:
 	LineRenderer* debugRen=nullptr;
-	Enemy() : Object(), hasTransform2D(), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), pathfinder(nullptr), target(nullptr) {}
 	Enemy(const Vector3& enemyModulate, Texture* enemyTex, Pathfinder* _pathfinder, hasTransform2D* _target, const Vector2& _position=Vector2::ZERO);
 };
 ClickDetector* instanceClickDetector;
@@ -78,7 +76,6 @@ class Instance : virtual public hasTransform2D, public Clickable {
 	virtual void on_hover(const Vector2& pos) override {};
 	virtual void on_unhover(const Vector2& pos) override {};
 	public:
-	Instance() : hasTransform2D(), Clickable(), stateQuad(nullptr), instanceWorkingTex(nullptr), instanceBrokenTex(nullptr) {};
 	Instance(ClickDetector* clickDetector, Texture* _instanceUnlitTex, Texture* _instanceWorkingTex, Texture* _instanceBrokenTex, const Vector2& _position=Vector2::ZERO, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f);
 	void fixInstance();
 	void breakInstance();
@@ -88,7 +85,5 @@ Vector2 HD1080P(1920.0, 1080.0);
 Vector2 viewRange(480.0f, 270.0f);
 int Run();
 void Loop(const double& delta);
-void close();
-void on_enter(std::string text);
 int main(int argc, char** argv);
 #endif// _MAIN_H

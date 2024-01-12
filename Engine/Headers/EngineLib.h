@@ -5,7 +5,6 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include <cassert>
 
 #define DebugLog(x) std::cout << (x) << "\n";
 void Log(const std::string& out);
@@ -84,9 +83,9 @@ class vec2 {
 	template<typename U>
 	vec2<T> operator/(const U& scalar) const { return vec2<T>(x/static_cast<T>(scalar), y/static_cast<T>(scalar)); };
 	T operator[](const int& i) const {
-		assert(i>=0&&i<=1&&"Index out of range");
 		if(i==0) return x;
 		else if(i==1) return y;
+		else return static_cast<T>(0);
 	};
 	bool operator==(const vec2<T>& rhs) const { return (x==rhs.x)&&(y==rhs.y); };
 	bool operator!=(const vec2<T>& rhs) const { return (x!=rhs.x)||(y!=rhs.y); };
@@ -194,10 +193,10 @@ class vec3 {
 	template<typename U>
 	vec3<T> operator/(const U& scalar) const { return vec3<T>(x/static_cast<T>(scalar), y/static_cast<T>(scalar), z/static_cast<T>(scalar)); };
 	T operator[](const int& i) const {
-		assert(i>=0&&i<=2&&"Index out of range");
 		if(i==0) return x;
 		else if(i==1) return y;
 		else if(i==2) return z;
+		else return static_cast<T>(0);
 	};
 	bool operator==(const vec3<T>& rhs) const { return (x==rhs.x)&&(y==rhs.y)&&(z==rhs.z); };
 	bool operator!=(const vec3<T>& rhs) const { return (x!=rhs.x)||(y!=rhs.y)||(z!=rhs.z); };
@@ -287,11 +286,11 @@ class vec4 {
 	template<typename U>
 	vec4<T> operator/(const U& scalar) const { return vec4<T>(x/static_cast<T>(scalar), y/static_cast<T>(scalar), z/static_cast<T>(scalar), w/static_cast<T>(scalar)); };
 	T operator[](const int& i) const {
-		assert(i>=0&&i<=3&&"Index out of range");
 		if(i==0) return x;
 		else if(i==1) return y;
 		else if(i==2) return z;
 		else if(i==3) return w;
+		else return static_cast<T>(0);
 	};
 	bool operator==(const vec4<T>& rhs) const { return (x==rhs.x)&&(y==rhs.y)&&(z==rhs.z)&&(w==rhs.w); };
 	bool operator!=(const vec4<T>& rhs) const { return (x!=rhs.x)||(y!=rhs.y)||(z!=rhs.z)||(w!=rhs.w); };

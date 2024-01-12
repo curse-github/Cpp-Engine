@@ -41,12 +41,10 @@ class BatchedSpriteRenderer : protected Renderer2D {
 	public:
 	OrthoCam* cam;
 	using Renderer::shader;
-	using Object::initialized;
 	const unsigned short int maxQuadCount=10000;
 	const unsigned short int maxVertices=maxQuadCount*4;
 	const unsigned short int maxIndices=maxQuadCount*6;
 	unsigned short int numQuads=0;
-	BatchedSpriteRenderer() : Renderer2D(), cam(nullptr) { initialized=false; };
 	BatchedSpriteRenderer(OrthoCam* _cam);
 	virtual ~BatchedSpriteRenderer();
 	BatchedQuadData* addSprite(const Vector4& _modulate, Texture* tex, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
@@ -64,12 +62,10 @@ class StaticBatchedSpriteRenderer : protected Renderer2D {
 	public:
 	OrthoCam* cam;
 	using Renderer::shader;
-	using Object::initialized;
 	const unsigned short int maxQuadCount=10000;
 	const unsigned short int maxVertices=maxQuadCount*4;
 	const unsigned short int maxIndices=maxQuadCount*6;
 	unsigned short int numQuads=0;
-	StaticBatchedSpriteRenderer() : Renderer2D(), cam(nullptr) { initialized=false; };
 	StaticBatchedSpriteRenderer(OrthoCam* _cam);
 	virtual ~StaticBatchedSpriteRenderer();
 	BatchedQuadData* addSprite(const Vector4& _modulate, Texture* tex, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
@@ -99,12 +95,10 @@ class BatchedTextRenderer : protected Renderer2D {
 	void renderBatch(const int& shaderIndex);
 	public:
 	using Renderer::shader;
-	using Object::initialized;
 	const unsigned short int maxCharacterCount=3333;
 	const unsigned short int maxVertices=maxCharacterCount*4;
 	const unsigned short int maxIndices=maxCharacterCount*6;
 	std::array<unsigned short int, 3> numChars={ 0, 0, 0 };
-	BatchedTextRenderer() : Renderer2D() { initialized=false; };
 	BatchedTextRenderer(Camera* cam);
 	virtual ~BatchedTextRenderer();
 	BatchedTextData* addText(const std::string& _text, const Vector4& color, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const float& _scale=1.0f, const Vector2& _anchor=Vector2::Center);
@@ -138,10 +132,8 @@ class BatchedLineRenderer : protected Renderer2D {
 	OrthoCam* cam;
 	float width;
 	using Renderer::shader;
-	using Object::initialized;
 	const unsigned short int maxVertices=40000;
 	unsigned short int numVertices=0;
-	BatchedLineRenderer() : Renderer2D(), cam(nullptr), width(1.0f) { initialized=false; };
 	BatchedLineRenderer(OrthoCam* _cam, const float& width=1.0f);
 	virtual ~BatchedLineRenderer();
 	BatchedLineData* addLine(std::vector<Vector2>&& positions, const bool& loop, const Vector4& color, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f);
@@ -161,10 +153,8 @@ class StaticBatchedLineRenderer : protected Renderer2D {
 	OrthoCam* cam;
 	float width;
 	using Renderer::shader;
-	using Object::initialized;
 	const unsigned short int maxVertices=40000;
 	unsigned short int numVertices=0;
-	StaticBatchedLineRenderer() : Renderer2D(), cam(nullptr), width(1.0f) { initialized=false; };
 	StaticBatchedLineRenderer(OrthoCam* _cam, const float& width=1.0f);
 	virtual ~StaticBatchedLineRenderer();
 	BatchedLineData* addLine(std::vector<Vector2>&& positions, const bool& loop, const Vector4& color, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f);
@@ -192,11 +182,9 @@ class BatchedDotRenderer : protected Renderer2D {
 	public:
 	OrthoCam* cam;
 	using Renderer::shader;
-	using Object::initialized;
 	const unsigned short int maxDotCount=10000;
 	const unsigned short int maxVertices=maxDotCount*3;
 	unsigned short int numDots=0;
-	BatchedDotRenderer() : Renderer2D(), cam(nullptr) { initialized=false; };
 	BatchedDotRenderer(OrthoCam* _cam);
 	virtual ~BatchedDotRenderer();
 	BatchedDotData* addTexturedDot(const Vector4& _modulate, Texture* tex, const float& _radius, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
@@ -214,11 +202,9 @@ class StaticBatchedDotRenderer : protected Renderer2D {
 	public:
 	OrthoCam* cam;
 	using Renderer::shader;
-	using Object::initialized;
 	const unsigned short int maxDotCount=10000;
 	const unsigned short int maxVertices=maxDotCount*3;
 	unsigned short int numDots=0;
-	StaticBatchedDotRenderer() : Renderer2D(), cam(nullptr) { initialized=false; };
 	StaticBatchedDotRenderer(OrthoCam* _cam);
 	virtual ~StaticBatchedDotRenderer();
 	BatchedDotData* addTexturedDot(const Vector4& _modulate, Texture* tex, const float& _radius, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);

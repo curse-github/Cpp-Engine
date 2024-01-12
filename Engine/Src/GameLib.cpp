@@ -128,13 +128,11 @@ std::vector<Vector2> Pathfinder::pathfind(const Vector2usi& A, const Vector2usi&
 #pragma region Shader creators
 Shader* createColorShader(const Vector4& color) {
 	Shader* shader=new Shader("Shaders/basic.vert", "Shaders/color.frag");
-	if(!shader->initialized) return shader;
 	shader->setFloat4("color", color);
 	return shader;
 }
 Shader* createTexShader(Texture* tex, const Vector4& modulate) {
 	Shader* shader=new Shader("Shaders/basic.vert", "Shaders/tex.frag");
-	if(!shader->initialized) return shader;
 	shader->setTexture("_texture", tex, 0);
 	shader->setFloat4("modulate", modulate);
 	return shader;
@@ -145,19 +143,16 @@ Shader* createTextShader() {
 }
 Shader* createDotColorShader(const Vector4& color) {
 	Shader* shader=new Shader("Shaders/basic.vert", "Shaders/dotColor.frag");
-	if(!shader->initialized) return shader;
 	shader->setFloat4("color", color);
 	return shader;
 }
 Shader* createDotTexShader(Texture* tex, const Vector4& modulate) {
 	Shader* shader=new Shader("Shaders/basic.vert", "Shaders/dotTex.frag");
-	if(!shader->initialized) return shader;
 	shader->setTexture("_texture", tex, 0);
 	shader->setFloat4("modulate", modulate);
 	return shader;
 }
 #pragma endregion// Shader creators
-
 #pragma region BoxCollider
 std::vector<BoxCollider*> colliders;
 bool ColliderDebug=false;
@@ -166,8 +161,8 @@ StaticBatchedLineRenderer* StaticColliderDebugLineRenderer;
 BoxCollider::BoxCollider(maskType _mask, const bool& _isStatic, const Vector2& _position, const float& _zIndex, const Vector2& _scale) :
 	hasTransform2D(_position, _zIndex, _scale, Vector2::Center, 0.0f),
 	mask(_mask), isStatic(_isStatic) {
-	initialized=true;
-	if(isStatic) { addChild(StaticColliderDebugLineRenderer->addRect(Vector4(1.0f, 0.0f, 0.0f, 1.0f), Vector2::ZERO, _zIndex)); StaticColliderDebugLineRenderer->bind(); }// make a static collider outline
+	engine_assert((Engine::instance!=nullptr)&&!Engine::instance->ended, "[BoxCollider]: Engine not avaliable.");
+	if(isStatic) addChild(StaticColliderDebugLineRenderer->addRect(Vector4(1.0f, 0.0f, 0.0f, 1.0f), Vector2::ZERO, _zIndex));// make a static collider outline
 	else addChild(ColliderDebugLineRenderer->addRect(Vector4(0.0f, 0.0f, 1.0f, 1.0f), Vector2::ZERO, _zIndex));// make a non-static collider outline
 	colliders.push_back(this);
 }
@@ -196,7 +191,6 @@ void BoxCollider::LineBoxCollide(const Vector2& p1, const Vector2& p2, const Vec
 	CollitionData::combine(b, BoxCollider::lineLineIntersection(p1, p2, boxPos+Vector2(-halfScale.x, halfScale.y), boxPos+halfScale), Vector2(0.0f, 1.0f));
 }
 BoxCollider::CollitionData BoxCollider::detectCollision(const BoxCollider* other) {
-	if(Engine::instance->ended||!initialized) return CollitionData();
 	Vector2 worldPos=getWorldPos();
 	Vector2 worldScale=getWorldScale();
 	Vector2 otherWorldPos=other->getWorldPos();
@@ -225,7 +219,6 @@ BoxCollider::CollitionData BoxCollider::detectCollision(const BoxCollider* other
 	}
 }
 void BoxCollider::sweepDetectCollision(const BoxCollider* other, const Vector2& vec, CollitionData* b) {
-	if(Engine::instance->ended||!initialized) return;
 	Vector2 worldPos=getWorldPos();
 	Vector2 worldScale=getWorldScale();
 	Vector2 otherWorldPos=other->getWorldPos();
@@ -235,14 +228,12 @@ void BoxCollider::sweepDetectCollision(const BoxCollider* other, const Vector2& 
 	LineBoxCollide(otherWorldPos, otherWorldPos+vec, worldPos, worldScale+otherWorldScale, b);
 }
 void BoxCollider::LineCollide(const Vector2& p1, const Vector2& p2, CollitionData* b) {
-	if(Engine::instance->ended||!initialized) return;
 	Vector2 worldPos=getWorldPos();
 	Vector2 worldScale=getWorldScale();
 	LineBoxCollide(p1, p2, worldPos, worldScale, b);
 }
 
 Vector2 BoxCollider::forceOut(const maskType& collisionMask) {
-	if(Engine::instance->ended||!initialized) return Vector2::ZERO;
 	Vector2 oldPos=getWorldPos();
 	Vector2 newPos=oldPos;
 	for(BoxCollider* collider:colliders) {
@@ -256,7 +247,6 @@ Vector2 BoxCollider::forceOut(const maskType& collisionMask) {
 	return vec;
 }
 Vector2 BoxCollider::tryMove(const Vector2& tryVec, const maskType& collisionMask) {
-	if(Engine::instance->ended||!initialized) return Vector2::ZERO;
 	Vector2 oldPos=getWorldPos();
 	BoxCollider::CollitionData* hit=new BoxCollider::CollitionData();
 	for(BoxCollider* collider:colliders) {
@@ -276,7 +266,6 @@ Vector2 BoxCollider::tryMove(const Vector2& tryVec, const maskType& collisionMas
 	if(!hit->hit) { delete hit; return newVec; } else { delete hit; return Vector2::ZERO; }
 }
 BoxCollider::CollitionData BoxCollider::raycast(const Vector2& p1, const Vector2& p2, const maskType& collisionMask) const {
-	if(Engine::instance->ended||!initialized) return BoxCollider::CollitionData();
 	BoxCollider::CollitionData out=BoxCollider::CollitionData();
 	for(BoxCollider* collider:colliders) {
 		if((collider->mask&collisionMask)==0) continue;
@@ -284,4 +273,5 @@ BoxCollider::CollitionData BoxCollider::raycast(const Vector2& p1, const Vector2
 	}
 	return out;
 }
-#pragma endregion// BoxCollider
+#pragma endregion
+// BoxCollider

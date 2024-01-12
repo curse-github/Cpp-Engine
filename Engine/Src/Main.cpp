@@ -20,7 +20,6 @@ void operator delete(void* memory, std::size_t size) throw() {
 
 #pragma region Player
 void Player::on_key(const int& key, const int& scancode, const int& action, const int& mods) {
-	if(engine->ended||!initialized) return;
 	if(key==GLFW_KEY_W) inputs[0]=action;
 	else if(key==GLFW_KEY_A) inputs[1]=action;
 	else if(key==GLFW_KEY_S) inputs[2]=action;
@@ -28,7 +27,6 @@ void Player::on_key(const int& key, const int& scancode, const int& action, cons
 	else if(key==GLFW_KEY_LEFT_SHIFT) inputs[4]=action;
 }
 void Player::on_loop(const double& delta) {
-	if(engine->ended||!initialized) return;
 	Vector2 inputVec=Vector2(
 		static_cast<float>(inputs[3]>=GLFW_PRESS)-static_cast<float>(inputs[1]>=GLFW_PRESS),
 		static_cast<float>(inputs[0]>=GLFW_PRESS)-static_cast<float>(inputs[2]>=GLFW_PRESS)
@@ -42,7 +40,6 @@ void Player::on_loop(const double& delta) {
 }
 Player::Player(OrthoCam* _sceneCam, const Vector3& playerModulate, Texture* playerTex, const Vector4& flashlightColor, const Vector2& _position) :
 	Object(), hasTransform2D(_position, 0.0f, Vector2(mapScale)), renderer(nullptr), collider(nullptr), flashlightStencil(StencilSimple()), sceneCam(_sceneCam), flashlightRenderer(nullptr), iconRenderer(nullptr) {
-	if(!initialized) return;
 	addChild(sceneCam);
 	sceneCam->transform.position=Vector2::ZERO;
 	renderer=spriteRenderer->addSprite(Vector4(playerModulate, 1.0f), playerTex, Vector2::ZERO, 2.0f, Vector2(playerSize));
@@ -61,19 +58,16 @@ Player::Player(OrthoCam* _sceneCam, const Vector3& playerModulate, Texture* play
 	Engine::instance->sub_loop(this);
 }
 void Player::flashlightStencilOn() {
-	if(Engine::instance->ended||!initialized) return;
 	flashlightStencil.Enable();
 	flashlightStencil.Write();
 	flashlightRenderer->draw();
 	flashlightStencil.Compare();
 }
 void Player::flashlightStencilOff() {
-	if(Engine::instance->ended||!initialized) return;
 	flashlightRenderer->draw();
 	flashlightStencil.Disable();
 }
 void Player::setPos(const Vector2& _position) {
-	if(Engine::instance->ended||!initialized) return;
 	setWorldPos(_position);
 	transform.position+=collider->forceOut(MAPMASK|ENEMYMASK);
 	iconRenderer->setWorldPos(gridToMinimap(WorldToGrid(getWorldPos())));
@@ -84,7 +78,6 @@ void Player::setPos(const Vector2& _position) {
 
 #pragma region Enemy
 void Enemy::on_loop(const double& delta) {
-	if(Engine::instance->ended||!initialized) return;
 	Vector2 targetPos=Pathfinder::WorldToGrid(target->getWorldPos());
 	if(lastSpottedPos!=targetPos) {
 		Vector2 worldPos=getWorldPos();
@@ -117,7 +110,6 @@ void Enemy::on_loop(const double& delta) {
 }
 Enemy::Enemy(const Vector3& enemyModulate, Texture* enemyTex, Pathfinder* _pathfinder, hasTransform2D* _target, const Vector2& _position) :
 	Object(), hasTransform2D(_position, 0.0f, Vector2(mapScale), Vector2::Center, 0.0f), renderer(nullptr), collider(nullptr), iconRenderer(nullptr), pathfinder(_pathfinder), target(_target) {
-	if(!initialized) return;
 	renderer=spriteRenderer->addSprite(Vector4(enemyModulate, 1.0f), enemyTex, Vector2::ZERO, 2.0f, Vector2(playerSize));
 	addChild(renderer);
 	collider=new BoxCollider(ENEMYMASK, false, Vector2::ZERO, 100.0f, playerHitbox);
@@ -134,6 +126,9 @@ void Instance::on_click(const Vector2& pos) {
 }
 Instance::Instance(ClickDetector* clickDetector, Texture* _instanceUnlitTex, Texture* _instanceWorkingTex, Texture* _instanceBrokenTex, const Vector2& _position, const Vector2& _anchor, const float& _rotAngle) :
 	Clickable(clickDetector), hasTransform2D(_position, 0.0f, Vector2(mapScale), _anchor, _rotAngle), instanceWorkingTex(_instanceWorkingTex), instanceBrokenTex(_instanceBrokenTex) {
+	engine_assert(_instanceUnlitTex!=nullptr, "[Instance]: Instance unlit texture is nullptr");
+	engine_assert(instanceWorkingTex!=nullptr, "[Instance]: Instance working texture is nullptr");
+	engine_assert(instanceBrokenTex!=nullptr, "[Instance]: Instance broken texture is nullptr");
 	broken=static_cast<float>(std::rand())/static_cast<float>(RAND_MAX)<=(instanceBrokenChance/100.0f);
 	addChild(staticSpriteRenderer->addSprite(Vector4(0.5f, 0.5f, 0.5f, 1.0f), _instanceUnlitTex, Vector2::ZERO, 1.0f));
 	stateQuad=instanceStateSpritesRenderer->addSprite(Vector4::ONE, broken ? instanceBrokenTex : instanceWorkingTex, Vector2::ZERO, 2.0f);
@@ -157,30 +152,15 @@ int Run() {
 #pragma region Engine setup
 	// load map data
 	loadMapData("map");
-	if(!parsedMap) {
-		Log("Map data failed to load.");
-		return 0;
-	}
+	assert(parsedMap, "Map data failed to parse.");
 	// setup Engine
 	engine=new Engine(HD1080P, "Ghost Game", VSYNC);
-	if(!engine->initialized||engine->ended) {
-		Log("Engine failed to init.");
-		return 0;
-	}
+	assert(parsedMap, "Engine failed to init.");
 	//not required but I do this
-	if(!TextRenderer::initCharacterMap()) {
-		Log("Error initializing font.");
-		engine->Delete();
-		return 0;
-	}
+	engine_assert(TextRenderer::initCharacterMap(), "Error initializing font.");
 	// setup cameras
 	cam=new OrthoCam(Vector2::ZERO, viewRange);
 	uiCam=new OrthoCam(viewRange, viewRange*2.0f);
-	if(engine->ended||!cam->initialized||!uiCam->initialized) {
-		Log("Cameras failed to init.");
-		engine->Delete();
-		return 0;
-	}
 	// setup textures
 	Texture* playerTex=new Texture(playerTexPath);
 	Texture* enemyTex=new Texture(enemyTexPath);
@@ -191,15 +171,6 @@ int Run() {
 	Texture* instanceUnlitTex=new Texture(instanceUnlitTexPath);
 	Texture* instanceWorkingTex=new Texture(instanceWorkingTexPath);
 	Texture* instanceBrokenTex=new Texture(instanceBrokenTexPath);
-	if(engine->ended||
-		!playerTex->initialized||!enemyTex->initialized||
-		!backgroundTex->initialized||!minimapTex->initialized||
-		!instanceUnlitTex->initialized||!instanceWorkingTex->initialized||!instanceBrokenTex->initialized
-		) {
-		Log("Textures failed to init.");
-		engine->Delete();
-		return 0;
-	}
 	minimapSize=Vector2(static_cast<float>(minimapTex->width), static_cast<float>(minimapTex->height))*minimapScale;
 #pragma endregion// Engine setup
 	// setup renderers
@@ -209,20 +180,18 @@ int Run() {
 	uiHandler=new UiHandler(uiCam);
 	ColliderDebugLineRenderer=new BatchedLineRenderer(cam, 3.0f);
 	StaticColliderDebugLineRenderer=new StaticBatchedLineRenderer(cam, 3.0f);
+	instanceClickDetector=new ClickDetector(cam);
 	// player object
 	player=new Player(cam, playerModulate, playerTex, flashlightColor, GridToWorld(playerOffset));
 	finder=std::make_unique<Pathfinder>();
 	enemy=new Enemy(enemyModulate, enemyTex, finder.get(), player, GridToWorld(playerOffset-Vector2(0.0f, 2.0f)));
 #pragma region Map setup
 	staticSpriteRenderer->addSprite(Vector4::ZERO, backgroundTex, Vector2::ZERO, 0.0f, fullMapSize, Vector2::BottomLeft);// map background
-	instanceClickDetector=new ClickDetector(cam);
 	//ColliderDebug=true;// makes hitboxes visible
 	for(const std::array<int, 5>&dat:instanceData) {
 		Vector2 pos=GridToWorld(Vector2(static_cast<float>(dat[0]), static_cast<float>(dat[1]))+Vector2(0.5f, 0.5f));
 		new Instance(instanceClickDetector, instanceUnlitTex, instanceWorkingTex, instanceBrokenTex, pos, Vector2::Center, 0.0f);
 	}
-	staticSpriteRenderer->bind();
-	instanceStateSpritesRenderer->bind();
 	for(const Vector3& line:horizontalWallData) {// horizontal walls
 		new BoxCollider(MAPMASK, true, GridToWorld(Vector2((line.z+line.y)/2.0f, line.x)), 100.0f, Vector2(((line.z-line.y)*(1.0f+spacing)+spacing*3.0f), spacing*3.0f)*mapScale);
 	}
@@ -232,21 +201,24 @@ int Run() {
 #pragma endregion// Map setup
 	// setup UI
 	uiHandler->Sprite(Vector4(Vector3::ONE, 0.75f), minimapTex, Vector2(0.0f, viewRange.y*2.0f), 0.0f, minimapSize, Vector2::TopLeft);// minimap
-	/*
-	Button* testButton=uiHandler->createButton(
+
+	/*Button* testButton=uiHandler->createButton(
 		Vector4(0.125f, 0.125f, 0.125f, 1.0f), Vector4(0.1f, 0.1f, 0.1f, 1.0f), Vector4(0.0f, 0.0f, 1.0f, 1.0f),
 		Vector2(viewRange.x*2.0f, 0.0f), 0.0f, Vector2(25.0f, 25.0f), Vector2::BottomRight);
 	testButton->addChild(uiHandler->Text("X", Vector4(1.0f, 0.0f, 0.0f, 1.0f), Vector2(6.0f, 4.0f), 15.0f, 2.0f, Vector2::BottomRight));
-	testButton->onrelease=close;
+	testButton->onrelease=[&]() { engine->Close(); };
 
 	TextInput* testInput=uiHandler->createTextInput("", "Type here.",
 		Vector2(viewRange.x*2.0f-25.0f, 0.0f), 0.0f, Vector2(400.0f, 25.0f), Vector2::BottomRight);
-	testInput->onenter=on_enter;
-	*/
-	fpsText=uiHandler->Text("Fps Avg:,high:,low:", Vector4(0.75f, 0.25f, 0.25f, 1.0f), viewRange*2.0f+Vector2(-464.0f, -1.0f), 15.0f, 2.0f, Vector2::TopLeft);;
+	testInput->onenter=[&](std::string str) { Log(str); };*/
+
+	fpsText=uiHandler->Text("Fps Avg:,high:,low:", Vector4(0.75f, 0.25f, 0.25f, 1.0f), viewRange*2.0f+Vector2(-120.0f, -1.0f), 15.0f, 2.0f, Vector2::TopLeft);;
 #ifdef _DEBUG
 	debugText=uiHandler->Text("Pos:\nTime:\nMemory:\nDraw calls:", Vector4(0.75f, 0.75f, 0.75f, 1.0f), Vector2(1.0f, 1.0f), 15.0f, 2.0f, Vector2::BottomLeft);
 #endif// _DEBUG
+	staticSpriteRenderer->bind();
+	instanceStateSpritesRenderer->bind();
+	StaticColliderDebugLineRenderer->bind();
 	// run main loop
 	engine->renderLoop=Loop;
 	Log("Engine initialized successfully.");
@@ -256,10 +228,10 @@ int Run() {
 	return 1;
 }
 void Loop(const double& delta) {
-	fpsText->text="Fps Avg: "+std::to_string(engine->fpsAvg)+", high: "+std::to_string(engine->fpsHigh)+", low: "+std::to_string(engine->fpsLow);
+	fpsText->text="Fps:"+std::to_string(engine->fpsAvg);
 #ifdef _DEBUG
 	// set debug text
-	debugText->text="Pos: "+std::to_string(player->getWorldPos())+"\nTime: "+std::to_string(glfwGetTime())+"\nMemory: "+std::to_string(allocatedPeak)+" bytes\nDraw calls: "+std::to_string(engine->drawCalls);
+	debugText->text="Pos:"+std::to_string(player->getWorldPos())+"\nTime:"+std::to_string(glfwGetTime())+"\nMemory:"+std::to_string(allocatedPeak)+" bytes\nDraw calls:"+std::to_string(engine->drawCalls);
 	allocatedPeak=0;
 #endif// _DEBUG
 	// draw scene
@@ -273,8 +245,6 @@ void Loop(const double& delta) {
 	if(ColliderDebug) { ColliderDebugLineRenderer->draw();StaticColliderDebugLineRenderer->draw(); }
 	uiHandler->draw();// draws ui
 }
-void close() { engine->Close(); }
-void on_enter(std::string text) { Log(text); }
 
 int main(int argc, char** argv) {
 	int value=Run();

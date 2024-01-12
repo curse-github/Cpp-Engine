@@ -13,7 +13,7 @@ void engine_on_error(int error, const char* description) {
 
 #pragma region callbacks
 void Engine::on_resize(int width, int height) {
-	if(ended||!initialized) return;
+	if(ended) return;
 	glViewport(0, 0, width, height);
 	curResolution=Vector2(static_cast<float>(width), static_cast<float>(height));
 	for(Object* obj:onResize) {
@@ -21,19 +21,19 @@ void Engine::on_resize(int width, int height) {
 	}
 }
 void Engine::on_key(int key, int scancode, int action, int mods) {
-	if(ended||!initialized) return;
+	if(ended) return;
 	for(Object* obj:onKey) {
 		obj->on_key(key, scancode, action, mods);
 	}
 }
 void Engine::on_scroll(double xoffset, double yoffset) {
-	if(ended||!initialized) return;
+	if(ended) return;
 	for(Object* obj:onScroll) {
 		obj->on_scroll(xoffset, yoffset);
 	}
 }
 void Engine::on_mouse(double mouseX, double mouseY) {
-	if(ended||!initialized) return;
+	if(ended) return;
 	if(curMousePos.x==-1||curMousePos.y==-1) {
 		curMousePos.x=static_cast<float>(mouseX); curMousePos.y=static_cast<float>(mouseY); return;
 	}
@@ -46,19 +46,19 @@ void Engine::on_mouse(double mouseX, double mouseY) {
 	if((deltaX!=0)||(deltaY!=0)) on_mouse_delta(deltaX, deltaY);
 }
 void Engine::on_mouse_delta(float deltaX, float deltaY) {
-	if(ended||!initialized) return;
+	if(ended) return;
 	for(Object* obj:onMouseDelta) {
 		obj->on_mouse_delta(deltaX, deltaY);
 	}
 }
 void Engine::on_mouse_button(int button, int action, int mods) {
-	if(ended||!initialized) return;
+	if(ended) return;
 	for(Object* obj:onMouseButton) {
 		obj->on_mouse_button(button, action, mods);
 	}
 }
 void Engine::on_mouse_enter(int entered) {
-	if(ended||!initialized) return;
+	if(ended) return;
 	for(Object* obj:onMouseEnter) {
 		obj->on_mouse_enter(entered);
 	}
@@ -67,28 +67,19 @@ void Engine::on_mouse_enter(int entered) {
 
 Engine::Engine(const Vector2& size, const char* title, const bool& vsync) : window(nullptr), curResolution(size) {
 	instance=this;
-	if(glfwInit()==GLFW_FALSE) {
-		ended=true;
-		Log("GLFW failed to init.");//error
-		return;
-	}
+	assert_call(glfwInit()==GLFW_TRUE, "[Engine]: GLFW failed to init.",
+		{ ended=true; }
+	);
 
 	window=glfwCreateWindow(static_cast<int>(size.x), static_cast<int>(size.y), title, NULL, NULL);
-	if(!window) {
-		ended=true;
-		glfwTerminate();
-		Log("Window failed to create.");//error
-		return;
-	}
+	assert_call(window, "[Engine]: Window failed to create.",
+		{ ended=true; glfwTerminate(); }
+	);
 	glfwMakeContextCurrent(window);
 
-	if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-		ended=true;
-		glfwDestroyWindow(window);
-		glfwTerminate();
-		Log("GLAD failed to init.");//error
-		return;
-	}
+	assert_call(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress), "[Engine]: GLAD failed to init.",
+		{ ended=true; glfwDestroyWindow(window); glfwTerminate(); }
+	);
 	glViewport(0, 0, static_cast<int>(size.x), static_cast<int>(size.y));
 	glfwSwapInterval(static_cast<int>(vsync));// V-Sync: 1=on, 0=off
 
@@ -107,50 +98,43 @@ Engine::Engine(const Vector2& size, const char* title, const bool& vsync) : wind
 	glEnable(GL_CULL_FACE);
 	// makes caps lock detectable
 	glfwSetInputMode(window, GLFW_LOCK_KEY_MODS, GLFW_TRUE);
-
-	initialized=true;
 }
 Engine::~Engine() {
-	if(!initialized) return;
 	while(objects.size()>0) {
 		Object* ptr=objects[0];
 		if(ptr) delete ptr;
 	}
 }
 void Engine::Start() {
-	if(ended||!initialized) return;
+	if(ended) return;
 	for(Object* obj:onStart) {
 		obj->on_start();
 	}
 	Loop();
 }
 void Engine::Loop() {
-	if(ended||!initialized) return;
-	double lastFrameTime=glfwGetTime();
-	while(!glfwWindowShouldClose(window)) {
-		double delta=glfwGetTime()-lastFrameTime;
-		lastFrameTime=glfwGetTime();
-#pragma region calc fps
-		for(unsigned int i=1; i<FpsAvgNum; i++) { fpsData.deltaHistory[i-1]=fpsData.deltaHistory[i]; }// move values back
-		fpsData.deltaHistory[FpsAvgNum-1]=delta;// put delta at the end
-		double sum=0.0f;
-		for(unsigned int i=0; i<FpsAvgNum; i++) { sum+=fpsData.deltaHistory[i]; }// sum values
-		fpsAvg=static_cast<int>(FpsAvgNum/sum+0.5);
-		frameTimeAvg=static_cast<float>(sum);//1000.0f*1000.0f;
+	if(ended) return;
+	lastFpsTime=glfwGetTime();
 
-		fpsHigh=0;
-		fpsLow=1000000;
-		for(unsigned int i=0; i<FpsAvgNum; i++) {
-			double fps=1/fpsData.deltaHistory[i];
-			if(fps>fpsHigh) fpsHigh=static_cast<unsigned int>(fps+0.5);
-			if(fps<fpsLow) fpsLow=static_cast<unsigned int>(fps+0.5);
+	double lastFrameTime=lastFpsTime;
+	while(!glfwWindowShouldClose(window)) {
+		double time=glfwGetTime();
+		double delta=time-lastFrameTime;
+		lastFrameTime=time;
+		frameCount++;
+#pragma region calc fps
+		fpsFrameCount++;
+		if(time-lastFpsTime>=0.25) {
+			fpsAvg=static_cast<unsigned int>(fpsFrameCount/(time-lastFpsTime));
+			frameTimeAvg=static_cast<float>((time-lastFpsTime)/fpsFrameCount);
+			lastFpsTime=time;
+			fpsFrameCount=0;
 		}
 #pragma endregion// calc fps
-
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 		drawCalls=curDrawCalls;
-		curDrawCalls=0;
+		curDrawCalls=0u;
 		for(Object* obj:onLoop) {
 			obj->on_loop(delta);
 		}
@@ -161,57 +145,56 @@ void Engine::Loop() {
 	Delete();
 }
 void Engine::Close() {
-	if(ended||!initialized) return;
+	if(ended) return;
 	glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 void Engine::Delete() {
-	if(ended||!initialized) return;
+	if(ended) return;
 	glfwSetWindowShouldClose(window, GLFW_TRUE);
 	ended=true;
 	glfwDestroyWindow(window);
 	glfwTerminate();
 }
 void Engine::SetCursorMode(const int& mode) {
-	if(ended||!initialized) return;
 	glfwSetInputMode(window, GLFW_CURSOR, mode);
 	curMousePos=Vector2(-1.0f, -1.0f);
 }
 
 #pragma region subFuncs
 void Engine::sub_resize(Object* obj) {
-	if(!initialized||ended||!obj->initialized) return;
+	if(ended) return;
 	onResize.push_back(obj);
 }
 void Engine::sub_key(Object* obj) {
-	if(!initialized||ended||!obj->initialized) return;
+	if(ended) return;
 	onKey.push_back(obj);
 }
 void Engine::sub_scroll(Object* obj) {
-	if(!initialized||ended||!obj->initialized) return;
+	if(ended) return;
 	onScroll.push_back(obj);
 }
 void Engine::sub_mouse(Object* obj) {
-	if(!initialized||ended||!obj->initialized) return;
+	if(ended) return;
 	onMouse.push_back(obj);
 }
 void Engine::sub_mouse_delta(Object* obj) {
-	if(!initialized||ended||!obj->initialized) return;
+	if(ended) return;
 	onMouseDelta.push_back(obj);
 }
 void Engine::sub_mouse_button(Object* obj) {
-	if(!initialized||ended||!obj->initialized) return;
+	if(ended) return;
 	onMouseButton.push_back(obj);
 }
 void Engine::sub_mouse_enter(Object* obj) {
-	if(!initialized||ended||!obj->initialized) return;
+	if(ended) return;
 	onMouseEnter.push_back(obj);
 }
 void Engine::sub_start(Object* obj) {
-	if(!initialized||ended||!obj->initialized) return;
+	if(ended) return;
 	onStart.push_back(obj);
 }
 void Engine::sub_loop(Object* obj) {
-	if(!initialized||ended||!obj->initialized) return;
+	if(ended) return;
 	onLoop.push_back(obj);
 }
 #pragma endregion// subFuncs
@@ -235,12 +218,10 @@ void Object::on_mouse_enter(const int& entered) {}
 void Object::on_start() {}
 void Object::on_loop(const double& delta) {}
 Object::Object() {
-	if(Engine::instance==nullptr||!Engine::instance->initialized||Engine::instance->ended) { initialized=false; return; }
-	initialized=true;
+	engine_assert((Engine::instance!=nullptr)&&!Engine::instance->ended, "[Object]: Engine not avaliable.");
 	Engine::instance->objects.push_back(this);
 }
 Object::~Object() {
-	if(!initialized) return;
 	vecRemoveValue(Engine::instance->objects, this);
 	vecRemoveValue(Engine::instance->onResize, this);
 	vecRemoveValue(Engine::instance->onKey, this);
@@ -335,20 +316,15 @@ void Transform2D::setWorldPos(Vector2 pos) {
 
 #pragma region Shader
 Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) : Object() {
-	if(!initialized) return;
 	// read vertex shader from file
 	std::string vertexShaderSourceStr;
 	FsReadDiskFile(&vertexShaderSourceStr, vertexPath);
 	if(vertexShaderSourceStr.size()==0) {
-		Log("File \""+vertexPath+"\" failed to read.");//error
+		Log("[Shader]: File \""+vertexPath+"\" failed to read.");
 		if(vertexPath=="Shaders/basic.vert") vertexShaderSourceStr=basicVertShader;
 		else if(vertexPath=="Shaders/batch.vert") vertexShaderSourceStr=batchVertShader;
-		if(vertexShaderSourceStr.size()==0) {
-			Engine::instance->Delete();
-			return;
-		} else {
-			Log("Using hard coded shader for \""+vertexPath+"\".");
-		}
+		engine_assert(vertexShaderSourceStr.size()>0, "[Shader]: Backup vertex shader not found.");
+		Log("[Shader]: Using hard coded shader for \""+vertexPath+"\".");
 	}
 	const char* vertexShaderSource=vertexShaderSourceStr.c_str();
 	unsigned int vertexShader;
@@ -358,15 +334,10 @@ Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) :
 	glCompileShader(vertexShader);
 	// check if compiling vertex shader failed
 	int vertexSuccess;
-	//char vertexInfoLog[512];
 	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vertexSuccess);
-	if(!vertexSuccess) {// glGetShaderInfoLog(vertexShader, 512, NULL, vertexInfoLog);
-		glDeleteShader(vertexShader);
-		Log("Vertex shader \""+vertexPath+"\" failed to init.");//error
-		Engine::instance->Delete();
-		return;
-
-	}
+	engine_assert_call(vertexSuccess, "[Shader]: Vertex shader failed to init.", 0, {
+		char vertexInfoLog[512]; glGetShaderInfoLog(vertexShader, 512, NULL, vertexInfoLog); Log(vertexInfoLog);
+		});
 	// read fragment shader from file
 	std::string fragmentShaderSourceStr;
 	FsReadDiskFile(&fragmentShaderSourceStr, fragmentPath);
@@ -378,15 +349,10 @@ Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) :
 		else if(fragmentPath=="Shaders/dotColor.frag") fragmentShaderSourceStr=dotColorFragShader;
 		else if(fragmentPath=="Shaders/dotTex.frag") fragmentShaderSourceStr=dotTexFragShader;
 		else if(fragmentPath=="Shaders/texBatch.frag") fragmentShaderSourceStr=texBatchFragShader;
-		else if(fragmentPath=="Shaders/textBatch.frag") fragmentShaderSourceStr=textBatchFragShader;
+		//else if(fragmentPath=="Shaders/textBatch.frag") fragmentShaderSourceStr=textBatchFragShader;
 		else if(fragmentPath=="Shaders/dotTexBatch.frag") fragmentShaderSourceStr=dotTexBatchFragShader;
-		if(fragmentShaderSourceStr.size()==0) {
-			glDeleteShader(vertexShader);
-			Engine::instance->Delete();
-			return;
-		} else {
-			Log("Using hard coded shader for \""+fragmentPath+"\".");
-		}
+		engine_assert_call(fragmentShaderSourceStr.size()>0, "[Shader]: Backup fragment shader not found.", glDeleteShader(vertexShader));
+		Log("Using hard coded shader for \""+fragmentPath+"\".");
 	}
 	const char* fragmentShaderSource=fragmentShaderSourceStr.c_str();
 	unsigned int fragmentShader;
@@ -396,17 +362,10 @@ Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) :
 	glCompileShader(fragmentShader);
 	// check if compiling fragment shader failed
 	int fragmentSuccess;
-	//char fragmentInfoLog[512];
 	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fragmentSuccess);
-	if(!fragmentSuccess) {// glGetShaderInfoLog(fragmentSuccess, 512, NULL, fragmentInfoLog);
-		glDeleteShader(vertexShader);
-		glDeleteShader(fragmentShader);
-		Log(fragmentShaderSource);
-		Log("Fragment shader \""+fragmentPath+"\" failed to init.");//error
-		Engine::instance->Delete();
-		return;
-
-	}
+	engine_assert_call(fragmentSuccess, "[Shader]: Fragment shader failed to init.", {
+		glDeleteShader(vertexShader);char fragmentInfoLog[512]; glGetShaderInfoLog(fragmentShader, 512, NULL, fragmentInfoLog); Log(fragmentInfoLog);
+		});
 	// create shader program
 	program=glCreateProgram();
 	// attach vertex and fragment shaders to program in order
@@ -416,69 +375,55 @@ Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) :
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 	int programSuccess;
-	//char programInfoLog[512];
 	glGetProgramiv(program, GL_LINK_STATUS, &programSuccess);
-	if(!programSuccess) {// glGetProgramInfoLog(shaderProgram, 512, NULL, programInfoLog);
-		Log("Shader program failed to create.");//error
-		Log("OpenGL version is");
-		std::cout<<glGetString(GL_VERSION);
-		Engine::instance->Delete();
-		return;
-	}
+	engine_assert_call(programSuccess, "[Shader]: Shader program failed to create.", {
+		glDeleteShader(vertexShader);glDeleteShader(fragmentShader);char programInfoLog[512]; glGetProgramInfoLog(program, 512, NULL, programInfoLog); Log(programInfoLog);
+		});
 }
 Shader::~Shader() {
-	if(!initialized) return;
 	glDeleteProgram(program);
 }
 void Shader::use() {
-	if(Engine::instance->ended||!initialized) return;
 	glUseProgram(program);
 }
 // uniform utility functions
 void Shader::setBool(const char* name, const bool& value) {
-	if(Engine::instance->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform1i(uniformLocation, (bool)value);
 }
 void Shader::setInt(const char* name, const int& value) {
-	if(Engine::instance->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform1i(uniformLocation, value);
 }
 void Shader::setFloat(const char* name, const float& value) {
-	if(Engine::instance->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform1f(uniformLocation, value);
 }
 void Shader::setFloat2(const char* name, const Vector2& value) {
-	if(Engine::instance->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform2f(uniformLocation, value.x, value.y);
 }
 void Shader::setFloat3(const char* name, const Vector3& value) {
-	if(Engine::instance->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform3f(uniformLocation, value.x, value.y, value.z);
 }
 void Shader::setFloat4(const char* name, const Vector4& value) {
-	if(Engine::instance->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name);
 	glUniform4f(uniformLocation, value.x, value.y, value.z, value.w);
 }
 void Shader::setMat4x4(const char* name, const Mat4x4& value) {
-	if(Engine::instance->ended||!initialized) return;
 	use();
 	int uniformLocation=glGetUniformLocation(program, name);
 	glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, &value.values[0]);
 }
 void Shader::setTexture(const char* name, Texture* tex, const unsigned int& location) {
-	if(Engine::instance->ended||!initialized||!tex->initialized) return;
+	engine_assert(tex!=nullptr, "[Shader]: texture does not exist.");
 	for(unsigned int i=0; i<textureIndexes.size(); i++) {
 		if(textureIndexes[i]==location) { textures[i]=tex; return; }// replace texture at location if there already is one there
 	}
@@ -488,13 +433,11 @@ void Shader::setTexture(const char* name, Texture* tex, const unsigned int& loca
 	numTextures++;
 }
 void Shader::setTextureArray(const std::string& name) {
-	if(Engine::instance->ended||!initialized) return;
 	for(int i=0; i<32; i++) {// max slots on the gpu for textures
 		setInt((name+"["+std::to_string(i)+"]").c_str(), i);
 	}
 }
 void Shader::bindTexture(const unsigned int& index) {
-	if(Engine::instance->ended||!initialized) return;
 	use();
 	if(index>=numTextures) return;
 	// equivilent to '''textures[index]->Bind(textureIndexes[index]);'''
@@ -502,7 +445,6 @@ void Shader::bindTexture(const unsigned int& index) {
 	glBindTexture(GL_TEXTURE_2D, textures[index]->ID);
 }
 void Shader::bindTextures() {
-	if(Engine::instance->ended||!initialized) return;
 	use();
 	for(unsigned int i=0; i<numTextures; i++) {
 		// equivilent to '''textures[i]->Bind(textureIndexes[i]);'''
@@ -512,7 +454,7 @@ void Shader::bindTextures() {
 }
 #pragma endregion// Shader
 #pragma region Texture
-int load_texture(unsigned int* texture, std::string path, int* width, int* height) {
+bool load_texture(unsigned int* texture, std::string path, int* width, int* height) {
 	int nrChannels;
 	//stbi_set_flip_vertically_on_load(true);
 	unsigned char* data=stbi_load(path.c_str(), width, height, &nrChannels, 0);//read raw image data from file
@@ -530,28 +472,19 @@ int load_texture(unsigned int* texture, std::string path, int* width, int* heigh
 		glTexImage2D(GL_TEXTURE_2D, 0, channelsEnum, *width, *height, 0, channelsEnum, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 		stbi_image_free(data);// free the memory holding the image data
-		return 1;
+		return true;
 	} else {
-		return 0;
+		return false;
 	}
 }
 
-Texture::Texture(const unsigned int& _ID) :
-	Object(), ID(_ID), width(0), height(0) {
-	if(!initialized) return;
-}
+Texture::Texture(const unsigned int& _ID) : Object(), ID(_ID), width(0), height(0) {}
 Texture::Texture(const std::string& path) :
 	Object(), ID(0), width(0), height(0) {
-	if(!initialized) return;
-	if(!load_texture(&ID, path, &width, &height)) {
-		initialized=false;
-		Log("texture \""+path+"\" failed to load.");//error
-		Engine::instance->Delete();
-		return;
-	}
+	engine_assert(!path.empty(), "[Texture]: path is empty.");
+	engine_assert(load_texture(&ID, path, &width, &height), "[Texture]: texture \""+path+"\" failed to load.");
 }
 void Texture::Bind(const unsigned int& location) {
-	if(Engine::instance->ended||!initialized) return;
 	glActiveTexture(GL_TEXTURE0+location);
 	glBindTexture(GL_TEXTURE_2D, ID);
 }
@@ -619,6 +552,7 @@ void VertexArrayObject::drawLineIndexed(const unsigned int& count, const float& 
 #pragma endregion// VertexArrayObject
 #pragma region VertexBufferObject
 VertexBufferObject::VertexBufferObject(VertexArrayObject* _VAO) : VBO(0), VAO(_VAO) {
+	engine_assert(VAO!=nullptr, "[VertexBufferObject]: VertexArrayObject is nullptr.");
 	glGenBuffers(1, &VBO);
 };
 VertexBufferObject::~VertexBufferObject() {
@@ -668,6 +602,7 @@ void VertexBufferObject::applyAttributes(std::vector<unsigned int> attributes) {
 #pragma endregion// VertexBufferObject
 #pragma region IndexBufferObject
 IndexBufferObject::IndexBufferObject(VertexArrayObject* _VAO) : EBO(0), VAO(_VAO) {
+	engine_assert(VAO!=nullptr, "[IndexBufferObject]: VertexArrayObject is nullptr.");
 	glGenBuffers(1, &EBO);
 };
 IndexBufferObject::~IndexBufferObject() {

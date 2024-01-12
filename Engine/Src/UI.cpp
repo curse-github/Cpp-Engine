@@ -2,7 +2,6 @@
 
 #pragma region ClickDetector
 void ClickDetector::on_mouse(const double& mouseX, const double& mouseY) {
-	if(Engine::instance->ended||!initialized) return;
 	Vector2 pos=Engine::instance->curMousePos;
 	Vector2 res=Engine::instance->curResolution;
 	Vector2 camScale=cam->scale;
@@ -20,7 +19,6 @@ void ClickDetector::on_mouse(const double& mouseX, const double& mouseY) {
 	}
 }
 void ClickDetector::on_mouse_button(const int& button, const int& action, const int& mods) {
-	if(Engine::instance->ended||!initialized) return;
 	Vector2 pos=Engine::instance->curMousePos;
 	Vector2 res=Engine::instance->curResolution;
 	Vector2 camScale=cam->scale;
@@ -40,19 +38,17 @@ void ClickDetector::on_mouse_button(const int& button, const int& action, const 
 	}
 }
 ClickDetector::ClickDetector(OrthoCam* _cam) : Object(), cam(_cam) {
-	if(Engine::instance->ended||!initialized) return;
+	engine_assert(cam!=nullptr, "[ClickDetector]: cam is nullptr");
 	Engine::instance->sub_mouse(this);
 	Engine::instance->sub_mouse_button(this);
 }
 #pragma endregion// ClickDetector
 #pragma region Clickable
 Clickable::Clickable(ClickDetector* _detector) : hasTransform2D(), detector(_detector) {
-	if(Engine::instance->ended||_detector==nullptr||!_detector->initialized) { initialized=false;return; }
-	initialized=true;
+	engine_assert(detector!=nullptr, "[Clickable]: detector is nullptr");
 	detector->clickables.push_back(this);
 }
 Clickable::~Clickable() {
-	if(!initialized||detector==nullptr) return;
 	unsigned int size=static_cast<unsigned int>(detector->clickables.size());
 	for(unsigned int i=0; i<size; i++) if(detector->clickables[i]==this) detector->clickables.erase(detector->clickables.begin()+i);
 }
@@ -60,17 +56,14 @@ Clickable::~Clickable() {
 
 #pragma region UiHandler
 void UiHandler::on_key(const int& key, const int& scancode, const int& action, const int& mods) {
-	if(Engine::instance->ended||!initialized) return;
 	if(selected!=nullptr) selected->on_key(key, scancode, action, mods);
 }
 void UiHandler::on_loop(const double& delta) {
-	if(Engine::instance->ended||!initialized) return;
 	for(UiElement* el:uiElements) {
 		el->on_loop(delta);
 	}
 }
 void UiHandler::selectElement(UiElement* el) {
-	if(Engine::instance->ended||!initialized) return;
 	if(selected) selected->selected=false;
 	selected=el;
 	el->selected=true;
@@ -78,8 +71,7 @@ void UiHandler::selectElement(UiElement* el) {
 UiHandler* UiHandler::instance=nullptr;
 UiHandler::UiHandler(OrthoCam* _cam) :
 	Object(), cam(_cam), clickableHandler(new ClickDetector(_cam)), spriteRenderer(new BatchedSpriteRenderer(_cam)), textRenderer(new BatchedTextRenderer(_cam)) {
-	if(Engine::instance->ended||!initialized||cam==nullptr||!cam->initialized||
-		!clickableHandler->initialized||!spriteRenderer->initialized) return;
+	engine_assert(cam!=nullptr, "[UiHandler]: cam is nullptr");
 	instance=this;
 	Engine::instance->sub_key(this);
 	Engine::instance->sub_loop(this);
@@ -88,27 +80,21 @@ UiHandler::UiHandler(OrthoCam* _cam) :
 		};
 }
 BatchedQuadData* UiHandler::Sprite(const Vector4& _modulate, Texture* tex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
-	if(Engine::instance->ended||!initialized) return nullptr;
 	return spriteRenderer->addSprite(_modulate, tex, _position, _zIndex, _scale, _anchor);
 }
 BatchedQuadData* UiHandler::Quad(const Vector4& _modulate, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
-	if(Engine::instance->ended||!initialized) return nullptr;
 	return spriteRenderer->addQuad(_modulate, _position, _zIndex, _scale, _anchor);
 }
 BatchedTextData* UiHandler::Text(const std::string& _text, const Vector4& color, const Vector2& _position, const float& _zIndex, const float& _scale, const Vector2& _anchor) {
-	if(Engine::instance->ended||!initialized) return nullptr;
 	return textRenderer->addText(_text, color, _position, _zIndex, _scale, _anchor);
 }
 Button* UiHandler::createButton(const Vector4& _color, const Vector4& _hoverColor, const Vector4& _pressedColor, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
-	if(Engine::instance->ended||!initialized) return nullptr;
 	return new Button(this, this->clickableHandler, _color, _hoverColor, _pressedColor, _position, _zIndex, _scale, _anchor);
 }
 TextInput* UiHandler::createTextInput(const std::string& _value, const std::string& _placeholder, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
-	if(Engine::instance->ended||!initialized) return nullptr;
 	return new TextInput(this, this->clickableHandler, _value, _placeholder, _position, _zIndex, _scale, _anchor);
 }
 void UiHandler::draw() {
-	if(Engine::instance->ended||!initialized) return;
 	glClear(GL_DEPTH_BUFFER_BIT);
 	spriteRenderer->draw();
 	textRenderer->draw();
@@ -116,28 +102,23 @@ void UiHandler::draw() {
 #pragma endregion// UiHandler
 #pragma region Button
 void Button::on_click(const Vector2& pos) {
-	if(Engine::instance->ended||!initialized) return;
 	quad->modulate=pressedColor;
 	if(onclick) onclick();
 }
 void Button::on_release(const Vector2& pos) {
-	if(Engine::instance->ended||!initialized) return;
 	UiElement::on_release(pos);
 	if(isHover) quad->modulate=hoverColor; else quad->modulate=color;
 	if(onrelease) onrelease();
 }
 void Button::on_hover(const Vector2& pos) {
-	if(Engine::instance->ended||!initialized) return;
 	quad->modulate=hoverColor;
 	if(onhover) onhover();
 }
 void Button::on_unhover(const Vector2& pos) {
-	if(Engine::instance->ended||!initialized) return;
 	quad->modulate=color;
 	if(onunhover) onunhover();
 }
 void Button::on_key(const int& key, const int& scancode, const int& action, const int& mods) {
-	if(Engine::instance->ended||!initialized) return;
 	if(action>GLFW_RELEASE&&key==GLFW_KEY_ENTER) {
 		on_click(Vector2::ZERO);
 		on_release(Vector2::ZERO);
@@ -145,27 +126,18 @@ void Button::on_key(const int& key, const int& scancode, const int& action, cons
 }
 Button::Button(UiHandler* _handler, ClickDetector* _detector, const Vector4& _color, const Vector4& _hoverColor, const Vector4& _pressedColor, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) :
 	hasTransform2D(_position, _zIndex, _scale, _anchor), UiElement(_handler, _detector), quad(nullptr), color(_color), hoverColor(_hoverColor), pressedColor(_pressedColor) {
-	if(Engine::instance->ended||!initialized) { return;initialized=false; }
 	quad=handler->Quad(color, Vector2::ZERO, _zIndex, Vector2::ONE, _anchor);
 	addChild(quad);
 }
 #pragma endregion// Button
 #pragma region TextInput
-void TextInput::on_click(const Vector2& pos) {
-	if(Engine::instance->ended||!initialized) return;
-}
+void TextInput::on_click(const Vector2& pos) {}
 void TextInput::on_release(const Vector2& pos) {
-	if(Engine::instance->ended||!initialized) return;
 	UiElement::on_release(pos);
 }
-void TextInput::on_hover(const Vector2& pos) {
-	if(Engine::instance->ended||!initialized) return;
-}
-void TextInput::on_unhover(const Vector2& pos) {
-	if(Engine::instance->ended||!initialized) return;
-}
+void TextInput::on_hover(const Vector2& pos) {}
+void TextInput::on_unhover(const Vector2& pos) {}
 void TextInput::on_key(const int& key, const int& scancode, const int& action, const int& mods) {
-	if(Engine::instance->ended||!initialized) return;
 	if(action>GLFW_RELEASE) {
 		if(key>=GLFW_KEY_SPACE&&key<=GLFW_KEY_GRAVE_ACCENT) {
 			if(key>=GLFW_KEY_A&&key<=GLFW_KEY_Z) {// letter values
@@ -213,18 +185,12 @@ void TextInput::on_key(const int& key, const int& scancode, const int& action, c
 		}
 	}
 }
-void TextInput::on_loop(const double& delta) {
-	if(Engine::instance->ended||!initialized) return;
-
-}
 void TextInput::update() {
-	if(Engine::instance->ended||!initialized) return;
 	if(!value.empty()) { text->text=value; text->color=Vector4::ONE; }// show current value in white
 	else { text->text=placeholder; text->color=Vector4(Vector3(0.5f), 1.0f); }// show placeholder value in gray
 }
 TextInput::TextInput(UiHandler* _handler, ClickDetector* _detector, const std::string& _value, const std::string& _placeholder, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) :
 	hasTransform2D(_position, _zIndex, _scale, _anchor), UiElement(_handler, _detector), quad(nullptr), text(nullptr), value(_value), placeholder(_placeholder) {
-	if(Engine::instance->ended||!initialized) return;
 	quad=handler->Quad(Vector4(Vector3(0.25f), 1.0f), Vector2::ZERO, _zIndex, Vector2::ONE, _anchor);
 	addChild(quad);
 	Vector2 textPos=Vector2(-_scale.x+9.0f, _scale.y/2.0f);

@@ -7,6 +7,73 @@
 #include <vector>
 #include <string>
 #include <functional>
+#ifdef _DEBUG
+#define assert(expression, message) {\
+if (!(expression)) {\
+	std::cout << "Assertion failed: (" << message << ")\n" << __FILE__ << ", ln#" << __LINE__;\
+	std::cout << "Press enter to continue...\n";\
+	std::cin.get();\
+	abort();\
+}\
+}
+#define assert_call(expression, message, codeBlock) {\
+if (!(expression)) {\
+	codeBlock;\
+	std::cout << "Assertion failed: (" << message << ")\n" << __FILE__ << ", ln#" << __LINE__;\
+	std::cout << "Press enter to continue...\n";\
+	std::cin.get();\
+	abort();\
+}\
+}
+#define engine_assert(expression, message) {\
+if (!(expression)) {\
+	Engine::instance->Delete();\
+	delete Engine::instance;\
+	std::cout << "Assertion failed: (" << message << ")\n" << __FILE__ << ", ln#" << __LINE__;\
+	std::cout << "Press enter to continue...\n";\
+	std::cin.get();\
+	abort();\
+}\
+}
+#define engine_assert_call(expression, message, codeBlock) {\
+if (!expression) {\
+	codeBlock;\
+	Engine::instance->Delete();\
+	delete Engine::instance;\
+	std::cout << "Assertion failed: (" << message << ")\n" << __FILE__ << ", ln#" << __LINE__;\
+	std::cout << "Press enter to continue...\n";\
+	std::cin.get();\
+	abort();\
+}\
+}
+#else
+#define assert(expression, message) {\
+if (!(expression)) {\
+	abort();\
+}\
+}
+#define assert_call(expression, message, codeBlock) {\
+if (!(expression)) {\
+	codeBlock;\
+	abort();\
+}\
+}
+#define engine_assert(expression, message) {\
+if (!(expression)) {\
+	Engine::instance->Delete();\
+	delete Engine::instance;\
+	abort();\
+}\
+}
+#define engine_assert_call(expression, message, codeBlock) {\
+if (!(expression)) {\
+	codeBlock;\
+	Engine::instance->Delete();\
+	delete Engine::instance;\
+	abort();\
+}\
+}
+#endif
 
 #define PI 3.14159265f
 #define TAU 6.2831853f
@@ -16,8 +83,8 @@
 typedef std::function<void(const double&)> onloopfun;
 void engine_on_error(int error, const char* description);
 class Object;
-//#define FpsAvgNum 60
-#define FpsAvgNum 1500
+//#define FpsAvgNum 60u
+#define FpsAvgNum 1500u
 class Engine {
 	protected:
 	void on_resize(int width, int height);
@@ -27,26 +94,23 @@ class Engine {
 	void on_mouse_delta(float deltaX, float deltaY);
 	void on_mouse_button(int button, int action, int mods);
 	void on_mouse_enter(int entered);
-	struct FpsData {
-		double deltaHistory[FpsAvgNum]={};
-	} fpsData;
 	public:
 	static Engine* instance;
 
-	bool initialized=false;
 	GLFWwindow* window=nullptr;
 	std::vector<Object*> objects;
 	bool ended=false;
 
 	Vector2 curResolution;
 	Vector2 curMousePos=Vector2(-1.0f, -1.0f);
+	unsigned long frameCount=0u;
+	unsigned int fpsAvg=0u;
+	float frameTimeAvg=0u;
+	unsigned int drawCalls=0u;
+	unsigned int curDrawCalls=0u;
 
-	unsigned int fpsAvg=0;
-	unsigned int fpsHigh=0;
-	unsigned int fpsLow=0;
-	float frameTimeAvg=0;
-	unsigned int drawCalls=0;
-	unsigned int curDrawCalls=0;
+	double lastFpsTime=0.0f;// for calculating fps
+	unsigned int fpsFrameCount=0u;// for calculating fps
 
 	Engine() : window(nullptr), curResolution(Vector2()) {}
 	Engine(const Vector2& size, const char* title, const bool& vsync);
@@ -96,7 +160,6 @@ class Object {
 	virtual void on_mouse_enter(const int& entered);
 	virtual void on_start();
 	virtual void on_loop(const double& delta);
-	bool initialized=false;
 	Object();
 	virtual ~Object();
 };
@@ -173,7 +236,6 @@ class Shader : public Object {
 	std::vector<Texture*> textures;
 	std::vector<int> textureIndexes;
 	unsigned int numTextures=0;
-	Shader() : Object() { initialized=false; }
 	Shader(const std::string& vertexPath, const std::string& fragmentPath);
 	virtual ~Shader();
 	void use();
@@ -194,7 +256,6 @@ class Texture : public Object {
 	unsigned int ID;
 	int width;
 	int height;
-	Texture() : Object(), ID(0), width(0), height(0) { initialized=false; }
 	Texture(const unsigned int& _ID);
 	Texture(const std::string& path);
 	void Bind(const unsigned int& location);
@@ -206,7 +267,6 @@ class IndexBufferObject;
 class VertexArrayObject {
 	public:
 	unsigned int VAO;
-	VertexArrayObject() : VAO(0) {};
 	VertexArrayObject(const bool& thing);
 	~VertexArrayObject();
 	void drawTris(const unsigned int& count);
@@ -222,7 +282,6 @@ class VertexBufferObject {
 	public:
 	unsigned int VBO;
 	VertexArrayObject* VAO;
-	VertexBufferObject() : VBO(0), VAO(nullptr) {};
 	VertexBufferObject(VertexArrayObject* _VAO);
 	~VertexBufferObject();
 	void staticFill(const float* vertices, const size_t& len);
@@ -237,7 +296,6 @@ class IndexBufferObject {
 	public:
 	unsigned int EBO;// Element buffer object
 	VertexArrayObject* VAO;
-	IndexBufferObject() : EBO(0), VAO(nullptr) {};
 	IndexBufferObject(VertexArrayObject* _VAO);
 	~IndexBufferObject();
 	void staticFill(const unsigned int* indices, const size_t& len);

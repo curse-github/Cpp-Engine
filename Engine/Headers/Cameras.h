@@ -20,7 +20,6 @@ class LookAtCam : public Camera, public Transform {
 	float fov=45;
 	float aspect;
 	Vector3 focus;
-	LookAtCam() : Camera(), Transform(), aspect(0.0f), focus(Vector3::ZERO) { initialized=false; }
 	LookAtCam(const float& _aspect, const Vector3& _position, const Vector3& _focus);
 	void update();
 };
@@ -41,14 +40,12 @@ class FreeCam : public Camera, public Transform {
 	float fov=45;
 	float SENSITIVITY=0.1f;
 	bool paused=false;
-	FreeCam() : Camera(), Transform(), aspect(0.0f), forward(Vector3()), up(Vector3()) { initialized=false; }
 	FreeCam(const float& _aspect, const Vector3& _position, const Vector3& _forward, const Vector3& _up);
 	void update();
 };
 class OrthoCam : public Camera, virtual public hasTransform2D {
 	public:
 	Vector2 scale;
-	OrthoCam() : Camera(), hasTransform2D() { initialized=false; }
 	OrthoCam(const Vector2& _position, const Vector2& _scale);
 	void update();
 	virtual Vector2 getWorldScale() const { return scale; };// makes camera scale independent of parent transform2d

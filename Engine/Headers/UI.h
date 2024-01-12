@@ -20,7 +20,6 @@ class ClickDetector : public Object {
 };
 class Clickable : virtual public hasTransform2D {
 	protected:
-	Clickable() : hasTransform2D(), detector(nullptr) { initialized=false; };
 	Clickable(ClickDetector* _detector);
 	virtual ~Clickable();
 	virtual void on_click(const Vector2& pos)=0;
@@ -29,7 +28,6 @@ class Clickable : virtual public hasTransform2D {
 	virtual void on_unhover(const Vector2& pos)=0;
 	friend ClickDetector;
 	public:
-	bool initialized=false;
 	ClickDetector* detector;
 	bool isPressed=false;
 	bool isHover=false;
@@ -48,7 +46,6 @@ class UiHandler : public Object {
 	static UiHandler* instance;
 	OrthoCam* cam;
 	UiElement* selected=nullptr;//what object is currently selected
-	UiHandler() : cam(nullptr), spriteRenderer(nullptr), textRenderer(nullptr), clickableHandler(nullptr) { initialized=false; };
 	UiHandler(OrthoCam* _cam);
 	UiHandler(UiHandler& copy)=delete;// UiHandler handler(other);, or UiHandler handler = other;
 	UiHandler(UiHandler&& move)=delete;// UiHandler handler((UiHandler&&)other);, or UiHandler handler = (UiHandler&&)other;
@@ -74,15 +71,14 @@ class UiElement : virtual public hasTransform2D, public Clickable {
 	virtual void on_loop(const double& delta) {};
 	friend UiHandler;
 
-	UiElement() : hasTransform2D(), Clickable(), handler(nullptr) { initialized=false; };
 	UiElement(UiHandler* _handler, ClickDetector* _detector) :
 		hasTransform2D(), Clickable(_detector), handler(_handler) {
+		engine_assert(handler!=nullptr, "[UiElement]: handler is nullptr");
 		_handler->uiElements.push_back(this);
 	}
 
 	virtual void on_click(const Vector2& pos)=0;
 	void on_release(const Vector2& pos) override {
-		if(Engine::instance->ended||!initialized) return;
 		handler->selectElement(this);
 	}
 	void on_hover(const Vector2& pos)=0;
@@ -111,7 +107,6 @@ class Button : virtual public hasTransform2D, public UiElement {
 	voidfun onhover;
 	voidfun onunhover;
 
-	Button() : hasTransform2D(), UiElement(), quad(nullptr), color(Vector4::ZERO), hoverColor(Vector4::ZERO), pressedColor(Vector4::ZERO) { initialized=false; };
 	Button(UiHandler* _handler, ClickDetector* _detector, const Vector4& _color, const Vector4& _hoverColor, const Vector4& _pressedColor, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
 };
 class TextInput : virtual public hasTransform2D, public UiElement {
@@ -122,7 +117,6 @@ class TextInput : virtual public hasTransform2D, public UiElement {
 	void on_unhover(const Vector2& pos) override;
 
 	void on_key(const int& key, const int& scancode, const int& action, const int& mods) override;
-	void on_loop(const double& delta) override;
 	public:
 	BatchedQuadData* quad;
 	BatchedTextData* text;
@@ -133,7 +127,6 @@ class TextInput : virtual public hasTransform2D, public UiElement {
 	enterfun onenter;
 	void update();
 
-	TextInput() : hasTransform2D(), UiElement(), quad(nullptr), text(nullptr) { initialized=false; };
 	TextInput(UiHandler* _handler, ClickDetector* _detector, const std::string& _value="", const std::string& _placeholder="", const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
 };
 #endif
