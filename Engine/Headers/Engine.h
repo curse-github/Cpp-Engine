@@ -107,7 +107,7 @@ struct Transform {
 	Vector3 scale;
 	Vector3 rotAxis;
 	float rotAngle;
-	Transform() : position(Vector3::ZERO), scale(Vector3::ONE), rotAxis(Vector3::Vector3::UP), rotAngle(0.0f) {};
+	Transform() : position(Vector3::ZERO), scale(Vector3::ONE), rotAxis(Vector3::UP), rotAngle(0.0f) {};
 	Transform(const Vector3& _position, const Vector3& _scale, const Vector3& _rotAxis, const float& _rotAngle);
 };
 struct Transform2D {

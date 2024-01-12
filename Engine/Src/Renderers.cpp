@@ -192,7 +192,6 @@ void TextRenderer::draw() {
 		if(charC==' ') { x+=1.0f+ch.Advance; continue; }// skip one space and continue
 		else if(charC=='\t') { x+=1.0f+ch.Advance*4.0f; continue; }//4 character spaces
 		Vector2 pos=offset+(Vector2(x, y)+ch.Bearing-Vector2(anchor.x*ch.Size.x, (ch.Size.y)/2.0f+9.0f))*scale;
-		Log(std::string(1, charC)+": "+pos.to_string());
 		shader->setMat4x4("model", scaleMat(Vector3(ch.Size*scale, 1.0f))*translate(Vector3(pos, getZIndex()-100.0f)));
 		ch.tex->Bind(0);
 		// render quad

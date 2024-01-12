@@ -258,7 +258,7 @@ void Loop(const double& delta) {
 	fpsText->text="Fps Avg: "+std::to_string(engine->fpsAvg)+", high: "+std::to_string(engine->fpsHigh)+", low: "+std::to_string(engine->fpsLow);
 #ifdef _DEBUG
 	// set debug text
-	debugText->text="Pos: "+player->getWorldPos().to_string()+"\nTime: "+std::to_string(glfwGetTime())+"\nMemory: "+std::to_string(allocatedPeak)+" bytes\nDraw calls: "+std::to_string(engine->drawCalls);
+	debugText->text="Pos: "+std::to_string(player->getWorldPos())+"\nTime: "+std::to_string(glfwGetTime())+"\nMemory: "+std::to_string(allocatedPeak)+" bytes\nDraw calls: "+std::to_string(engine->drawCalls);
 	allocatedPeak=0;
 #endif// _DEBUG
 	// draw scene

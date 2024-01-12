@@ -20,53 +20,55 @@ Shader* createDotColorShader(const Vector4& color);
 Shader* createDotTexShader(Texture* tex, const Vector4& modulate=Vector4::ZERO);
 
 class Pathfinder {
+	typedef vec2<unsigned short int> Vector2usi;
+	typedef vec2<short int> Vector2si;
 	protected:
-	static unsigned int GridToIndex(const Vector2& grid) { return static_cast<unsigned int>(grid.x*mapSize.y*2+grid.y); }
+	static unsigned int GridToIndex(const Vector2usi& grid) { return static_cast<unsigned int>(grid.x*mapSize.y*2+grid.y); }
 	static unsigned int MaxIndex() { return static_cast<unsigned int>(mapSize.x*mapSize.y)*4; }
 	struct PathfinderData {
-		Vector2 Pos;
+		Vector2usi Pos;
 		unsigned int FromKey;
 		float G;
 		float F;
 		bool open;
 		bool initialized;
 		PathfinderData() :
-			Pos(Vector2()), FromKey(Pathfinder::MaxIndex()), G(FLT_MAX), F(FLT_MAX), open(false), initialized(false) {}
-		PathfinderData(Vector2 _Pos, unsigned int _FromKey, float _G, float _F, bool _open) :
+			Pos(Vector2usi()), FromKey(Pathfinder::MaxIndex()), G(FLT_MAX), F(FLT_MAX), open(false), initialized(false) {}
+		PathfinderData(const Vector2usi& _Pos, const unsigned int& _FromKey, const float& _G, const float& _F, const bool& _open) :
 			Pos(_Pos), FromKey(_FromKey), G(_G), F(_F), open(_open), initialized(true) {}
 	};
 	std::vector<PathfinderData> dataMap;
 
-	bool isWall(const Vector2& pos);
-	bool isValid(const Vector2& pos);
-	float calcH(const Vector2& a, const Vector2& b);
-	bool isValidMove(const Vector2& a, const Vector2& dir);
-	std::array<Vector2, 8> movements={
-		Vector2(-1.0f, -1.0f),
-		Vector2(0.0f, -1.0f),
-		Vector2(1.0f, -1.0f),
-		Vector2(1.0f, 0.0f),
-		Vector2(1.0f, 1.0f),
-		Vector2(0.0f, 1.0f),
-		Vector2(-1.0f, 1.0f),
-		Vector2(-1.0f, 0.0f)
+	bool isWall(const Vector2usi& pos);
+	bool isValid(const Vector2usi& pos);
+	float calcH(const Vector2usi& a, const Vector2usi& b);
+	bool isValidMove(const Vector2usi& a, const Vector2si& dir);
+	std::array<Vector2si, 8> movements={
+		Vector2si(-1, -1),
+		Vector2si(0, -1),
+		Vector2si(1, -1),
+		Vector2si(1, 0),
+		Vector2si(1, 1),
+		Vector2si(0, 1),
+		Vector2si(-1, 1),
+		Vector2si(-1, 0)
 	};
-	std::array<std::vector<Vector2>, 8> obstructions={ {
-		{ Vector2(0.0f, -1.0f), Vector2(-1.0f, 0.0f) },
+	std::array<std::vector<Vector2si>, 8> obstructions={ {
+		{ Vector2si(0, -1), Vector2si(-1, 0) },
 		{},
-		{ Vector2(0.0f, -1.0f), Vector2(1.0f, 0.0f) },
+		{ Vector2si(0, -1), Vector2si(1, 0) },
 		{},
-		{ Vector2(0.0f, 1.0f), Vector2(1.0f, 0.0f) },
+		{ Vector2si(0, 1), Vector2si(1, 0) },
 		{},
-		{ Vector2(0.0f, 1.0f), Vector2(-1.0f, 0.0f) },
+		{ Vector2si(0, 1), Vector2si(-1, 0) },
 		{}
 		} };
 	std::vector<bool> wallMap;
 	public:
-	static Vector2 GridToWorld(const Vector2& grid) { return Vector2(grid.x/2.0f*mapScale*(1.0f+spacing), grid.y/2.0f*mapScale*(1.0f+spacing)); }
-	static Vector2 WorldToGrid(const Vector2& world) { return Vector2(std::round(world.x/mapScale/(1.0f+spacing)*2.0f), std::round(world.y/mapScale/(1.0f+spacing)*2.0f)); }
+	static inline Vector2 GridToWorld(const Vector2usi& grid) { return Vector2(grid.x/2.0f*mapScale*(1.0f+spacing), grid.y/2.0f*mapScale*(1.0f+spacing)); }
+	static inline Vector2usi WorldToGrid(const Vector2& world) { return Vector2usi(static_cast<unsigned short int>(std::round(world.x/mapScale/(1.0f+spacing)*2.0f)), static_cast<unsigned short int>(std::round(world.y/mapScale/(1.0f+spacing)*2.0f))); }
 	Pathfinder();
-	std::vector<Vector2> pathfind(const Vector2& a, const Vector2& b);
+	std::vector<Vector2> pathfind(const Vector2usi& a, const Vector2usi& b);
 	bool allowDiagonals=true;
 };
 

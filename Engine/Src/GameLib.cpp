@@ -16,43 +16,43 @@ Pathfinder::Pathfinder() {
 	wallMap.resize(MaxIndex());
 	wallMap.assign(wallMap.size(), false);
 	for(const std::array<int, 5>&data:instanceData) {
-		for(float x=0; x<3; x++) {
-			for(float y=0; y<3; y++) {
-				wallMap[Pathfinder::GridToIndex(Vector2(static_cast<float>(data[0])*2.0f+x, static_cast<float>(data[1])*2.0f+y))]=true;
+		for(unsigned short int x=0; x<3; x++) {
+			for(unsigned short int y=0; y<3; y++) {
+				wallMap[Pathfinder::GridToIndex(Vector2usi(data[0]*2u+x, data[1]*2u+y))]=true;
 			}
 		}
 	}
 	for(const Vector3& line:horizontalWallData) {
-		for(float x=line.y*2.0f; x<line.z*2.0f+1; x++) {
-			wallMap[Pathfinder::GridToIndex(Vector2(x, line.x*2.0f))]=true;
+		for(unsigned short int x=static_cast<unsigned short int>(line.y)*2u; x<static_cast<unsigned short int>(line.z)*2u+1u; x++) {
+			wallMap[Pathfinder::GridToIndex(Vector2usi(x, static_cast<unsigned short int>(line.x)*2u))]=true;
 		}
 	}
 	for(const Vector3& line:verticalWallData) {
-		for(float y=line.y*2.0f; y<line.z*2.0f+1; y++) {
-			wallMap[Pathfinder::GridToIndex(Vector2(line.x*2.0f, y))]=true;
+		for(unsigned short int y=static_cast<unsigned short int>(line.y)*2u; y<static_cast<unsigned short int>(line.z)*2u+1u; y++) {
+			wallMap[Pathfinder::GridToIndex(Vector2usi(static_cast<unsigned short int>(line.x)*2u, y))]=true;
 		}
 	}
 }
-bool Pathfinder::isWall(const Vector2& pos) {
+bool Pathfinder::isWall(const Vector2usi& pos) {
 	if(pos.x<0||pos.y<0||pos.x>(mapSize.x*2-1)||pos.y>(mapSize.y*2-1)) return true;// dont bother checking if its out of range;
 	return wallMap[Pathfinder::GridToIndex(pos)]==true;
 }
-bool Pathfinder::isValid(const Vector2& pos) {
+bool Pathfinder::isValid(const Vector2usi& pos) {
 	return !isWall(pos);
 }
-float Pathfinder::calcH(const Vector2& a, const Vector2& b) {
-	Vector2 vec=(a-b).abs();
+float Pathfinder::calcH(const Vector2usi& a, const Vector2usi& b) {
+	Vector2si vec=(static_cast<Vector2si>(a)-static_cast<Vector2si>(b)).abs();
 	if(allowDiagonals) return std::min(vec.x, vec.y)*sqrtf(2)+abs(vec.x-vec.y);
-	else return vec.x+vec.y;
+	else return static_cast<float>(vec.x+vec.y);
 }
-bool Pathfinder::isValidMove(const Vector2& pos, const Vector2& dir) {
+bool Pathfinder::isValidMove(const Vector2usi& pos, const Vector2si& dir) {
 	unsigned int index=arryFind(movements, dir);
 	if(index==-1) return false;
-	std::vector<Vector2> obstructionsLst=obstructions[index];
-	for(Vector2 obstruction : obstructionsLst) if(!isValid(pos+obstruction)) return false;
+	std::vector<Vector2si> obstructionsLst=obstructions[index];
+	for(Vector2usi obstruction : obstructionsLst) if(!isValid(pos+obstruction)) return false;
 	return true;
 }
-std::vector<Vector2> Pathfinder::pathfind(const Vector2& A, const Vector2& B) {
+std::vector<Vector2> Pathfinder::pathfind(const Vector2usi& A, const Vector2usi& B) {
 	if(A==B||!isValid(A)||!isValid(B)||isWall(B)) return {};
 	unsigned int maxKey=Pathfinder::MaxIndex();
 	std::vector<unsigned int> openIndices;
@@ -93,22 +93,22 @@ std::vector<Vector2> Pathfinder::pathfind(const Vector2& A, const Vector2& B) {
 		PathfinderData* lowestData=&dataMap[lowestKey];
 		lowestData->open=false;
 		openIndices.erase(openIndices.begin()+vectorFind(openIndices, lowestKey));
-		Vector2 lowestPos=lowestData->Pos;
+		vec2<unsigned short> lowestPos=lowestData->Pos;
 		// if reached the goal, return the path to get to there from point A
 		if(lowestPos==B) {
-			std::vector<Vector2> path={ Pathfinder::GridToWorld(lowestData->Pos) };
+			std::vector<Vector2> path={ (Vector2)Pathfinder::GridToWorld(lowestData->Pos) };
 			PathfinderData data=dataMap[lowestData->FromKey];
 			while(data.FromKey!=-1) {
-				path.push_back(Pathfinder::GridToWorld(data.Pos));
+				path.push_back((Vector2)Pathfinder::GridToWorld(data.Pos));
 				data=dataMap[data.FromKey];
 			}
 			path.shrink_to_fit();
 			return path;
 		}
 		// evaluate squares around the currentSquare for their F cost
-		for(Vector2 movement : movements) {
+		for(Vector2si movement : movements) {
 			if(!isValidMove(lowestPos, movement)) continue;
-			Vector2 pos=lowestPos+movement;
+			Vector2usi pos=lowestPos+movement;
 			if(!isValid(pos)) continue;
 			unsigned int key=Pathfinder::GridToIndex(pos);
 			PathfinderData* oldData=&dataMap[key];

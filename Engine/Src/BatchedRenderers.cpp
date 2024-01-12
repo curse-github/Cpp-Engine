@@ -282,16 +282,14 @@ void BatchedLineRenderer::bufferVertex(const Vector2& vertexPos, const Vector4& 
 }
 void BatchedLineRenderer::bufferLine(const std::vector<Vector2>& positions, const bool& loop, const Vector4& color, const Vector2& _position, const float& _zIndex, const Vector2& _scale) {
 	if(Engine::instance->ended||!initialized) return;
-	for(const Vector2& pos:positions) {
-	}
-	size_t len=positions.size();
-	for(unsigned int i=0; i<len-1; i++) {
+	unsigned int len=static_cast<unsigned int>(positions.size());
+	for(unsigned int i=0u; i<len-1u; i++) {
 		bufferVertex(positions[i], color, _position, _zIndex, _scale);
 		bufferVertex(positions[i+1u], color, _position, _zIndex, _scale);
 		if(numVertices>=maxVertices) renderBatch();// if out of room for lines in this batch, render and reset
 	}
 	if(loop) {
-		bufferVertex(positions[0], color, _position, _zIndex, _scale);
+		bufferVertex(positions[0u], color, _position, _zIndex, _scale);
 		bufferVertex(positions[len-1u], color, _position, _zIndex, _scale);
 		if(numVertices>=maxVertices) renderBatch();// if out of room for lines in this batch, render and reset
 	}
