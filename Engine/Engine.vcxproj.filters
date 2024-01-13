@@ -112,5 +112,8 @@
     <None Include="Shaders\dotTexBatch.frag">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Shaders\spritesheet.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

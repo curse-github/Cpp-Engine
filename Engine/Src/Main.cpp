@@ -212,7 +212,7 @@ int Run() {
 		Vector2(viewRange.x*2.0f-25.0f, 0.0f), 0.0f, Vector2(400.0f, 25.0f), Vector2::BottomRight);
 	testInput->onenter=[&](std::string str) { Log(str); };*/
 
-	fpsText=uiHandler->Text("Fps Avg:,high:,low:", Vector4(0.75f, 0.25f, 0.25f, 1.0f), viewRange*2.0f+Vector2(-120.0f, -1.0f), 15.0f, 2.0f, Vector2::TopLeft);;
+	fpsText=uiHandler->Text("Fps Avg:,high:,low:", Vector4(0.75f, 0.25f, 0.25f, 1.0f), viewRange*2.0f+Vector2(-120.0f, -1.0f), 15.0f, 2.0f, Vector2::TopLeft);
 #ifdef _DEBUG
 	debugText=uiHandler->Text("Pos:\nTime:\nMemory:\nDraw calls:", Vector4(0.75f, 0.75f, 0.75f, 1.0f), Vector2(1.0f, 1.0f), 15.0f, 2.0f, Vector2::BottomLeft);
 #endif// _DEBUG
@@ -220,14 +220,13 @@ int Run() {
 	instanceStateSpritesRenderer->bind();
 	StaticColliderDebugLineRenderer->bind();
 	// run main loop
-	engine->renderLoop=Loop;
-	Log("Engine initialized successfully.");
+	engine->renderLoop=Render;
 	engine->Start();
 	delete engine;
 	colliders.clear();
 	return 1;
 }
-void Loop(const double& delta) {
+void Render(const double& delta) {
 	fpsText->text="Fps:"+std::to_string(engine->fpsAvg);
 #ifdef _DEBUG
 	// set debug text

@@ -10,7 +10,7 @@
 #ifdef _DEBUG
 #define assert(expression, message) {\
 if (!(expression)) {\
-	std::cout << "Assertion failed: (" << message << ")\n" << __FILE__ << ", ln#" << __LINE__;\
+	std::cout << "Assertion failed: (" << message << ")\n" << __FILE__ << ", ln#" << __LINE__ << "\n";\
 	std::cout << "Press enter to continue...\n";\
 	std::cin.get();\
 	abort();\
@@ -19,7 +19,7 @@ if (!(expression)) {\
 #define assert_call(expression, message, codeBlock) {\
 if (!(expression)) {\
 	codeBlock;\
-	std::cout << "Assertion failed: (" << message << ")\n" << __FILE__ << ", ln#" << __LINE__;\
+	std::cout << "Assertion failed: (" << message << ")\n" << __FILE__ << ", ln#" << __LINE__ << "\n";\
 	std::cout << "Press enter to continue...\n";\
 	std::cin.get();\
 	abort();\
@@ -29,7 +29,7 @@ if (!(expression)) {\
 if (!(expression)) {\
 	Engine::instance->Delete();\
 	delete Engine::instance;\
-	std::cout << "Assertion failed: (" << message << ")\n" << __FILE__ << ", ln#" << __LINE__;\
+	std::cout << "Assertion failed: (" << message << ")\n" << __FILE__ << ", ln#" << __LINE__ << "\n";\
 	std::cout << "Press enter to continue...\n";\
 	std::cin.get();\
 	abort();\
@@ -40,7 +40,7 @@ if (!expression) {\
 	codeBlock;\
 	Engine::instance->Delete();\
 	delete Engine::instance;\
-	std::cout << "Assertion failed: (" << message << ")\n" << __FILE__ << ", ln#" << __LINE__;\
+	std::cout << "Assertion failed: (" << message << ")\n" << __FILE__ << ", ln#" << __LINE__ << "\n";\
 	std::cout << "Press enter to continue...\n";\
 	std::cin.get();\
 	abort();\
@@ -175,7 +175,6 @@ struct Transform {
 };
 struct Transform2D {
 	private:
-	Vector3 rotAxis=Vector3(0.0f, 0.0f, 1.0f);
 	Mat4x4 lastModelMat=Mat4x4();
 	Vector2 lastWorldPosition=Vector2::ZERO;
 	float lastZIndex=0.0f;
@@ -186,6 +185,7 @@ struct Transform2D {
 	public:
 	Transform2D* parent=nullptr;
 	std::vector<Transform2D*> children;
+	Vector3 rotAxis=Vector3(0.0f, 0.0f, 1.0f);
 
 	bool active;
 	Vector2 position;

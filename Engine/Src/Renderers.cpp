@@ -79,7 +79,6 @@ void SpriteRenderer::draw() {
 	shader->bindTextures();
 	shader->setMat4x4("model", getModelMat());
 	VAO->drawTriStrip(4);
-	Engine::instance->curDrawCalls++;
 }
 #pragma endregion// SpriteRenderer
 #pragma region TextRenderer
@@ -230,3 +229,21 @@ void DotRenderer::draw() {
 	VAO->drawTris(3);
 }
 #pragma endregion// DotRenderer
+#pragma region SpritesheetRenderer
+SpritesheetRenderer::SpritesheetRenderer(Shader* _shader, const Vector2i& _atlasSize, const Vector2i& _texPos, const Vector2i& _texSize, const float& _texRot, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor, const float& _rotAngle) :
+	Renderer2D(_shader, _position, _zIndex, _scale, _anchor, _rotAngle), atlasSize(_atlasSize), texPos(_texPos), texSize(_texSize), texRot(_texRot) {
+	VBO->staticFill(SpriteRenderer::quadvertices, 20);
+	VBO->applyAttributes({ 3, 2 });
+	update();
+}
+void SpritesheetRenderer::update() {
+	shader->setFloat2("uvShift", Vector2(texSize.x/atlasSize.x, texSize.y/atlasSize.y));
+	shader->setFloat2("uvScale", Vector2(texPos.x/atlasSize.x, texPos.y/atlasSize.y));
+	shader->setFloat("uvRot", deg_to_rad(texRot));
+}
+void SpritesheetRenderer::draw() {
+	shader->bindTextures();
+	shader->setMat4x4("model", getModelMat());
+	VAO->drawTriStrip(4);
+}
+#pragma endregion// SpritesheetRenderer

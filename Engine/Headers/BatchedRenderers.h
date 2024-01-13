@@ -36,7 +36,7 @@ class BatchedSpriteRenderer : protected Renderer2D {
 	std::vector<BatchedVertex> quadVerticesBuffer;
 	unsigned int numTextures=0;
 	std::vector<Texture*> textures;
-	void bufferQuad(const Vector4& _modulate, Texture* tex, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
+	void bufferQuad(const Vector4& modulate, Texture* tex, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
 	void renderBatch();
 	public:
 	OrthoCam* cam;
@@ -47,8 +47,8 @@ class BatchedSpriteRenderer : protected Renderer2D {
 	unsigned short int numQuads=0;
 	BatchedSpriteRenderer(OrthoCam* _cam);
 	virtual ~BatchedSpriteRenderer();
-	BatchedQuadData* addSprite(const Vector4& _modulate, Texture* tex, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
-	BatchedQuadData* addQuad(const Vector4& _modulate, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
+	BatchedQuadData* addSprite(const Vector4& modulate, Texture* tex, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
+	BatchedQuadData* addQuad(const Vector4& modulate, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
 	void draw() override;
 };
 class StaticBatchedSpriteRenderer : protected Renderer2D {
@@ -209,6 +209,61 @@ class StaticBatchedDotRenderer : protected Renderer2D {
 	virtual ~StaticBatchedDotRenderer();
 	BatchedDotData* addTexturedDot(const Vector4& _modulate, Texture* tex, const float& _radius, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
 	BatchedDotData* addDot(const Vector4& _modulate, const float& radius, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
+	void bind();
+	void draw() override;
+};
+
+struct BatchedAtlasedSpriteData : public Transform2D {
+	public:
+	Vector4 modulate;
+	Texture* tex;
+	Vector2 atlasSize;
+	Vector2 texPos;
+	Vector2 texSize;
+	float texRot;
+	BatchedAtlasedSpriteData(const Vector4& _modulate, Texture* _tex, const Vector2& _atlasSize, const Vector2& _texPos, const Vector2& _texSize, const float& _texRot, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center) :
+		Transform2D(_position, _zIndex, _scale, _anchor), modulate(_modulate), tex(_tex), atlasSize(_atlasSize), texPos(_texPos), texSize(_texSize), texRot(_texRot) {};
+};
+class BatchedSpritesheetRenderer : protected Renderer2D {
+	protected:
+	std::vector<BatchedAtlasedSpriteData*> quads;
+	std::vector<BatchedVertex> quadVerticesBuffer;
+	unsigned int numTextures=0;
+	std::vector<Texture*> textures;
+	void bufferQuad(const Vector4& _modulate, Texture* tex, const Vector2& atlasSize, const Vector2& texPos, const Vector2& texSize, const float& texRot, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
+	void renderBatch();
+	public:
+	OrthoCam* cam;
+	using Renderer::shader;
+	const unsigned short int maxQuadCount=10000;
+	const unsigned short int maxVertices=maxQuadCount*4;
+	const unsigned short int maxIndices=maxQuadCount*6;
+	unsigned short int numQuads=0;
+	BatchedSpritesheetRenderer(OrthoCam* _cam);
+	virtual ~BatchedSpritesheetRenderer();
+	BatchedAtlasedSpriteData* addSprite(const Vector4& _modulate, Texture* tex, const Vector2& atlasSize, const Vector2& texPos, const Vector2& texSize, const float& texRot, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
+	BatchedAtlasedSpriteData* addTruesizeSprite(const Vector4& _modulate, Texture* tex, const Vector2& atlasSize, const Vector2& texPos, const Vector2& texSize, const float& texRot, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const float& _scale=1.0f, const Vector2& _anchor=Vector2::Center);
+	void draw() override;
+};
+class StaticBatchedSpritesheetRenderer : protected Renderer2D {
+	protected:
+	std::vector<BatchedAtlasedSpriteData*> quads;
+	std::vector<BatchedVertex> quadVerticesBuffer;
+	unsigned int numTextures=0;
+	std::vector<Texture*> textures;
+	void bufferQuad(const Vector4& _modulate, Texture* tex, const Vector2& atlasSize, const Vector2& texPos, const Vector2& texSize, const float& texRot, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
+	void renderBatch();
+	public:
+	OrthoCam* cam;
+	using Renderer::shader;
+	const unsigned short int maxQuadCount=10000;
+	const unsigned short int maxVertices=maxQuadCount*4;
+	const unsigned short int maxIndices=maxQuadCount*6;
+	unsigned short int numQuads=0;
+	StaticBatchedSpritesheetRenderer(OrthoCam* _cam);
+	virtual ~StaticBatchedSpritesheetRenderer();
+	BatchedAtlasedSpriteData* addSprite(const Vector4& _modulate, Texture* tex, const Vector2& atlasSize, const Vector2& texPos, const Vector2& texSize, const float& texRot, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center);
+	BatchedAtlasedSpriteData* addTruesizeSprite(const Vector4& _modulate, Texture* tex, const Vector2& atlasSize, const Vector2& texPos, const Vector2& texSize, const float& texRot, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const float& _scale=1.0f, const Vector2& _anchor=Vector2::Center);
 	void bind();
 	void draw() override;
 };

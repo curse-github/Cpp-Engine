@@ -68,5 +68,14 @@ class DotRenderer : public Renderer2D {
 	DotRenderer(Shader* _shader, const float& _radius, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _anchor=Vector2::Center);
 	void draw() override;
 };
-
+class SpritesheetRenderer : public Renderer2D {
+	public:
+	Vector2 atlasSize;
+	Vector2 texPos;
+	Vector2 texSize;
+	float texRot;
+	SpritesheetRenderer(Shader* _shader, const Vector2i& _atlasSize, const Vector2i& _texPos=Vector2i::ZERO, const Vector2i& _texSize=Vector2i::ONE, const float& _texRot=0.0f, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f);
+	void update();
+	void draw() override;
+};
 #endif// _RENDERERS_H

@@ -152,6 +152,12 @@ Shader* createDotTexShader(Texture* tex, const Vector4& modulate) {
 	shader->setFloat4("modulate", modulate);
 	return shader;
 }
+Shader* createSpriteSheetShader(Texture* tex, const Vector4& modulate) {
+	Shader* shader=new Shader("Shaders/spritesheet.vert", "Shaders/tex.frag");
+	shader->setTexture("_texture", tex, 0);
+	shader->setFloat4("modulate", modulate);
+	return shader;
+}
 #pragma endregion// Shader creators
 #pragma region BoxCollider
 std::vector<BoxCollider*> colliders;

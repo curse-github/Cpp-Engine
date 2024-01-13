@@ -84,6 +84,6 @@ class Instance : virtual public hasTransform2D, public Clickable {
 Vector2 HD1080P(1920.0, 1080.0);
 Vector2 viewRange(480.0f, 270.0f);
 int Run();
-void Loop(const double& delta);
+void Render(const double& delta);
 int main(int argc, char** argv);
 #endif// _MAIN_H

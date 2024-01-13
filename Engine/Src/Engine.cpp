@@ -349,7 +349,7 @@ Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) :
 		else if(fragmentPath=="Shaders/dotColor.frag") fragmentShaderSourceStr=dotColorFragShader;
 		else if(fragmentPath=="Shaders/dotTex.frag") fragmentShaderSourceStr=dotTexFragShader;
 		else if(fragmentPath=="Shaders/texBatch.frag") fragmentShaderSourceStr=texBatchFragShader;
-		//else if(fragmentPath=="Shaders/textBatch.frag") fragmentShaderSourceStr=textBatchFragShader;
+		else if(fragmentPath=="Shaders/textBatch.frag") fragmentShaderSourceStr=textBatchFragShader;
 		else if(fragmentPath=="Shaders/dotTexBatch.frag") fragmentShaderSourceStr=dotTexBatchFragShader;
 		engine_assert_call(fragmentShaderSourceStr.size()>0, "[Shader]: Backup fragment shader not found.", glDeleteShader(vertexShader));
 		Log("Using hard coded shader for \""+fragmentPath+"\".");

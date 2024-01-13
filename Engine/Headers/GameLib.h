@@ -18,6 +18,7 @@ Shader* createTexShader(Texture* tex, const Vector4& modulate=Vector4::ZERO);
 Shader* createTextShader();
 Shader* createDotColorShader(const Vector4& color);
 Shader* createDotTexShader(Texture* tex, const Vector4& modulate=Vector4::ZERO);
+Shader* createSpriteSheetShader(Texture* tex, const Vector4& modulate=Vector4::ZERO);
 
 class Pathfinder {
 	typedef vec2<unsigned short int> Vector2usi;
