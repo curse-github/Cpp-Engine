@@ -219,6 +219,15 @@ int Run() {
 	staticSpriteRenderer->bind();
 	instanceStateSpritesRenderer->bind();
 	StaticColliderDebugLineRenderer->bind();
+
+	Shader* tmp=createSpriteSheetShader(new Texture("Resources/spritesheet.png"), Vector4::ONE);
+	cam->bindShader(tmp);
+	cam->use();
+	Vector2i atlasSize=Vector2i(13, 10);
+	Vector2i uvPos=Vector2i(5, 0);
+	Vector2i uvSize=Vector2i::ONE;
+	test=new SpritesheetAnimationRenderer(tmp, atlasSize, 3, 0.125, uvPos, uvSize, 0.0f, GridToWorld(playerOffset), 15.0f, Vector2(mapScale));
+
 	// run main loop
 	engine->renderLoop=Render;
 	engine->Start();
@@ -236,6 +245,7 @@ void Render(const double& delta) {
 	// draw scene
 	spriteRenderer->draw();
 	staticSpriteRenderer->draw();
+	test->draw();
 	player->flashlightStencilOn();
 	instanceStateSpritesRenderer->draw();
 	player->flashlightStencilOff();

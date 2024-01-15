@@ -70,12 +70,27 @@ class DotRenderer : public Renderer2D {
 };
 class SpritesheetRenderer : public Renderer2D {
 	public:
-	Vector2 atlasSize;
-	Vector2 texPos;
-	Vector2 texSize;
+	Vector2i atlasSize;
+	Vector2i texPos;
+	Vector2i texSize;
 	float texRot;
 	SpritesheetRenderer(Shader* _shader, const Vector2i& _atlasSize, const Vector2i& _texPos=Vector2i::ZERO, const Vector2i& _texSize=Vector2i::ONE, const float& _texRot=0.0f, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f);
 	void update();
 	void draw() override;
+};
+class SpritesheetAnimationRenderer : public SpritesheetRenderer {
+	private:
+	Vector2 lastUvShift=Vector2i(0, 0);
+	double timeSinceLastFrame=0.0;
+	unsigned short int frameIndex=0u;
+	public:
+	Vector2i animationDir=Vector2i(1, 0);
+	unsigned short int numFrames;
+	double frameDelay;
+	bool playing=true;
+	bool repeat=true;
+	SpritesheetAnimationRenderer(Shader* _shader, const Vector2i& _atlasSize, const unsigned short int& _numFrames, const double& _frameDelay, const Vector2i& _texPos=Vector2i::ZERO, const Vector2i& _texSize=Vector2i::ONE, const float& _texRot=0.0f, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f);
+	void update();
+	void on_loop(const double& delta) override;
 };
 #endif// _RENDERERS_H

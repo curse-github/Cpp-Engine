@@ -237,8 +237,8 @@ SpritesheetRenderer::SpritesheetRenderer(Shader* _shader, const Vector2i& _atlas
 	update();
 }
 void SpritesheetRenderer::update() {
-	shader->setFloat2("uvShift", Vector2(texSize.x/atlasSize.x, texSize.y/atlasSize.y));
-	shader->setFloat2("uvScale", Vector2(texPos.x/atlasSize.x, texPos.y/atlasSize.y));
+	shader->setFloat2("uvScale", Vector2(texSize.x/(float)atlasSize.x, texSize.y/(float)atlasSize.y));
+	shader->setFloat2("uvShift", Vector2(texPos.x/(float)atlasSize.x, texPos.y/(float)atlasSize.y));
 	shader->setFloat("uvRot", deg_to_rad(texRot));
 }
 void SpritesheetRenderer::draw() {
@@ -247,3 +247,31 @@ void SpritesheetRenderer::draw() {
 	VAO->drawTriStrip(4);
 }
 #pragma endregion// SpritesheetRenderer
+
+#pragma region SpritesheetAnimationRenderer
+SpritesheetAnimationRenderer::SpritesheetAnimationRenderer(Shader* _shader, const Vector2i& _atlasSize, const unsigned short int& _numFrames, const double& _frameDelay, const Vector2i& _texPos, const Vector2i& _texSize, const float& _texRot, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor, const float& _rotAngle) :
+	SpritesheetRenderer(_shader, _atlasSize, _texPos, _texSize, _texRot, _position, _zIndex, _scale, _anchor, _rotAngle), numFrames(_numFrames), frameDelay(_frameDelay) {
+	update();
+	Engine::instance->sub_loop(this);
+}
+void SpritesheetAnimationRenderer::update() {
+	shader->setFloat2("uvScale", Vector2(texSize.x/(float)atlasSize.x, texSize.y/(float)atlasSize.y));
+	lastUvShift=Vector2(texPos.x/(float)atlasSize.x, texPos.y/(float)atlasSize.y);
+	Vector2 frameShift=frameIndex*Vector2(animationDir.x/(float)atlasSize.x, animationDir.y/(float)atlasSize.y);
+	shader->setFloat2("uvShift", lastUvShift+(Vector2)frameShift);
+	shader->setFloat("uvRot", deg_to_rad(texRot));
+}
+void SpritesheetAnimationRenderer::on_loop(const double& delta) {
+	if(playing) {
+		timeSinceLastFrame+=delta;
+		while(timeSinceLastFrame>=frameDelay) {
+			timeSinceLastFrame-=frameDelay;
+			frameIndex+=1;
+			if(repeat) frameIndex%=numFrames;
+			else { playing=false;break; }
+		}
+		Vector2 frameShift=frameIndex*Vector2(animationDir.x/(float)atlasSize.x, animationDir.y/(float)atlasSize.y);
+		shader->setFloat2("uvShift", lastUvShift+(Vector2)frameShift);
+	} else { timeSinceLastFrame=0.0;frameIndex=0; }
+}
+#pragma endregion// SpritesheetAnimationRenderer
