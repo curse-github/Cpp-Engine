@@ -28,8 +28,6 @@ BatchedSpriteRenderer* spriteRenderer;
 StaticBatchedSpriteRenderer* staticSpriteRenderer;
 StaticBatchedSpriteRenderer* instanceStateSpritesRenderer;
 
-SpritesheetAnimationRenderer* test;
-
 BatchedTextData* fpsText;
 #ifdef _DEBUG
 BatchedTextData* debugText;

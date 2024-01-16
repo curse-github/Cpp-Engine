@@ -83,11 +83,11 @@ class SpritesheetAnimationRenderer : public SpritesheetRenderer {
 	Vector2 lastUvShift=Vector2i(0, 0);
 	double timeSinceLastFrame=0.0;
 	unsigned short int frameIndex=0u;
+	bool playing=true;
 	public:
 	Vector2i animationDir=Vector2i(1, 0);
 	unsigned short int numFrames;
 	double frameDelay;
-	bool playing=true;
 	bool repeat=true;
 	SpritesheetAnimationRenderer(Shader* _shader, const Vector2i& _atlasSize, const unsigned short int& _numFrames, const double& _frameDelay, const Vector2i& _texPos=Vector2i::ZERO, const Vector2i& _texSize=Vector2i::ONE, const float& _texRot=0.0f, const Vector2& _position=Vector2::ZERO, const float& _zIndex=0.0f, const Vector2& _scale=Vector2::ONE, const Vector2& _anchor=Vector2::Center, const float& _rotAngle=0.0f);
 	void update();

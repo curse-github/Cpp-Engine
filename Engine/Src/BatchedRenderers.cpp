@@ -538,17 +538,18 @@ void StaticBatchedDotRenderer::draw() {
 #pragma endregion// StaticBatchedDotRenderer
 
 #pragma region BatchedSpritesheetRenderer
-Vector2 translateRotateScaleUvs(const Vector2& uv, const Vector2& atlasSize, const Vector2& texPos, const Vector2& texSize, const float& texRot) {
+Vector2 translateRotateScaleUvs(const Vector2& uv, const Vector2i& atlasSize, const Vector2i& texPos, const Vector2i& texSize, const float& texRot) {
 	if(texRot!=0.0f) {
-		return Vector2(texPos.x/atlasSize.x, texPos.y/atlasSize.y)+Vector2(
-			(cosf(texRot)*(uv.x-0.5f)+sinf(texRot)*(uv.y-0.5f)+0.5f)*(texSize.x/atlasSize.x),
-			(cosf(texRot)*(uv.y-0.5f)-sinf(texRot)*(uv.x-0.5f)+0.5f)*(texSize.y/atlasSize.y)
+		float rad=deg_to_rad(texRot);
+		return Vector2(texPos.x/(float)atlasSize.x, texPos.y/(float)atlasSize.y)+Vector2(
+			(cosf(rad)*(uv.x-0.5f)+sinf(rad)*(uv.y-0.5f)+0.5f)*(texSize.x/(float)atlasSize.x),
+			(cosf(rad)*(uv.y-0.5f)-sinf(rad)*(uv.x-0.5f)+0.5f)*(texSize.y/(float)atlasSize.y)
 		);
 	} else {
-		return Vector2(texPos.x/atlasSize.x, texPos.y/atlasSize.y)+Vector2(uv.x*(texSize.x/atlasSize.x), uv.y*(texSize.y/atlasSize.y));
+		return Vector2(texPos.x/(float)atlasSize.x, texPos.y/(float)atlasSize.y)+Vector2(uv.x*(texSize.x/(float)atlasSize.x), uv.y*(texSize.y/(float)atlasSize.y));
 	}
 }
-void BatchedSpritesheetRenderer::bufferQuad(const Vector4& modulate, Texture* tex, const Vector2& atlasSize, const Vector2& texPos, const Vector2& texSize, const float& texRot, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
+void BatchedSpritesheetRenderer::bufferQuad(const Vector4& modulate, Texture* tex, const Vector2i& atlasSize, const Vector2i& texPos, const Vector2i& texSize, const float& texRot, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
 	float texIndex=-1.0f;
 	for(unsigned int i=0; i<numTextures; i++) {
 		if(textures[i]->ID==tex->ID) { texIndex=static_cast<float>(i);break; }
@@ -558,11 +559,11 @@ void BatchedSpritesheetRenderer::bufferQuad(const Vector4& modulate, Texture* te
 		texIndex=static_cast<float>(numTextures);textures.push_back(tex);numTextures++;
 	}
 	for(unsigned int i=0; i<static_cast<unsigned int>(4*5); i+=5) {
-		Vector2 uv=translateRotateScaleUvs(Vector2(SpriteRenderer::quadvertices[i+3], SpriteRenderer::quadvertices[i+4]), atlasSize, texPos, texSize, texRot);
+		Vector2 newUv=translateRotateScaleUvs(Vector2(SpriteRenderer::quadvertices[i+3], SpriteRenderer::quadvertices[i+4]), atlasSize, texPos, texSize, texRot);
 		quadVerticesBuffer.push_back((BatchedVertex&&)BatchedVertex {
 			_position.x+(SpriteRenderer::quadvertices[i+0]-_anchor.x)*_scale.x, _position.y+(SpriteRenderer::quadvertices[i+1]-_anchor.y)*_scale.y,
 				_zIndex-100.0f,
-				uv.x, uv.y,
+				newUv.x, newUv.y,
 				modulate.x, modulate.y, modulate.z, modulate.w,
 				texIndex
 		});
@@ -595,13 +596,13 @@ BatchedSpritesheetRenderer::BatchedSpritesheetRenderer(OrthoCam* _cam) :
 BatchedSpritesheetRenderer::~BatchedSpritesheetRenderer() {
 	for(BatchedAtlasedSpriteData* quad:quads) delete quad;
 }
-BatchedAtlasedSpriteData* BatchedSpritesheetRenderer::addSprite(const Vector4& modulate, Texture* tex, const Vector2& atlasSize, const Vector2& texPos, const Vector2& texSize, const float& texRot, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
-	BatchedAtlasedSpriteData* ptr=new BatchedAtlasedSpriteData(modulate, tex, atlasSize, texPos, texSize, deg_to_rad(texRot), _position, _zIndex, _scale, _anchor);
+BatchedAtlasedSpriteData* BatchedSpritesheetRenderer::addSprite(const Vector4& modulate, Texture* tex, const Vector2i& atlasSize, const Vector2i& texPos, const Vector2i& texSize, const float& texRot, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
+	BatchedAtlasedSpriteData* ptr=new BatchedAtlasedSpriteData(modulate, tex, atlasSize, texPos, texSize, texRot, _position, _zIndex, _scale, _anchor);
 	quads.push_back(ptr);
 	return ptr;
 }
-BatchedAtlasedSpriteData* BatchedSpritesheetRenderer::addTruesizeSprite(const Vector4& modulate, Texture* tex, const Vector2& atlasSize, const Vector2& texPos, const Vector2& texSize, const float& texRot, const Vector2& _position, const float& _zIndex, const float& _scale, const Vector2& _anchor) {
-	BatchedAtlasedSpriteData* ptr=new BatchedAtlasedSpriteData(modulate, tex, atlasSize, texPos, texSize, deg_to_rad(texRot), _position, _zIndex, texSize*_scale, _anchor);
+BatchedAtlasedSpriteData* BatchedSpritesheetRenderer::addTruesizeSprite(const Vector4& modulate, Texture* tex, const Vector2i& atlasSize, const Vector2i& texPos, const Vector2i& texSize, const float& texRot, const Vector2& _position, const float& _zIndex, const float& _scale, const Vector2& _anchor) {
+	BatchedAtlasedSpriteData* ptr=new BatchedAtlasedSpriteData(modulate, tex, atlasSize, texPos, texSize, texRot, _position, _zIndex, texSize*_scale, _anchor);
 	quads.push_back(ptr);
 	return ptr;
 }
@@ -624,11 +625,11 @@ void StaticBatchedSpritesheetRenderer::bufferQuad(const Vector4& modulate, Textu
 		texIndex=static_cast<float>(numTextures);textures.push_back(tex);numTextures++;
 	}
 	for(unsigned int i=0; i<static_cast<unsigned int>(4*5); i+=5) {
-		Vector2 uv=translateRotateScaleUvs(Vector2(SpriteRenderer::quadvertices[i+3], SpriteRenderer::quadvertices[i+4]), atlasSize, texPos, texSize, texRot);
+		Vector2 newUv=translateRotateScaleUvs(Vector2(SpriteRenderer::quadvertices[i+3], SpriteRenderer::quadvertices[i+4]), atlasSize, texPos, texSize, texRot);
 		quadVerticesBuffer.push_back((BatchedVertex&&)BatchedVertex {
 			_position.x+(SpriteRenderer::quadvertices[i+0]-_anchor.x)*_scale.x, _position.y+(SpriteRenderer::quadvertices[i+1]-_anchor.y)*_scale.y,
 				_zIndex-100.0f,
-				uv.x, uv.y,
+				newUv.x, newUv.y,
 				modulate.x, modulate.y, modulate.z, modulate.w,
 				texIndex
 		});
@@ -657,12 +658,12 @@ StaticBatchedSpritesheetRenderer::~StaticBatchedSpritesheetRenderer() {
 	for(BatchedAtlasedSpriteData* quad:quads) delete quad;
 }
 BatchedAtlasedSpriteData* StaticBatchedSpritesheetRenderer::addSprite(const Vector4& modulate, Texture* tex, const Vector2& atlasSize, const Vector2& texPos, const Vector2& texSize, const float& texRot, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
-	BatchedAtlasedSpriteData* ptr=new BatchedAtlasedSpriteData(modulate, tex, atlasSize, texPos, texSize, deg_to_rad(texRot), _position, _zIndex, _scale, _anchor);
+	BatchedAtlasedSpriteData* ptr=new BatchedAtlasedSpriteData(modulate, tex, atlasSize, texPos, texSize, texRot, _position, _zIndex, _scale, _anchor);
 	quads.push_back(ptr);
 	return ptr;
 }
 BatchedAtlasedSpriteData* StaticBatchedSpritesheetRenderer::addTruesizeSprite(const Vector4& modulate, Texture* tex, const Vector2& atlasSize, const Vector2& texPos, const Vector2& texSize, const float& texRot, const Vector2& _position, const float& _zIndex, const float& _scale, const Vector2& _anchor) {
-	BatchedAtlasedSpriteData* ptr=new BatchedAtlasedSpriteData(modulate, tex, atlasSize, texPos, texSize, deg_to_rad(texRot), _position, _zIndex, texSize*_scale, _anchor);
+	BatchedAtlasedSpriteData* ptr=new BatchedAtlasedSpriteData(modulate, tex, atlasSize, texPos, texSize, texRot, _position, _zIndex, texSize*_scale, _anchor);
 	quads.push_back(ptr);
 	return ptr;
 }
@@ -677,5 +678,77 @@ void StaticBatchedSpritesheetRenderer::bind() {
 }
 void StaticBatchedSpritesheetRenderer::draw() {
 	renderBatch();
+}
+#pragma endregion// BatchedSpriteRenderer
+
+#pragma region BatchedSpritesheetAnimationRenderer
+void BatchedSpritesheetAnimationRenderer::bufferQuad(BatchedAtlasedAnimationData* data) {
+	float texIndex=-1.0f;
+	for(unsigned int i=0; i<numTextures; i++) {
+		if(textures[i]->ID==data->tex->ID) { texIndex=static_cast<float>(i);break; }
+	}
+	if(texIndex==-1.0f) {
+		if(numTextures>=32) renderBatch();// if out of room for textures in this batch, render and reset
+		texIndex=static_cast<float>(numTextures);textures.push_back(data->tex);numTextures++;
+	}
+	for(unsigned int i=0; i<static_cast<unsigned int>(4*5); i+=5) {
+		Vector2 newUv=translateRotateScaleUvs(Vector2(SpriteRenderer::quadvertices[i+3], SpriteRenderer::quadvertices[i+4]), data->atlasSize, data->texPos+data->frameIndex*data->animationDir, data->texSize, data->texRot);
+		Vector2 worldPos=data->getWorldPos();
+		Vector2 worldScale=data->getWorldScale();
+		quadVerticesBuffer.push_back((BatchedVertex&&)BatchedVertex {
+			worldPos.x+(SpriteRenderer::quadvertices[i+0]-data->anchor.x)*worldScale.x, worldPos.y+(SpriteRenderer::quadvertices[i+1]-data->anchor.y)*worldScale.y,
+				data->zIndex-100.0f,
+				newUv.x, newUv.y,
+				data->modulate.x, data->modulate.y, data->modulate.z, data->modulate.w,
+				texIndex
+		});
+	}
+	numQuads++;
+	if(numQuads>=maxQuadCount) renderBatch();// if out of room for quads in this batch, render and reset
+}
+void BatchedSpritesheetAnimationRenderer::renderBatch() {
+	if(numQuads==0) return;
+	shader->use();
+	for(unsigned int i=0; i<numTextures; i++) textures[i]->Bind(i);
+	VBO->dynamicSub((float*)(&quadVerticesBuffer[0]), 10*4*numQuads);//10 floats per vertex, 4 vertices per quad
+	VAO->drawTrisIndexed(numQuads*6);
+	quadVerticesBuffer.clear();
+	numQuads=0;
+	textures.clear();
+	numTextures=0;
+}
+BatchedSpritesheetAnimationRenderer::BatchedSpritesheetAnimationRenderer(OrthoCam* _cam) :
+	Renderer2D(new Shader("Shaders/batch.vert", "Shaders/texBatch.frag"), Vector2::ZERO, 0.0f, Vector2::ONE, Vector2::Center, 0.0f), cam(_cam) {
+	engine_assert(cam!=nullptr, "[BatchedSpritesheetAnimationRenderer]: cam is nullptr");
+	shader->setTextureArray("_textures");
+	cam->bindShader(shader);
+	cam->use();
+
+	VBO->dynamicDefine(10*maxVertices);
+	IBO->staticFillRepeated(SpriteRenderer::quadindices, 6, maxQuadCount, 4);
+	VBO->applyAttributes({ 3, 2, 4, 1 });
+	Engine::instance->sub_loop(this);
+}
+BatchedSpritesheetAnimationRenderer::~BatchedSpritesheetAnimationRenderer() {
+	for(BatchedAtlasedAnimationData* quad:quads) delete quad;
+}
+BatchedAtlasedAnimationData* BatchedSpritesheetAnimationRenderer::addSprite(const Vector4& modulate, Texture* tex, const Vector2i& atlasSize, const unsigned short int& numFrames, const double& frameDelay, const Vector2i& texPos, const Vector2i& texSize, const float& texRot, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
+	BatchedAtlasedAnimationData* ptr=new BatchedAtlasedAnimationData(modulate, tex, atlasSize, numFrames, frameDelay, texPos, texSize, texRot, _position, _zIndex, _scale, _anchor);
+	quads.push_back(ptr);
+	return ptr;
+}
+BatchedAtlasedAnimationData* BatchedSpritesheetAnimationRenderer::addTruesizeSprite(const Vector4& modulate, Texture* tex, const Vector2i& atlasSize, const unsigned short int& numFrames, const double& frameDelay, const Vector2i& texPos, const Vector2i& texSize, const float& texRot, const Vector2& _position, const float& _zIndex, const float& _scale, const Vector2& _anchor) {
+	BatchedAtlasedAnimationData* ptr=new BatchedAtlasedAnimationData(modulate, tex, atlasSize, numFrames, frameDelay, texPos, texSize, texRot, _position, _zIndex, texSize*_scale, _anchor);
+	quads.push_back(ptr);
+	return ptr;
+}
+void BatchedSpritesheetAnimationRenderer::draw() {
+	// reserve space for vertices equal to the amount of quads x 4
+	if(quads.size()<=maxQuadCount) quadVerticesBuffer.reserve(quads.size()*4); else quadVerticesBuffer.reserve(maxVertices);
+	for(BatchedAtlasedAnimationData* quad:quads) bufferQuad(quad);
+	renderBatch();
+}
+void BatchedSpritesheetAnimationRenderer::on_loop(const double& delta) {
+	for(BatchedAtlasedAnimationData* quad:quads) quad->on_loop(delta);
 }
 #pragma endregion// BatchedSpriteRenderer
