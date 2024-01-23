@@ -1,12 +1,12 @@
 #pragma once
-#ifndef _LIB_H
-#define _LIB_H
+#ifndef _ENGINE_LIB_H
+#define _ENGINE_LIB_H
 
 #include <iostream>
 #include <string>
-#include <fstream>
 
 #define DebugLog(x) std::cout << (x) << "\n";
+void Log();
 void Log(const std::string& out);
 void Log(const char* out);
 void Log(const char out);
@@ -368,4 +368,4 @@ namespace std {
 	template<typename T>
 	string to_string(const vec4<T>& a) { return (std::string)a; };
 }
-#endif// _LIB_H
+#endif// _ENGINE_LIB_H

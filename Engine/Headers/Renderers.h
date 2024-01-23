@@ -4,7 +4,6 @@
 
 #include "Engine.h"
 class OrthoCam;
-
 #include <array>
 
 class Renderer : public Object {

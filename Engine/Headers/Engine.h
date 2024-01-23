@@ -7,6 +7,8 @@
 #include <vector>
 #include <string>
 #include <functional>
+
+#pragma region assertions
 #ifdef _DEBUG
 #define assert(expression, message) {\
 if (!(expression)) {\
@@ -36,7 +38,7 @@ if (!(expression)) {\
 }\
 }
 #define engine_assert_call(expression, message, codeBlock) {\
-if (!expression) {\
+if (!(expression)) {\
 	codeBlock;\
 	Engine::instance->Delete();\
 	delete Engine::instance;\
@@ -74,6 +76,7 @@ if (!(expression)) {\
 }\
 }
 #endif
+#pragma endregion// assertions
 
 #define PI 3.14159265f
 #define TAU 6.2831853f
@@ -229,6 +232,7 @@ class hasTransform2D {
 };
 
 class Texture;
+const unsigned short int maxTextures=32u;
 class Shader : public Object {
 	protected:
 	unsigned int program=0;
@@ -438,5 +442,5 @@ void main() {\n\
 		else { outColor=vertColor*mod; }\n\
 	}\n\
 }\0"
-#pragma endregion
+#pragma endregion// Shader Embedded Code
 #endif// _ENGINE_H

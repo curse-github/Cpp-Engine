@@ -1,6 +1,6 @@
 #pragma once
-#ifndef _CAMERA_H
-#define _CAMERA_H
+#ifndef _CAMERAS_H
+#define _CAMERAS_H
 
 #include "Engine.h"
 
@@ -51,4 +51,4 @@ class OrthoCam : public Camera, virtual public hasTransform2D {
 	virtual Vector2 getWorldScale() const { return scale; };// makes camera scale independent of parent transform2d
 };
 
-#endif// _CAMERA_H
+#endif// _CAMERAS_H
