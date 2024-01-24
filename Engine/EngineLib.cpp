@@ -2,54 +2,49 @@
 #include <fstream>
 
 void Log() {
-#ifdef _DEBUG
+#ifdef _ENGINE_DEBUG
 	DebugLog("")
-#endif // _DEBUG
+#endif // _ENGINE_DEBUG
 }
 void Log(const std::string& out) {
-#ifdef _DEBUG
+#ifdef _ENGINE_DEBUG
 	DebugLog(out)
-#endif // _DEBUG
+#endif // _ENGINE_DEBUG
 }
 void Log(const char* out) {
-#ifdef _DEBUG
+#ifdef _ENGINE_DEBUG
 	DebugLog(out)
-#endif // _DEBUG
+#endif // _ENGINE_DEBUG
 }
 void Log(const char out) {
-#ifdef _DEBUG
+#ifdef _ENGINE_DEBUG
 	DebugLog(out)
-#endif // _DEBUG
+#endif // _ENGINE_DEBUG
 }
 void Log(const bool& out) {
-#ifdef _DEBUG
+#ifdef _ENGINE_DEBUG
 	DebugLog(out ? "True" : "False")
-#endif // _DEBUG
+#endif // _ENGINE_DEBUG
 }
 void Log(const int& out) {
-#ifdef _DEBUG
+#ifdef _ENGINE_DEBUG
 	DebugLog(out)
-#endif // _DEBUG
+#endif // _ENGINE_DEBUG
 }
 void Log(const unsigned int& out) {
-#ifdef _DEBUG
+#ifdef _ENGINE_DEBUG
 	DebugLog(out)
-#endif // _DEBUG
+#endif // _ENGINE_DEBUG
 }
 void Log(const float& out) {
-#ifdef _DEBUG
+#ifdef _ENGINE_DEBUG
 	DebugLog(out)
-#endif // _DEBUG
+#endif // _ENGINE_DEBUG
 }
 void Log(const double& out) {
-#ifdef _DEBUG
+#ifdef _ENGINE_DEBUG
 	DebugLog(out)
-#endif // _DEBUG
-}
-void Log(const Mat4x4& out) {
-#ifdef _DEBUG
-	DebugLog(out)
-#endif // _DEBUG
+#endif // _ENGINE_DEBUG
 }
 
 void FsReadDiskFile(std::string* content, const std::string& filePath) {

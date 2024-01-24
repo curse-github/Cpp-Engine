@@ -15,8 +15,6 @@ void Log(const int& out);
 void Log(const unsigned int& out);
 void Log(const float& out);
 void Log(const double& out);
-class Mat4x4;
-void Log(const Mat4x4& out);
 
 void FsReadDiskFile(std::string* content, const std::string& filePath);
 
@@ -94,9 +92,9 @@ class vec2 {
 		o<<"("<<rhs.x<<", "<<rhs.y<<")"; return o;
 	}
 	friend void Log(const vec2<T>& a) {
-#ifdef _DEBUG
+#ifdef _ENGINE_DEBUG
 		DebugLog(a)
-#endif // _DEBUG
+#endif // _ENGINE_DEBUG
 	}
 
 	static const vec2<T> ZERO;
@@ -205,9 +203,9 @@ class vec3 {
 		o<<"("<<rhs.x<<", "<<rhs.y<<", "<<rhs.z<<")"; return o;
 	};
 	friend void Log(const vec3<T>& a) {
-#ifdef _DEBUG
+#ifdef _ENGINE_DEBUG
 		DebugLog(a)
-#endif // _DEBUG
+#endif // _ENGINE_DEBUG
 	};
 	static const vec3<T> ZERO;
 	static const vec3<T> ONE;
@@ -299,9 +297,9 @@ class vec4 {
 		o<<"("<<rhs.x<<", "<<rhs.y<<", "<<rhs.z<<", "<<rhs.w<<")"; return o;
 	};
 	friend void Log(const vec4<T>& a) {
-#ifdef _DEBUG
+#ifdef _ENGINE_DEBUG
 		DebugLog(a)
-#endif // _DEBUG
+#endif // _ENGINE_DEBUG
 	};
 	static const vec4<T> ZERO;
 	static const vec4<T> ONE;
@@ -350,6 +348,11 @@ class Mat4x4 {
 			"\n  "+std::to_string(rhs.get(0, 3))+", "+std::to_string(rhs.get(1, 3))+", "+std::to_string(rhs.get(2, 3))+", "+std::to_string(rhs.get(3, 3))+"]";
 		return o;
 	}
+	friend void Log(const Mat4x4& a) {
+#ifdef _ENGINE_DEBUG
+		DebugLog(a)
+#endif // _ENGINE_DEBUG
+	};
 };
 float deg_to_rad(const float& deg);
 float rad_to_deg(const float& deg);

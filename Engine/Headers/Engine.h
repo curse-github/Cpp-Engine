@@ -9,7 +9,7 @@
 #include <functional>
 
 #pragma region assertions
-#ifdef _DEBUG
+#ifdef _ENGINE_DEBUG
 #define assert(expression, message) {\
 if (!(expression)) {\
 	std::cout << "Assertion failed: (" << message << ")\n" << __FILE__ << ", ln#" << __LINE__ << "\n";\
@@ -48,7 +48,7 @@ if (!(expression)) {\
 	abort();\
 }\
 }
-#else
+#else// _ENGINE_DEBUG
 #define assert(expression, message) {\
 if (!(expression)) {\
 	abort();\
@@ -75,7 +75,7 @@ if (!(expression)) {\
 	abort();\
 }\
 }
-#endif
+#endif// _ENGINE_DEBUG
 #pragma endregion// assertions
 
 #define PI 3.14159265f

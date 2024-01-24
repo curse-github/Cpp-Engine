@@ -6,9 +6,9 @@
 #pragma region Engine
 void engine_on_error(int error, const char* description) {
 	Log("GLFW error: "+std::string(description));
-#ifdef _DEBUG
+#ifdef _ENGINE_DEBUG
 	__debugbreak();
-#endif
+#endif// _ENGINE_DEBUG
 }
 
 #pragma region callbacks
