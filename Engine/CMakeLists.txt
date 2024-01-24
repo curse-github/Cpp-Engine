@@ -1,8 +1,7 @@
 ﻿# CMakeList.txt : CMake project for GhostGame, include source and define
-set(EXTERNALS ${CMAKE_SOURCE_DIR}/externals)
+set(EXTERNALS ${CMAKE_SOURCE_DIR}/Engine/externals)
 set(PROJECT_NAME EngineProj)
 set(LIB_NAME Engine)
-
 
 function(LoadDefault)# Loads default includes and libraries
     cmake_policy(SET CMP0072 NEW)
@@ -12,10 +11,10 @@ function(LoadDefault)# Loads default includes and libraries
         OpenGL::GL
         Glad
     )# Link libraries to executable.
-    target_include_directories(${LIB_NAME} PUBLIC externals/include Headers)# Include directories.
+    target_include_directories(${LIB_NAME} PRIVATE ${EXTERNALS}/include Headers)# Include directories.
 endfunction()
 function(LoadArchitectureSpecific)# Loads includes and libraries specific to 64 bit or 32 bit
-    target_include_directories(${LIB_NAME} PUBLIC externals/include${ARGV0})# Include directories.
+    target_include_directories(${LIB_NAME} PRIVATE ${EXTERNALS}/include${ARGV0})# Include directories.
     target_link_libraries(${LIB_NAME} PRIVATE
         ${EXTERNALS}/dependencies${ARGV0}/freetyped.lib
         ${EXTERNALS}/dependencies${ARGV0}/glfw-3.3.9.bin.WIN/lib-vc2022/glfw3.lib
