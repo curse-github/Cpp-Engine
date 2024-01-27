@@ -8,12 +8,10 @@ function(import_library)
         ${ARGV0}
     )
     install(FILES ${ARGV0} DESTINATION lib)
-    file(COPY ${ARGV0} DESTINATION ${CMAKE_BINARY_DIR})
 endfunction()
 function(include_directory)
     include_directories(${ARGV0})
     install(DIRECTORY ${ARGV0} DESTINATION include)
-    file(COPY ${ARGV0} DESTINATION ${CMAKE_BINARY_DIR})
 endfunction()
 
 function(LoadDefault)# Loads default includes and libraries
