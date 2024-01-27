@@ -3,10 +3,22 @@ set(EXTERNALS ${CMAKE_SOURCE_DIR}/Engine/externals)
 set(PROJECT_NAME EngineProj)
 set(LIB_NAME Engine)
 
+function(import_library)
+    link_libraries(
+        ${ARGV0}
+    )
+    install(FILES ${ARGV0} DESTINATION lib)
+    file(COPY ${ARGV0} DESTINATION ${CMAKE_BINARY_DIR})
+endfunction()
+function(include_directory)
+    include_directories(${ARGV0})
+    install(DIRECTORY ${ARGV0} DESTINATION include)
+    file(COPY ${ARGV0} DESTINATION ${CMAKE_BINARY_DIR})
+endfunction()
+
 function(LoadDefault)# Loads default includes and libraries
-    # Link include directories.
-    include_directories(${EXTERNALS}/include Headers)
-    install(DIRECTORY ${EXTERNALS}/include DESTINATION include)
+    include_directory(${EXTERNALS}/include)
+    include_directory(Headers)
     # Link libraries.
     cmake_policy(SET CMP0072 NEW)
     find_package(OpenGL REQUIRED)
@@ -15,15 +27,14 @@ function(LoadDefault)# Loads default includes and libraries
         OpenGL::GL
         Glad
     )
+    install(FILES OpenGL::GL DESTINATION lib)
+    install(FILES Glad DESTINATION lib)
 endfunction()
 function(LoadArchitectureSpecific)# Loads includes and libraries specific to 64 bit or 32 bit
-    include_directories(${EXTERNALS}/include${ARGV0})# Include directories.
-    install(DIRECTORY ${EXTERNALS}/include${ARGV0} DESTINATION include)
-    link_libraries(
-        ${EXTERNALS}/dependencies${ARGV0}/freetyped.lib
-        ${EXTERNALS}/dependencies${ARGV0}/glfw-3.3.9.bin.WIN/lib-vc2022/glfw3.lib
-        ${EXTERNALS}/dependencies${ARGV0}/glfw-3.3.9.bin.WIN/lib-vc2022/glfw3dll.lib
-    )# Link libraries to executable.
+    include_directory(${EXTERNALS}/include${ARGV0})
+    import_library(${EXTERNALS}/dependencies${ARGV0}/freetyped.lib)
+    import_library(${EXTERNALS}/dependencies${ARGV0}/glfw-3.3.9.bin.WIN/lib-vc2022/glfw3.lib)
+    import_library(${EXTERNALS}/dependencies${ARGV0}/glfw-3.3.9.bin.WIN/lib-vc2022/glfw3dll.lib)
 endfunction()
 function(installSelf)
     install(TARGETS ${LIB_NAME}
