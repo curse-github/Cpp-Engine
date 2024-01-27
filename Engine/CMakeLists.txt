@@ -11,22 +11,24 @@ function(import_library)
 endfunction()
 function(include_directory)
     include_directories(${ARGV0})
-    install(DIRECTORY ${ARGV0} DESTINATION include)
+    install(DIRECTORY ${ARGV0} DESTINATION includes)
 endfunction()
 
 function(LoadDefault)# Loads default includes and libraries
     include_directory(${EXTERNALS}/include)
-    include_directory(Headers)
+    #include_directory(Headers)
+    include_directories(Headers)
+    install(DIRECTORY Headers/ DESTINATION includes/Engine)
     # Link libraries.
     cmake_policy(SET CMP0072 NEW)
     find_package(OpenGL REQUIRED)
-    add_subdirectory(externals/dependencies/glad/ Glad)
+    add_subdirectory(${EXTERNALS}/dependencies/glad/ Glad)
     link_libraries(
         OpenGL::GL
         Glad
     )
-    install(FILES OpenGL::GL DESTINATION lib)
-    install(FILES Glad DESTINATION lib)
+    install(FILES ${EXTERNALS}/dependencies/glad.c DESTINATION lib)
+    install(DIRECTORY ${EXTERNALS}/dependencies/glad DESTINATION lib)
 endfunction()
 function(LoadArchitectureSpecific)# Loads includes and libraries specific to 64 bit or 32 bit
     include_directory(${EXTERNALS}/include${ARGV0})
@@ -36,7 +38,7 @@ function(LoadArchitectureSpecific)# Loads includes and libraries specific to 64 
 endfunction()
 function(installSelf)
     install(TARGETS ${LIB_NAME}
-        LIBRARY DESTINATION lib
+        INCLUDES DESTINATION lib
     )
 endfunction()
 
