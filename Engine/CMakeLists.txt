@@ -4,20 +4,14 @@ set(PROJECT_NAME EngineProj)
 set(LIB_NAME Engine)
 
 function(import_library)
-    link_libraries(
-        ${ARGV0}
-    )
+    link_libraries(${ARGV0})
     install(FILES ${ARGV0} DESTINATION lib)
 endfunction()
-function(include_directory)
-    include_directories(${ARGV0})
-    install(DIRECTORY ${ARGV0} DESTINATION includes)
-endfunction()
-
 function(LoadDefault)# Loads default includes and libraries
-    include_directory(${EXTERNALS}/include)
-    #include_directory(Headers)
+    include_directories(${EXTERNALS}/include)
     include_directories(Headers)
+    install(DIRECTORY ${EXTERNALS}/include/glad DESTINATION includes)
+    install(DIRECTORY ${EXTERNALS}/include/KHR DESTINATION includes)
     install(DIRECTORY Headers/ DESTINATION includes/Engine)
     # Link libraries.
     cmake_policy(SET CMP0072 NEW)
@@ -31,15 +25,15 @@ function(LoadDefault)# Loads default includes and libraries
     install(DIRECTORY ${EXTERNALS}/dependencies/glad DESTINATION lib)
 endfunction()
 function(LoadArchitectureSpecific)# Loads includes and libraries specific to 64 bit or 32 bit
-    include_directory(${EXTERNALS}/include${ARGV0})
+    include_directories(${EXTERNALS}/include${ARGV0})
+    install(DIRECTORY ${EXTERNALS}/include${ARGV0}/GLFW DESTINATION includes)
+
     import_library(${EXTERNALS}/dependencies${ARGV0}/freetyped.lib)
     import_library(${EXTERNALS}/dependencies${ARGV0}/glfw-3.3.9.bin.WIN/lib-vc2022/glfw3.lib)
     import_library(${EXTERNALS}/dependencies${ARGV0}/glfw-3.3.9.bin.WIN/lib-vc2022/glfw3dll.lib)
 endfunction()
 function(installSelf)
-    install(TARGETS ${LIB_NAME}
-        INCLUDES DESTINATION lib
-    )
+    install(TARGETS ${LIB_NAME} INCLUDES DESTINATION lib )
 endfunction()
 
 cmake_minimum_required(VERSION 3.16)# Set minimum required CMake version.
