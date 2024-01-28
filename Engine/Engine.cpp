@@ -485,6 +485,7 @@ Texture::Texture(const std::string& path) :
 	engine_assert(load_texture(&ID, path, &width, &height), "[Texture]: texture \""+path+"\" failed to load.");
 }
 void Texture::Bind(const unsigned int& location) {
+	if(ID==0)return;
 	glActiveTexture(GL_TEXTURE0+location);
 	glBindTexture(GL_TEXTURE_2D, ID);
 }
