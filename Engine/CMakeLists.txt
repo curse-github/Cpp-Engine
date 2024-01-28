@@ -4,12 +4,12 @@ set(PROJECT_NAME EngineProj)
 set(LIB_NAME Engine)
 
 function(import_library)
-    link_libraries(${ARGV0})
+    target_link_libraries(${LIB_NAME} ${ARGV0})
     install(FILES ${ARGV0} DESTINATION lib)
 endfunction()
 function(LoadDefault)# Loads default includes and libraries
-    include_directories(${EXTERNALS}/include)
-    include_directories(Headers)
+    target_include_directories(${LIB_NAME} PRIVATE ${EXTERNALS}/include)
+    target_include_directories(${LIB_NAME} PRIVATE Headers)
     install(DIRECTORY ${EXTERNALS}/include/glad DESTINATION includes)
     install(DIRECTORY ${EXTERNALS}/include/KHR DESTINATION includes)
     install(DIRECTORY Headers/ DESTINATION includes/Engine)
@@ -17,14 +17,14 @@ function(LoadDefault)# Loads default includes and libraries
     cmake_policy(SET CMP0072 NEW)
     find_package(OpenGL REQUIRED)
     add_subdirectory(${EXTERNALS}/dependencies/glad/ Glad)
-    link_libraries(
+    target_link_libraries(${LIB_NAME}
         OpenGL::GL
         Glad
     )
     install(FILES ${CMAKE_BINARY_DIR}/Engine/glad/${CMAKE_BUILD_TYPE}/Glad.lib DESTINATION lib)
 endfunction()
 function(LoadArchitectureSpecific)# Loads includes and libraries specific to 64 bit or 32 bit
-    include_directories(${EXTERNALS}/include${ARGV0})
+    target_include_directories(${LIB_NAME} PRIVATE ${EXTERNALS}/include${ARGV0})
     install(DIRECTORY ${EXTERNALS}/include${ARGV0}/GLFW DESTINATION includes)
 
     import_library(${EXTERNALS}/dependencies${ARGV0}/freetyped.lib)
@@ -44,27 +44,9 @@ project(${PROJECT_NAME}
     VERSION 0.5
     LANGUAGES CXX
 )
-# Add header files.
-set(HEADERS
-    Headers/AudioManager.h
-    Headers/BatchedRenderers.h
-    Headers/Cameras.h
-    Headers/Engine.h
-    Headers/EngineLib.h
-    Headers/Renderers.h
-    Headers/UI.h
-)
-# Add source to this project's executable.
-set(SOURCES
-    AudioManager.cpp
-    BatchedRenderers.cpp
-    Cameras.cpp
-    Engine.cpp
-    EngineLib.cpp
-    Renderers.cpp
-    UI.cpp
-)
 # Add executable.
+file(GLOB HEADERS "${CMAKE_SOURCE_DIR}/Engine/Headers/*.h")
+file(GLOB SOURCES "${CMAKE_SOURCE_DIR}/Engine/*.cpp")
 add_library(${LIB_NAME} ${HEADERS} ${SOURCES})
 MESSAGE("[Engine]: Detecting OS.")
 if (WIN32)
