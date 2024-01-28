@@ -74,12 +74,14 @@ void BatchedSpriteRenderer::draw() {
 void StaticBatchedSpriteRenderer::bufferQuad(BatchedQuadData* data) {
 	if(numQuads>=maxQuadCount) return;//dont try to add more than the max, this should not occur though
 	float texIndex=-1.0f;
-	for(unsigned int i=0u; i<numTextures; i++) {
-		if(textures[i]->ID==data->tex->ID) { texIndex=static_cast<float>(i);break; }
-	}
-	if(texIndex==-1.0f) {
-		if(numTextures>=maxTextures) return;// if out of room for textures in this batch, render and reset
-		texIndex=static_cast<float>(numTextures);textures.push_back(data->tex);numTextures++;
+	if(data->tex!=nullptr) {
+		for(unsigned int i=0u; i<numTextures; i++) {
+			if(textures[i]->ID==data->tex->ID) { texIndex=static_cast<float>(i);break; }
+		}
+		if(texIndex==-1.0f) {
+			if(numTextures>=maxTextures) renderBatch();// if out of room for textures in this batch, render and reset
+			texIndex=static_cast<float>(numTextures);textures.push_back(data->tex);numTextures++;
+		}
 	}
 	Vector2 worldPos=data->getWorldPos();
 	Vector2 worldScale=data->getWorldScale();
