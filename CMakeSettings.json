@@ -8,7 +8,8 @@
       "installRoot": "${projectDir}\\out\\install\\${name}",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "msvc_x86" ]
+      "inheritEnvironments": [ "msvc_x86" ],
+      "cmakeCommandArgs": "-DCMAKE_BUILD_TYPE=Debug"
     },
     {
       "name": "x64",
@@ -18,7 +19,8 @@
       "installRoot": "${projectDir}\\out\\install\\${name}",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "msvc_x64_x64" ]
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "cmakeCommandArgs": "-DCMAKE_BUILD_TYPE=Debug"
     }
   ],
   "generator": "Ninja",

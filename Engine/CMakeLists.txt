@@ -21,8 +21,7 @@ function(LoadDefault)# Loads default includes and libraries
         OpenGL::GL
         Glad
     )
-    install(FILES ${EXTERNALS}/dependencies/glad.c DESTINATION lib)
-    install(DIRECTORY ${EXTERNALS}/dependencies/glad DESTINATION lib)
+    install(FILES ${CMAKE_BINARY_DIR}/Engine/glad/${CMAKE_BUILD_TYPE}/Glad.lib DESTINATION lib)
 endfunction()
 function(LoadArchitectureSpecific)# Loads includes and libraries specific to 64 bit or 32 bit
     include_directories(${EXTERNALS}/include${ARGV0})
