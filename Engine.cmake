@@ -27,6 +27,7 @@ function(LoadEngine)# Loads includes and libraries for the engine
     add_dependencies(${EXEC_NAME} Engine)
     MESSAGE(${CMAKE_BINARY_DIR}/bin/_deps/Engine-lib/include)
     target_include_directories(${EXEC_NAME} PRIVATE ${CMAKE_BINARY_DIR}/bin/_deps/Engine-lib/includes)
+    target_include_directories(${EXEC_NAME} PRIVATE ${CMAKE_BINARY_DIR}/bin/_deps/Engine-lib/includes/PA)
     
     file(GLOB LIBS ${CMAKE_BINARY_DIR}/bin/_deps/Engine-lib/lib/*.lib)
     target_link_libraries(${EXEC_NAME} ${LIBS})
