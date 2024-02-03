@@ -82,7 +82,9 @@ int Sound::SoundPaStreamCallback(
 		for(sf_count_t m=0;m<static_cast<unsigned int>(readCount/channels/self->pitch);m++) {
 			static_cast<float *>(outputBuffer)[m]=static_cast<float>(data[((unsigned int)(m*self->pitch))*channels]*scale);
 		}
-	} else { // If no more data, stop the stream
+		delete[] data;
+	} else delete[] data;
+	if(readCount<length) { // If no more data, stop the stream or loop
 		if(self->loop) {
 			sf_close(self->sndFile);
 			self->sndFile=sf_open(self->filePath.c_str(), SFM_READ, &self->sfInfo);
@@ -91,7 +93,6 @@ int Sound::SoundPaStreamCallback(
 			delete self;
 		}
 	}
-	delete[] data;
 	return 0;
 }
 Sound::Sound(AudioManager *_manager, const std::string &soundFile, const unsigned int &_volume, const bool &_loop) : stream(nullptr), manager(_manager), filePath("Resources/"+soundFile), loop(_loop), volume(_volume) {
