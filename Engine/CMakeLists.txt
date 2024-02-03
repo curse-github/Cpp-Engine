@@ -13,6 +13,7 @@ function(LoadDefault)# Loads default includes and libraries
     install(DIRECTORY ${EXTERNALS}/include/glad DESTINATION includes)
     install(DIRECTORY ${EXTERNALS}/include/KHR DESTINATION includes)
     install(DIRECTORY Headers/ DESTINATION includes/Engine)
+    import_library(${EXTERNALS}/dependencies/sndfile.lib)
     # Link libraries.
     cmake_policy(SET CMP0072 NEW)
     find_package(OpenGL REQUIRED)
@@ -60,6 +61,7 @@ project(${PROJECT_NAME}
 # Add executable.
 file(GLOB HEADERS "${CMAKE_SOURCE_DIR}/Engine/Headers/*.h")
 file(GLOB SOURCES "${CMAKE_SOURCE_DIR}/Engine/*.cpp")
+MESSAGE(${SOURCES})
 add_library(${LIB_NAME} ${HEADERS} ${SOURCES})
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     target_compile_definitions(${LIB_NAME} PRIVATE _ENGINE_DEBUG=1)
