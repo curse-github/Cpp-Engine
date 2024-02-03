@@ -8,7 +8,7 @@
 #include <sndfile.hh>
 
 class Sound;
-class AudioManager {
+class AudioManager : Object {
 	public:
 	bool initialized=false;
 	std::vector<Sound *> sounds;

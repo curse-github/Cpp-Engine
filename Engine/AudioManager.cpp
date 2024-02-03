@@ -1,10 +1,10 @@
 #include "AudioManager.h"
 
-#define Eng_Pa_Check(out) assert((out)==paNoError, "PortError: "<<Pa_GetErrorText(out));
+#define Eng_Pa_Check(out) engine_assert((out)==paNoError, "PortError: "<<Pa_GetErrorText(out));
 #define BUFFER_LEN 1024
 
 #pragma region AudioManager
-AudioManager::AudioManager() {
+AudioManager::AudioManager() : Object() {
 	Eng_Pa_Check(Pa_Initialize());
 	initialized=true;
 }
@@ -17,7 +17,7 @@ AudioManager::~AudioManager() {
 }
 int AudioManager::GetNumDevices() {
 	int numDevices=Pa_GetDeviceCount();
-	assert(numDevices>=0, "[AudioManager]: Pa_CountDevices returned "<<numDevices);
+	engine_assert(numDevices>=0, "[AudioManager]: Pa_CountDevices returned "<<numDevices);
 	return numDevices;
 }
 const PaDeviceInfo *AudioManager::GetActiveDeviceInfo() {
@@ -67,7 +67,8 @@ int Sound::SoundPaStreamCallback(
 
 	int channels=self->sfInfo.channels;
 	unsigned int length=static_cast<unsigned int>(framesPerBuffer*self->pitch)*channels;
-	float *data=new float[length];
+	float *data=(float *)malloc(sizeof(float)*length);
+	engine_assert(data!=nullptr, "[Sound]: Failed to allocate memory for audio data");
 	sf_count_t readCount=sf_read_float(self->sndFile, data, length);
 
 	if(readCount>0u) {
@@ -82,26 +83,28 @@ int Sound::SoundPaStreamCallback(
 		for(sf_count_t m=0;m<static_cast<unsigned int>(readCount/channels/self->pitch);m++) {
 			static_cast<float *>(outputBuffer)[m]=static_cast<float>(data[((unsigned int)(m*self->pitch))*channels]*scale);
 		}
-		delete[length] data;
-	} else delete[length] data;
+	}
+	free(data);
 	if(readCount<length) { // If no more data, stop the stream or loop
 		if(self->loop) {
 			sf_close(self->sndFile);
 			self->sndFile=sf_open(self->filePath.c_str(), SFM_READ, &self->sfInfo);
 		} else {
+			sf_close(self->sndFile);
+			Eng_Pa_Check(Pa_StopStream(self->stream));
 			self->playing=false;
-			delete self;
+			self->ended=false;
 		}
 	}
 	return 0;
 }
 Sound::Sound(AudioManager *_manager, const std::string &soundFile, const unsigned int &_volume, const bool &_loop) : stream(nullptr), manager(_manager), filePath("Resources/"+soundFile), loop(_loop), volume(_volume) {
-	assert(manager->initialized, "[AudioManager]: PortAudio is not setup");
-	assert(!soundFile.empty(), "[AudioManager]: Invalid argument \""<<soundFile<<"\"");
+	engine_assert(manager->initialized, "[Sound]: PortAudio is not setup");
+	engine_assert(!soundFile.empty(), "[Sound]: Invalid argument \""<<soundFile<<"\"");
 	sndFile=sf_open(filePath.c_str(), SFM_READ, &sfInfo);
-	assert(sndFile, "[AudioManager]: File \""<<filePath<<"\" was not found");
+	engine_assert(sndFile, "[Sound]: File \""<<filePath<<"\" was not found");
 	const PaDeviceInfo *deviceInfo=AudioManager::GetActiveDeviceInfo();
-	assert(sfInfo.channels<=deviceInfo->maxOutputChannels, "[AudioManager]: Number of channels exceeds maximum");
+	engine_assert(sfInfo.channels<=deviceInfo->maxOutputChannels, "[Sound]: Number of channels exceeds maximum");
 	// set parameters
 	PaStreamParameters paStreamParameters;
 	paStreamParameters.device=Pa_GetDefaultOutputDevice();
@@ -112,20 +115,25 @@ Sound::Sound(AudioManager *_manager, const std::string &soundFile, const unsigne
 
 	Eng_Pa_Check(Pa_OpenStream(&stream, nullptr, &paStreamParameters,
 		sfInfo.samplerate, paFramesPerBufferUnspecified, paClipOff,
-		SoundPaStreamCallback, this));
+		SoundPaStreamCallback, this)
+	);
 }
 Sound::~Sound() {
 	if(!ended) {
-		ended=true;
+		if(!ended) sf_close(sndFile); // Close the sound file
 		onEnd();
 		Pa_CloseStream(stream);
-		sf_close(sndFile); // Close the sound file
+		ended=true;
 	}
 	for(unsigned int i=0; i<static_cast<unsigned int>(manager->sounds.size()); i++) {
 		if(manager->sounds[i]==this) manager->sounds.erase(manager->sounds.begin()+i);
 	}
 }
 void Sound::Play() {
+	if(ended) {
+		sndFile=sf_open(filePath.c_str(), SFM_READ, &sfInfo);
+		ended=false;
+	}
 	Eng_Pa_Check(Pa_StartStream(stream));
 	playing=true;
 }
