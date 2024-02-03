@@ -76,14 +76,14 @@ int Sound::SoundPaStreamCallback(
 		if(subFormat==SF_FORMAT_FLOAT||subFormat==SF_FORMAT_DOUBLE) {
 			sf_command(self->sndFile, SFC_CALC_SIGNAL_MAX, &scale, sizeof(scale));
 			if(scale<1e-10) scale=1.0;
-			else scale/=32700.0;
+			else scale=1.0/32700.0;
 		}
 		scale*=self->volume/100.0;
 		for(sf_count_t m=0;m<static_cast<unsigned int>(readCount/channels/self->pitch);m++) {
 			static_cast<float *>(outputBuffer)[m]=static_cast<float>(data[((unsigned int)(m*self->pitch))*channels]*scale);
 		}
-		delete[] data;
-	} else delete[] data;
+		delete[length] data;
+	} else delete[length] data;
 	if(readCount<length) { // If no more data, stop the stream or loop
 		if(self->loop) {
 			sf_close(self->sndFile);
