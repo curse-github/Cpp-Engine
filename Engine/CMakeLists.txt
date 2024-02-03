@@ -13,7 +13,6 @@ function(LoadDefault)# Loads default includes and libraries
     install(DIRECTORY ${EXTERNALS}/include/glad DESTINATION includes)
     install(DIRECTORY ${EXTERNALS}/include/KHR DESTINATION includes)
     install(DIRECTORY Headers/ DESTINATION includes/Engine)
-    import_library(${EXTERNALS}/dependencies/sndfile.lib)
     # Link libraries.
     cmake_policy(SET CMP0072 NEW)
     find_package(OpenGL REQUIRED)
@@ -32,6 +31,7 @@ function(LoadArchitectureSpecific)# Loads includes and libraries specific to 64 
     import_library(${EXTERNALS}/dependencies${ARGV0}/glfw-3.3.9.bin.WIN/lib-vc2022/glfw3.lib)
     import_library(${EXTERNALS}/dependencies${ARGV0}/glfw-3.3.9.bin.WIN/lib-vc2022/glfw3dll.lib)
     import_library(${EXTERNALS}/dependencies${ARGV0}/portaudio.lib)
+    import_library(${EXTERNALS}/dependencies${ARGV0}/sndfile.lib)
 
     install(FILES ${EXTERNALS}/include/sndfile.h DESTINATION includes)
     install(FILES ${EXTERNALS}/include/sndfile.hh DESTINATION includes)

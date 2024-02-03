@@ -33,10 +33,6 @@ function(LoadEngine)# Loads includes and libraries for the engine
     file(GLOB LIBS ${CMAKE_BINARY_DIR}/bin/_deps/Engine-lib/lib/*.lib)
     target_link_libraries(${EXEC_NAME} ${LIBS})
     #include port audio dll file
-    if ("${ARGV0}" STREQUAL "64")
-        set(PORTAUDIO_ARCHITECTURE "x64")
-    elseif("${ARGV0}" STREQUAL "32")
-        set(PORTAUDIO_ARCHITECTURE "x86")
-    endif()
-    file(COPY ${CMAKE_BINARY_DIR}/bin/_deps/Engine-lib/dll/portaudio${PORTAUDIO_ARCHITECTURE}.dll DESTINATION ${CMAKE_BINARY_DIR}/bin)
+    file(GLOB DLLS ${CMAKE_BINARY_DIR}/bin/_deps/Engine-lib/dll/*.dll)
+    file(COPY ${DLLS} DESTINATION ${CMAKE_BINARY_DIR}/bin)
 endfunction()
