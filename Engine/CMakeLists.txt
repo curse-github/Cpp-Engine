@@ -39,6 +39,7 @@ function(LoadArchitectureSpecific)# Loads includes and libraries specific to 64 
     install(FILES ${EXTERNALS}/include/sndfile.hh DESTINATION includes)
     file(GLOB PaHeaders ${EXTERNALS}/include/pa_*.h)
     install(FILES ${PaHeaders} DESTINATION includes/PA)
+    install(FILES ${EXTERNALS}/include/portaudio.h DESTINATION includes/PA)
     install(FILES ${EXTERNALS}/dependencies${ARGV0}/portaudio_${PORTAUDIO_ARCHITECTURE}.dll DESTINATION dll)
 endfunction()
 function(installSelf)

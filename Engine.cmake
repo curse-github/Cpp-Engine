@@ -24,11 +24,19 @@ function(LoadEngine)# Loads includes and libraries for the engine
         INSTALL_COMMAND ${CMAKE_COMMAND} --install ${CMAKE_BINARY_DIR}/bin/_deps/Engine-build --prefix ${CMAKE_BINARY_DIR}/bin/_deps/Engine-lib
         TEST_COMMAND ""
     )
+    # make sure engine compiles before your game
     add_dependencies(${EXEC_NAME} Engine)
-    MESSAGE(${CMAKE_BINARY_DIR}/bin/_deps/Engine-lib/include)
+    # include headers
     target_include_directories(${EXEC_NAME} PRIVATE ${CMAKE_BINARY_DIR}/bin/_deps/Engine-lib/includes)
     target_include_directories(${EXEC_NAME} PRIVATE ${CMAKE_BINARY_DIR}/bin/_deps/Engine-lib/includes/PA)
-    
+    #include libs
     file(GLOB LIBS ${CMAKE_BINARY_DIR}/bin/_deps/Engine-lib/lib/*.lib)
     target_link_libraries(${EXEC_NAME} ${LIBS})
+    #include port audio dll file
+    if ("${ARGV0}" STREQUAL "64")
+        set(PORTAUDIO_ARCHITECTURE "x64")
+    elseif("${ARGV0}" STREQUAL "32")
+        set(PORTAUDIO_ARCHITECTURE "x86")
+    endif()
+    file(COPY ${CMAKE_BINARY_DIR}/bin/_deps/Engine-lib/dll/portaudio${PORTAUDIO_ARCHITECTURE}.dll DESTINATION ${CMAKE_BINARY_DIR}/bin)
 endfunction()
