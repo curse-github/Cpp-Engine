@@ -78,8 +78,8 @@ if (!(expression)) {\
 #endif// _ENGINE_DEBUG
 #pragma endregion// assertions
 
-#define PI 3.14159265f
-#define TAU 6.2831853f
+#define PI 3.14159265358979323846f
+#define TAU 6.28318530717958647692f
 
 #include "EngineLib.h"
 
