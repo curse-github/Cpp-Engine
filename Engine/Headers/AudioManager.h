@@ -24,11 +24,13 @@ class AudioManager : Object {
 typedef std::function<void()> voidfunc;
 class Sound {
 	public:
+	std::string filePath;
+	AudioManager *manager;
+	PaStreamParameters paStreamParameters;
+	PaStream *stream;
 	SNDFILE *sndFile=nullptr;
 	SF_INFO sfInfo;
-	PaStream *stream;
-	AudioManager *manager;
-	std::string filePath;
+
 	bool loop;
 	int volume;
 	bool playing=false;

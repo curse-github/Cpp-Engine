@@ -89,11 +89,13 @@ int Sound::SoundPaStreamCallback(
 		if(self->loop) {
 			sf_close(self->sndFile);
 			self->sndFile=sf_open(self->filePath.c_str(), SFM_READ, &self->sfInfo);
+			engine_assert(self->sndFile, "[Sound]: File \""<<self->filePath<<"\" was not found");
 		} else {
 			sf_close(self->sndFile);
-			Eng_Pa_Check(Pa_StopStream(self->stream));
+			Pa_CloseStream(self->stream);
 			self->playing=false;
-			self->ended=false;
+			self->ended=true;
+			self->onEnd();
 		}
 	}
 	return 0;
@@ -106,7 +108,6 @@ Sound::Sound(AudioManager *_manager, const std::string &soundFile, const unsigne
 	const PaDeviceInfo *deviceInfo=AudioManager::GetActiveDeviceInfo();
 	engine_assert(sfInfo.channels<=deviceInfo->maxOutputChannels, "[Sound]: Number of channels exceeds maximum");
 	// set parameters
-	PaStreamParameters paStreamParameters;
 	paStreamParameters.device=Pa_GetDefaultOutputDevice();
 	paStreamParameters.channelCount=1;
 	paStreamParameters.sampleFormat=paFloat32;
@@ -120,24 +121,30 @@ Sound::Sound(AudioManager *_manager, const std::string &soundFile, const unsigne
 }
 Sound::~Sound() {
 	if(!ended) {
-		if(!ended) sf_close(sndFile); // Close the sound file
-		onEnd();
+		sf_close(sndFile); // Close the sound file
 		Pa_CloseStream(stream);
-		ended=true;
+		onEnd();
 	}
 	for(unsigned int i=0; i<static_cast<unsigned int>(manager->sounds.size()); i++) {
 		if(manager->sounds[i]==this) manager->sounds.erase(manager->sounds.begin()+i);
 	}
 }
 void Sound::Play() {
+	if(playing)return;
 	if(ended) {
 		sndFile=sf_open(filePath.c_str(), SFM_READ, &sfInfo);
+		engine_assert(sndFile, "[Sound]: File \""<<filePath<<"\" was not found");
+		Eng_Pa_Check(Pa_OpenStream(&stream, nullptr, &paStreamParameters,
+			sfInfo.samplerate, paFramesPerBufferUnspecified, paClipOff,
+			SoundPaStreamCallback, this)
+		);
 		ended=false;
 	}
 	Eng_Pa_Check(Pa_StartStream(stream));
 	playing=true;
 }
 void Sound::Pause() {
+	if(ended&&!playing) return;
 	Eng_Pa_Check(Pa_StopStream(stream));
 	playing=false;
 }
