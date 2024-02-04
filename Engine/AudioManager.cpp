@@ -91,11 +91,11 @@ int Sound::SoundPaStreamCallback(
 			self->sndFile=sf_open(self->filePath.c_str(), SFM_READ, &self->sfInfo);
 			engine_assert(self->sndFile, "[Sound]: File \""<<self->filePath<<"\" was not found");
 		} else {
-			sf_close(self->sndFile);
 			Pa_CloseStream(self->stream);
+			sf_close(self->sndFile);
 			self->playing=false;
 			self->ended=true;
-			self->onEnd();
+			if(self->onEnd!=nullptr) self->onEnd();
 		}
 	}
 	return 0;
@@ -121,9 +121,11 @@ Sound::Sound(AudioManager *_manager, const std::string &soundFile, const unsigne
 }
 Sound::~Sound() {
 	if(!ended) {
-		sf_close(sndFile); // Close the sound file
 		Pa_CloseStream(stream);
-		onEnd();
+		sf_close(sndFile);
+		playing=false;
+		ended=true;
+		if(onEnd!=nullptr) onEnd();
 	}
 	for(unsigned int i=0; i<static_cast<unsigned int>(manager->sounds.size()); i++) {
 		if(manager->sounds[i]==this) manager->sounds.erase(manager->sounds.begin()+i);
