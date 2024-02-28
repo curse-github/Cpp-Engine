@@ -23,7 +23,7 @@ GLFW:
 	@ar -rs ./bin/libglad.a ./bin/Glad.o > /dev/null
 ./bin/Glad.o: ./Engine/externals/dependencies/glad.c binFolder
 	@echo [MAKE]: Compiling Glad
-	@g++ -c -g -I Engine/externals/ubuntu/include Engine/externals/dependencies/glad.c -o ./bin/Glad.o
+	@g++ -c -g -o ./bin/Glad.o -I Engine/externals/ubuntu/include Engine/externals/dependencies/glad.c
 
 binFolder:
 	@-mkdir bin
