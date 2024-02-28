@@ -61,7 +61,6 @@ project(${PROJECT_NAME}
 # Add executable.
 file(GLOB HEADERS "${CMAKE_SOURCE_DIR}/Engine/Headers/*.h")
 file(GLOB SOURCES "${CMAKE_SOURCE_DIR}/Engine/*.cpp")
-MESSAGE(${SOURCES})
 add_library(${LIB_NAME} ${HEADERS} ${SOURCES})
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     target_compile_definitions(${LIB_NAME} PRIVATE _ENGINE_DEBUG=1)

@@ -1,5 +1,6 @@
 #include "Renderers.h"
 
+#include <ft2build.h>
 #include <freetype/freetype.h>
 
 #pragma region Renderer

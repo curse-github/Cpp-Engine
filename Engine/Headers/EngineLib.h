@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <string>
+#include <cmath>
 
 #define DebugLog(x) std::cout << (x) << "\n";
 void Log();

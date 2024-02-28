@@ -1,2 +1,4 @@
 .vs/*
 builds/*
+install/*
+bin/*
