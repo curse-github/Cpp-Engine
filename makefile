@@ -1,8 +1,6 @@
 ./bin/libengine.a: binFolder ./bin/Engine.o
 	@echo [MAKE]: compressing libengine.a
-	ar -vrs ./bin/libengine.a \
-	./bin/libglad.a ./Engine/externals/ubuntu/dependencies/*.a \
-	./bin/*.o
+	ar -vrs ./bin/libengine.a ./bin/*.o
 	@echo [MAKE]: Done!
 ./bin/Engine.o: binFolder ./Engine/EngineLib.cpp ./Engine/Engine.cpp GLFW ./bin/libglad.a
 	@echo [MAKE]: Compiling Engine.o
@@ -45,6 +43,8 @@ install:
 	@-mkdir install/includes/PA
 	@echo [MAKE]: copying libs
 	@cp ./bin/libengine.a ./install/libs
+	@cp ./bin/libglad.a ./install/libs
+	@cp ./Engine/externals/ubuntu/dependencies/*.a ./install/libs
 	@echo [MAKE]: copying dlls
 	@cp /usr/lib/x86_64-linux-gnu/libglfw.so ./install/dll
 	@cp ./Engine/externals/ubuntu/dependencies/libportaudio.so ./install/dll
