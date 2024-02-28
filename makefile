@@ -47,7 +47,7 @@ install:
 	@cp ./bin/libengine.a ./install/libs
 	@echo [MAKE]: copying dlls
 	@cp /usr/lib/x86_64-linux-gnu/libglfw.so ./install/dll
-	@cp ./Engine/externals/ubuntu/dependencies/libportaudio.so.2.0.0 ./install/dll
+	@cp ./Engine/externals/ubuntu/dependencies/libportaudio.so ./install/dll
 	@echo [MAKE]: copying headers
 	@cp -a ./Engine/Headers/. ./install/includes/Engine
 	@cp -a ./Engine/externals/ubuntu/include/glad/. ./install/includes/glad
