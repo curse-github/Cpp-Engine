@@ -1,8 +1,8 @@
 ./bin/libengine.a: binFolder ./bin/Engine.o
 	@echo [MAKE]: compressing libengine.a
-	@ar -rs ./bin/libengine.a \
+	ar -vrs ./bin/libengine.a \
 	./bin/libglad.a ./Engine/externals/ubuntu/dependencies/*.a \
-	./bin/Engine.o > /dev/null
+	./bin/*.o
 	@echo [MAKE]: Done!
 ./bin/Engine.o: binFolder ./Engine/EngineLib.cpp ./Engine/Engine.cpp GLFW ./bin/libglad.a
 	@echo [MAKE]: Compiling Engine.o
