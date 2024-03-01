@@ -19,6 +19,7 @@ GLFW:
 ./bin/libglad.a: binFolder ./bin/Glad.o
 	@echo [MAKE]: compressing libglad.a
 	@ar -rs ./bin/libglad.a ./bin/Glad.o > /dev/null
+	@rm ./bin/Glad.o
 ./bin/Glad.o: ./Engine/externals/dependencies/glad.c binFolder
 	@echo [MAKE]: Compiling Glad
 	@g++ -c -g -o ./bin/Glad.o -I Engine/externals/ubuntu/include Engine/externals/dependencies/glad.c
