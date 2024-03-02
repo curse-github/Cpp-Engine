@@ -1,13 +1,13 @@
-./bin/libengine.a: binFolder ./bin/Engine.o
+./bin/libengine.a: binEngineFolder ./bin/Engine.o
 	@echo [MAKE]: compressing libengine.a
-	ar -vrs ./bin/libengine.a ./bin/*.o
+	ar -vrs ./bin/libengine.a ./bin/engine/*.o ./bin/libglad.a ./Engine/externals/ubuntu/dependencies/*.a
 	@echo [MAKE]: Done!
-./bin/Engine.o: binFolder ./Engine/EngineLib.cpp ./Engine/Engine.cpp GLFW ./bin/libglad.a
+./bin/Engine.o: binEngineFolder binGladFolder ./Engine/EngineLib.cpp ./Engine/Engine.cpp GLFW ./bin/libglad.a
 	@echo [MAKE]: Compiling Engine.o
-	@cd ./bin;\
+	@cd ./bin/engine;\
 	g++ -c -g \
-	-I ../Engine/Headers -I ../Engine/externals/ubuntu/include -I /usr/include \
-	../Engine/*.cpp
+	-I ../../Engine/Headers -I ../../Engine/externals/ubuntu/include -I /usr/include \
+	../../Engine/*.cpp
 GLFW:
 # installs at /usr/lib/x86_64_linux-gnu/libglfw.so
 # and headers at /usr/include/GLFW/glfw3.h
@@ -16,14 +16,17 @@ GLFW:
 	@sudo apt-get install libglfw3 -y > /dev/null
 	@sudo apt-get install libglfw3-dev -y > /dev/null
 	@echo [MAKE]: finished installing GLFW
-./bin/libglad.a: binFolder ./bin/Glad.o
+./bin/libglad.a: binGladFolder ./bin/glad/glad.o
 	@echo [MAKE]: compressing libglad.a
-	@ar -rs ./bin/libglad.a ./bin/Glad.o > /dev/null
-	@rm ./bin/Glad.o
-./bin/Glad.o: ./Engine/externals/dependencies/glad.c binFolder
+	@ar -rs ./bin/libglad.a ./bin/glad/glad.o > /dev/null
+./bin/glad/glad.o: binGladFolder ./Engine/externals/dependencies/glad.c
 	@echo [MAKE]: Compiling Glad
-	@g++ -c -g -o ./bin/Glad.o -I Engine/externals/ubuntu/include Engine/externals/dependencies/glad.c
+	@g++ -c -g -o ./bin/glad/glad.o -I Engine/externals/ubuntu/include Engine/externals/dependencies/glad.c
 
+binEngineFolder: binFolder
+	@-mkdir ./bin/engine
+binGladFolder: binFolder
+	@-mkdir ./bin/glad
 binFolder:
 	@-mkdir bin
 
@@ -37,19 +40,17 @@ install:
 	@-mkdir install/libs
 	@-mkdir install/dll
 	@-mkdir install/includes
+	@echo [MAKE]: copying libs
+	@cp ./bin/libengine.a ./install/libs
+	@echo [MAKE]: copying dlls
+	@cp /usr/lib/x86_64-linux-gnu/libglfw.so ./install/dll
+	@cp ./Engine/externals/ubuntu/dependencies/libportaudio.so.2.0.0 ./install/dll
+	@echo [MAKE]: copying headers
 	@-mkdir install/includes/Engine
 	@-mkdir install/includes/glad
 	@-mkdir install/includes/GLFW
 	@-mkdir install/includes/KHR
 	@-mkdir install/includes/PA
-	@echo [MAKE]: copying libs
-	@cp ./bin/libengine.a ./install/libs
-	@cp ./bin/libglad.a ./install/libs
-	@cp ./Engine/externals/ubuntu/dependencies/*.a ./install/libs
-	@echo [MAKE]: copying dlls
-	@cp /usr/lib/x86_64-linux-gnu/libglfw.so ./install/dll
-	@cp ./Engine/externals/ubuntu/dependencies/libportaudio.so.2.0.0 ./install/dll
-	@echo [MAKE]: copying headers
 	@cp -a ./Engine/Headers/. ./install/includes/Engine
 	@cp -a ./Engine/externals/ubuntu/include/glad/. ./install/includes/glad
 	@cp -a /usr/include/GLFW/. ./install/includes/GLFW
