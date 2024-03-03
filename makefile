@@ -46,7 +46,8 @@ install:
 	@cp ./builds/ubuntu/*.a ./install/libs
 	@cp ./Engine/externals/ubuntu/dependencies/*.a ./install/libs
 	@echo [Engine]: Copying dlls
-	@cp /usr/lib/x86_64-linux-gnu/*.so ./install/dll
+	@cp /usr/lib/x86_64-linux-gnu/libglfw.so ./install/dll
+	@cp ./Engine/externals/ubuntu/dependencies/*.so ./install/dll
 	@cp ./Engine/externals/ubuntu/dependencies/*.so.* ./install/dll
 	@echo [Engine]: Copying headers
 	@-mkdir install/includes/Engine
