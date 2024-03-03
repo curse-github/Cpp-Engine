@@ -1,18 +1,10 @@
 Library: buildFolder Compile GLFW
 	@echo [Engine]: Compressing libengine.a
-	@ar -rs ./builds/linux/libengine.a ./builds/linux/engine/*.o
-	@echo [Engine]: De-compiling freetype
-	@cd ./builds/linux/freetype;ar -x ../../../Engine/externals/ubuntu/dependencies/libfreetype.a
-	@echo [Engine]: De-compiling portaudio
-	@cd ./builds/linux/portaudio;ar -x ../../../Engine/externals/ubuntu/dependencies/libportaudio.a
-	@echo [Engine]: De-compiling sndfile
-	@cd ./builds/linux/sndfile;ar -x ../../../Engine/externals/ubuntu/dependencies/libsndfile.a
-	@echo [Engine]: Compressing libengineCombined.a
-	@ar -rs ./builds/linux/libengineCombined.a ./builds/linux/engine/*.o ./builds/linux/freetype/*.o ./builds/linux/glad/*.o ./builds/linux/portaudio/*.o ./builds/linux/sndfile/*.o
+	@ar -rs ./builds/ubuntu/libengine.a ./builds/ubuntu/engine/*.o
 	@echo [Engine]: Done!
-Compile: buildFolder GLFW ./builds/linux/libglad.a
+Compile: buildFolder GLFW ./builds/ubuntu/libglad.a
 	@echo [Engine]: Compiling .cpp files
-	@cd ./builds/linux/engine;\
+	@cd ./builds/ubuntu/engine;\
 	g++ -c -g \
 	-I ../../../Engine/Headers -I ../../../Engine/externals/ubuntu/include -I /usr/include \
 	../../../Engine/*.cpp
@@ -24,23 +16,21 @@ GLFW:
 	@sudo apt-get install libglfw3 -y > /dev/null
 	@sudo apt-get install libglfw3-dev -y > /dev/null
 	@echo [Engine]: Finished installing GLFW
-./builds/linux/libglad.a: buildFolder
+./builds/ubuntu/libglad.a: buildFolder
 	@echo [Engine]: Compiling Glad
-	@g++ -c -g -o ./builds/linux/glad/glad.o -I Engine/externals/ubuntu/include Engine/externals/dependencies/glad.c
+	@g++ -c -g -o ./builds/ubuntu/glad/glad.o -I Engine/externals/ubuntu/include Engine/externals/dependencies/glad.c
 	@echo [Engine]: Compressing libglad.a
-	@ar -rs ./builds/linux/libglad.a ./builds/linux/glad/glad.o > /dev/null
+	@ar -rs ./builds/ubuntu/libglad.a ./builds/ubuntu/glad/glad.o > /dev/null
 
 buildFolder:
+	@echo [Engine]: Creating build directories
 	@-mkdir builds
-	@-mkdir ./builds/linux
-	@-mkdir ./builds/linux/glad
-	@-mkdir ./builds/linux/engine
-	@-mkdir ./builds/linux/freetype
-	@-mkdir ./builds/linux/portaudio
-	@-mkdir ./builds/linux/sndfile
-	@-mkdir ./builds/linux/bin
-	@-mkdir ./builds/linux/bin/Data
-	@-mkdir ./builds/linux/bin/Resources
+	@-mkdir ./builds/ubuntu
+	@-mkdir ./builds/ubuntu/engine
+	@-mkdir ./builds/ubuntu/glad
+	@-mkdir ./builds/ubuntu/bin
+	@-mkdir ./builds/ubuntu/bin/Data
+	@-mkdir ./builds/ubuntu/bin/Resources
 
 clean:
 	-rm -rf builds
@@ -53,11 +43,11 @@ install:
 	@-mkdir install/dll
 	@-mkdir install/includes
 	@echo [Engine]: Copying libs
-	@cp ./builds/linux/*.a ./install/libs
+	@cp ./builds/ubuntu/*.a ./install/libs
 	@cp ./Engine/externals/ubuntu/dependencies/*.a ./install/libs
 	@echo [Engine]: Copying dlls
-	@cp /usr/lib/x86_64-linux-gnu/libglfw.so ./install/dll
-	@cp ./Engine/externals/ubuntu/dependencies/libportaudio.so.2.0.0 ./install/dll
+	@cp /usr/lib/x86_64-linux-gnu/*.so ./install/dll
+	@cp ./Engine/externals/ubuntu/dependencies/*.so.* ./install/dll
 	@echo [Engine]: Copying headers
 	@-mkdir install/includes/Engine
 	@-mkdir install/includes/glad
