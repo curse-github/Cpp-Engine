@@ -1,7 +1,7 @@
 #include "AudioManager.h"
 
 #define Eng_Pa_Check(out) engine_assert((out)==paNoError, "PortError: "<<Pa_GetErrorText(out));
-#define BUFFER_LEN 1024
+#define FramesPerBuffer 512
 
 #pragma region AudioManager
 AudioManager::AudioManager() : Object() {
@@ -115,7 +115,7 @@ Sound::Sound(AudioManager *_manager, const std::string &soundFile, const unsigne
 	paStreamParameters.hostApiSpecificStreamInfo=nullptr;
 
 	Eng_Pa_Check(Pa_OpenStream(&stream, nullptr, &paStreamParameters,
-		sfInfo.samplerate, BUFFER_LEN, paClipOff,
+		sfInfo.samplerate, FramesPerBuffer, paClipOff,
 		SoundPaStreamCallback, this)
 	);
 }
@@ -137,7 +137,7 @@ void Sound::Play() {
 		sndFile=sf_open(filePath.c_str(), SFM_READ, &sfInfo);
 		engine_assert(sndFile, "[Sound]: File \""<<filePath<<"\" was not found");
 		Eng_Pa_Check(Pa_OpenStream(&stream, nullptr, &paStreamParameters,
-			sfInfo.samplerate, BUFFER_LEN, paClipOff,
+			sfInfo.samplerate, FramesPerBuffer, paClipOff,
 			SoundPaStreamCallback, this)
 		);
 		ended=false;
