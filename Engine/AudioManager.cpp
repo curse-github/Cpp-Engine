@@ -115,7 +115,7 @@ Sound::Sound(AudioManager *_manager, const std::string &soundFile, const unsigne
 	paStreamParameters.hostApiSpecificStreamInfo=nullptr;
 
 	Eng_Pa_Check(Pa_OpenStream(&stream, nullptr, &paStreamParameters,
-		sfInfo.samplerate, paFramesPerBufferUnspecified, paClipOff,
+		sfInfo.samplerate, BUFFER_LEN, paClipOff,
 		SoundPaStreamCallback, this)
 	);
 }
@@ -137,7 +137,7 @@ void Sound::Play() {
 		sndFile=sf_open(filePath.c_str(), SFM_READ, &sfInfo);
 		engine_assert(sndFile, "[Sound]: File \""<<filePath<<"\" was not found");
 		Eng_Pa_Check(Pa_OpenStream(&stream, nullptr, &paStreamParameters,
-			sfInfo.samplerate, paFramesPerBufferUnspecified, paClipOff,
+			sfInfo.samplerate, BUFFER_LEN, paClipOff,
 			SoundPaStreamCallback, this)
 		);
 		ended=false;
