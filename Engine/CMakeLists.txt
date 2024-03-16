@@ -16,12 +16,12 @@ function(LoadDefault)# Loads default includes and libraries
     # Link libraries.
     cmake_policy(SET CMP0072 NEW)
     find_package(OpenGL REQUIRED)
-    add_subdirectory(${EXTERNALS}/dependencies/glad/ glad)
-    target_link_libraries(${LIB_NAME}
-        OpenGL::GL
-        glad
-    )
-    install(FILES ${CMAKE_BINARY_DIR}/Engine/glad/${CMAKE_BUILD_TYPE}/glad.lib DESTINATION lib)
+    #add_subdirectory(${EXTERNALS}/dependencies/glad/ glad)
+    #target_link_libraries(${LIB_NAME}
+    #    OpenGL::GL
+    #    glad
+    #)
+    #install(FILES ${CMAKE_BINARY_DIR}/Engine/glad/${CMAKE_BUILD_TYPE}/glad.lib DESTINATION lib)
 endfunction()
 function(LoadArchitectureSpecific)# Loads includes and libraries specific to 64 bit or 32 bit
     target_include_directories(${LIB_NAME} PRIVATE ${EXTERNALS}/include${ARGV0})
@@ -61,7 +61,7 @@ project(${PROJECT_NAME}
 # Add executable.
 file(GLOB HEADERS "${CMAKE_SOURCE_DIR}/Engine/Headers/*.h")
 file(GLOB SOURCES "${CMAKE_SOURCE_DIR}/Engine/*.cpp")
-add_library(${LIB_NAME} ${HEADERS} ${SOURCES})
+add_library(${LIB_NAME} ${HEADERS} ${SOURCES} ${EXTERNALS}/dependencies/glad.c)
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     target_compile_definitions(${LIB_NAME} PRIVATE _ENGINE_DEBUG=1)
 endif()
