@@ -129,6 +129,8 @@ class Engine {
 	void Close();
 	void Delete();
 	void SetCursorMode(const int& mode);
+	void Fullscreen();
+	void Fullscreen(GLFWmonitor *monitor);
 
 	std::vector<Object*> onResize;
 	std::vector<Object*> onKey;

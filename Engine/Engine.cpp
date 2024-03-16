@@ -156,8 +156,18 @@ void Engine::Delete() {
 	glfwTerminate();
 }
 void Engine::SetCursorMode(const int& mode) {
+	if(ended) return;
 	glfwSetInputMode(window, GLFW_CURSOR, mode);
 	curMousePos=Vector2(-1.0f, -1.0f);
+}
+void Engine::Fullscreen() {
+	if(ended) return;
+	Fullscreen(glfwGetPrimaryMonitor());
+}
+void Engine::Fullscreen(GLFWmonitor *monitor) {
+	if(ended) return;
+	const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+	glfwSetWindowMonitor (window, monitor, 0, 0, mode->width, mode->height, NULL);
 }
 
 #pragma region subFuncs

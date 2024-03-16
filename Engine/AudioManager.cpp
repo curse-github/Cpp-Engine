@@ -81,7 +81,7 @@ int Sound::SoundPaStreamCallback(
 		}
 		scale*=self->volume/100.0;
 		for(sf_count_t m=0;m<static_cast<unsigned int>(readCount/channels/self->pitch);m++) {
-			static_cast<float *>(outputBuffer)[m]=static_cast<float>(data[((unsigned int)(m*self->pitch))*channels]*scale);
+			static_cast<float *>(outputBuffer)[m]=static_cast<float>(data[static_cast<unsigned int>(m*self->pitch)*channels]*scale);
 		}
 	}
 	free(data);
