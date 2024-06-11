@@ -2,6 +2,7 @@
 
 #pragma region BatchedSpriteRenderer
 void BatchedSpriteRenderer::bufferQuad(BatchedQuadData* data) {
+	if (!data->active) return;
 	float texIndex=-1.0f;
 	if(data->tex!=nullptr) {
 		for(unsigned int i=0u; i<numTextures; i++) {
@@ -72,6 +73,7 @@ void BatchedSpriteRenderer::draw() {
 
 #pragma region StaticBatchedSpriteRenderer
 void StaticBatchedSpriteRenderer::bufferQuad(BatchedQuadData* data) {
+	if (!data->active) return;
 	if(numQuads>=maxQuadCount) return;//dont try to add more than the max, this should not occur though
 	float texIndex=-1.0f;
 	if(data->tex!=nullptr) {
@@ -204,6 +206,7 @@ BatchedTextData* BatchedTextRenderer::addText(const std::string& _text, const Ve
 }
 void BatchedTextRenderer::draw() {
 	for(BatchedTextData* _text:text) {
+		if (!_text->active) continue;
 		// iterate through all characters to find scale of full text block
 		Vector2 tmpScale=Vector2(0.0f, 9.0f);
 		float curX=0.0f;
@@ -419,6 +422,7 @@ void StaticBatchedLineRenderer::draw() {
 
 #pragma region BatchedDotRenderer
 void BatchedDotRenderer::bufferDot(BatchedDotData* data) {
+	if (!data->active) return;
 	float texIndex=-1.0f;
 	if(data->tex!=nullptr) {
 		for(unsigned int i=0u; i<numTextures; i++) {
@@ -488,6 +492,7 @@ void BatchedDotRenderer::draw() {
 
 #pragma region StaticBatchedDotRenderer
 void StaticBatchedDotRenderer::bufferDot(BatchedDotData* data) {
+	if (!data->active) return;
 	float texIndex=-1.0f;
 	if(data->tex!=nullptr) {
 		for(unsigned int i=0u; i<numTextures; i++) {
@@ -570,6 +575,7 @@ Vector2 translateRotateScaleUvs(const Vector2& uv, const Vector2i& atlasSize, co
 	}
 }
 void BatchedSpritesheetRenderer::bufferQuad(BatchedAtlasedSpriteData* data) {
+	if (!data->active) return;
 	float texIndex=-1.0f;
 	for(unsigned int i=0u; i<numTextures; i++) {
 		if(textures[i]->ID==data->tex->ID) { texIndex=static_cast<float>(i);break; }
@@ -639,6 +645,7 @@ void BatchedSpritesheetRenderer::draw() {
 
 #pragma region StaticBatchedSpritesheetRenderer
 void StaticBatchedSpritesheetRenderer::bufferQuad(BatchedAtlasedSpriteData* data) {
+	if (!data->active) return;
 	float texIndex=-1.0f;
 	for(unsigned int i=0; i<numTextures; i++) {
 		if(textures[i]->ID==data->tex->ID) { texIndex=static_cast<float>(i);break; }
@@ -709,6 +716,7 @@ void StaticBatchedSpritesheetRenderer::draw() {
 
 #pragma region BatchedSpritesheetAnimationRenderer
 void BatchedSpritesheetAnimationRenderer::bufferQuad(BatchedAtlasedAnimationData* data) {
+	if (!data->active) return;
 	float texIndex=-1.0f;
 	for(unsigned int i=0u; i<numTextures; i++) {
 		if(textures[i]->ID==data->tex->ID) { texIndex=static_cast<float>(i);break; }
