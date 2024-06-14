@@ -664,6 +664,7 @@ void IndexBufferObject::dynamicSub(std::vector<unsigned int> indices) {
 
 #pragma region StencilSimple
 void StencilSimple::Enable() {
+	glClear(GL_STENCIL_BUFFER_BIT);
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 }
