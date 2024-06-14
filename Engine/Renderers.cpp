@@ -215,9 +215,9 @@ void LineRenderer::draw() {
 #pragma endregion// LineRenderer
 #pragma region DotRenderer
 const float DotRenderer::vertices[15] {
-	2.0f*cosf(90.0f/180.0f*PI), 2.0f*sinf(90.0f/180.0f*PI), 0.0f, 0.5f+cosf(90.0f/180.0f*PI), -0.5f+sinf(90.0f/180.0f*PI),
-	2.0f*cosf(210.0f/180.0f*PI), 2.0f*sinf(210.0f/180.0f*PI), 0.0f, 0.5f+cosf(210.0f/180.0f*PI), -0.5f+sinf(210.0f/180.0f*PI),
-	2.0f*cosf(330.0f/180.0f*PI), 2.0f*sinf(330.0f/180.0f*PI), 0.0f, 0.5f+cosf(330.0f/180.0f*PI), -0.5f+sinf(330.0f/180.0f*PI),
+	2.0f*cosf(90.0f/180.0f*PI), 2.0f*sinf(90.0f/180.0f*PI), 0.0f, 0.5f+cosf(90.0f/180.0f*PI), 0.5f+sinf(90.0f/180.0f*PI),
+	2.0f*cosf(210.0f/180.0f*PI), 2.0f*sinf(210.0f/180.0f*PI), 0.0f, 0.5f+cosf(210.0f/180.0f*PI), 0.5f+sinf(210.0f/180.0f*PI),
+	2.0f*cosf(330.0f/180.0f*PI), 2.0f*sinf(330.0f/180.0f*PI), 0.0f, 0.5f+cosf(330.0f/180.0f*PI), 0.5f+sinf(330.0f/180.0f*PI),
 };
 DotRenderer::DotRenderer(Shader* _shader, const float& _radius, const Vector2& _position, const float& _zIndex, const Vector2& _anchor) :
 	Renderer2D(_shader, _position, _zIndex, Vector2(_radius), _anchor, 0.0f), radius(_radius) {
