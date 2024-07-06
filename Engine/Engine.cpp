@@ -319,7 +319,7 @@ Mat4x4 Transform2D::getModelMat() {
 }
 
 void Transform2D::setWorldPos(Vector2 pos) {
-	if(parent!=nullptr) pos-parent->getWorldPos();
+	if(parent!=nullptr) position=pos-parent->getWorldPos();
 	else position=pos;
 }
 #pragma endregion// Transforms
