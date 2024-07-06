@@ -77,6 +77,7 @@ SpriteRenderer::SpriteRenderer(Shader* _shader, const Vector2& _position, const 
 	VBO->applyAttributes({ 3, 2 });
 }
 void SpriteRenderer::draw() {
+	if (!this->isActive()) return;
 	shader->bindTextures();
 	shader->setMat4x4("model", getModelMat());
 	VAO->drawTriStrip(4);
@@ -146,6 +147,7 @@ TextRenderer::TextRenderer(Shader* _shader, const std::string& _text, const Vect
 	shader->setFloat("text", 0);
 }
 void TextRenderer::draw() {
+	if (!this->isActive()) return;
 	shader->setFloat4("textColor", color);
 	// iterate through all characters to find full text block
 	Vector2 tmpScale=Vector2(0.0f, 9.0f);
@@ -208,6 +210,7 @@ LineRenderer::LineRenderer(Shader* _shader, const std::vector<Vector2>& _positio
 	VBO->applyAttributes({ 3, 2 });
 }
 void LineRenderer::draw() {
+	if (!this->isActive()) return;
 	shader->bindTextures();
 	shader->setMat4x4("model", scaleMat(Vector3((transform.parent!=nullptr ? transform.parent->getWorldScale() : Vector2(1.0f, 1.0f)), 0.0f))*translate(Vector3(getWorldPos(), 100.0f-getZIndex())));
 	VAO->drawLine(static_cast<unsigned int>(positions.size()), width, loop, true);
@@ -225,6 +228,7 @@ DotRenderer::DotRenderer(Shader* _shader, const float& _radius, const Vector2& _
 	VBO->applyAttributes({ 3, 2 });
 }
 void DotRenderer::draw() {
+	if (!this->isActive()) return;
 	shader->bindTextures();
 	shader->setMat4x4("model", getModelMat());
 	VAO->drawTris(3);
@@ -243,6 +247,7 @@ void SpritesheetRenderer::update() {
 	shader->setFloat("uvRot", deg_to_rad(texRot));
 }
 void SpritesheetRenderer::draw() {
+	if (!this->isActive()) return;
 	shader->bindTextures();
 	shader->setMat4x4("model", getModelMat());
 	VAO->drawTriStrip(4);
