@@ -63,6 +63,11 @@ void UiHandler::on_loop(const double& delta) {
 		el->on_loop(delta);
 	}
 }
+void UiHandler::on_mouse(const double &mouseX, const double &mouseY) {
+	for(UiElement *el:uiElements) {
+		if (el->isPressed) el->on_mouse(mouseX,mouseY);
+	}
+}
 void UiHandler::selectElement(UiElement* el) {
 	if(selected) selected->selected=false;
 	selected=el;
@@ -75,6 +80,7 @@ UiHandler::UiHandler(OrthoCam* _cam) :
 	instance=this;
 	Engine::instance->sub_key(this);
 	Engine::instance->sub_loop(this);
+	Engine::instance->sub_mouse(this);
 	clickableHandler->on_click_background=[&]() {
 		this->selected=nullptr;
 		};
@@ -88,16 +94,26 @@ BatchedQuadData* UiHandler::Quad(const Vector4& _modulate, const Vector2& _posit
 BatchedTextData* UiHandler::Text(const std::string& _text, const Vector4& color, const Vector2& _position, const float& _zIndex, const float& _scale, const Vector2& _anchor) {
 	return textRenderer->addText(_text, color, _position, _zIndex, _scale, _anchor);
 }
+BatchedDotData *UiHandler::TexturedDot(const Vector4 &modulate, Texture *tex, const float &radius, const Vector2 &_position, const float &_zIndex, const Vector2 &_scale, const Vector2 &_anchor) {
+	return dotRenderer->addTexturedDot(modulate, tex, radius, _position, _zIndex, _scale, _anchor);
+}
+BatchedDotData *UiHandler::Dot(const Vector4 &modulate, const float &radius, const Vector2 &_position, const float &_zIndex, const Vector2 &_scale, const Vector2 &_anchor) {
+	return dotRenderer->addDot(modulate, radius, _position, _zIndex, _scale, _anchor);
+}
 Button* UiHandler::createButton(const Vector4& _color, const Vector4& _hoverColor, const Vector4& _pressedColor, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
 	return new Button(this, this->clickableHandler, _color, _hoverColor, _pressedColor, _position, _zIndex, _scale, _anchor);
 }
 TextInput* UiHandler::createTextInput(const std::string& _value, const std::string& _placeholder, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
 	return new TextInput(this, this->clickableHandler, _value, _placeholder, _position, _zIndex, _scale, _anchor);
 }
+Checkbox *UiHandler::createCheckbox(const Vector4 &_checkedColor, const Vector4 &_uncheckedColor, const Vector2 &_position, const float &_zIndex, const Vector2 &_scale, const Vector2 &_anchor) {
+	return new Checkbox(this, this->clickableHandler, _checkedColor, _uncheckedColor, _position, _zIndex, _scale, _anchor);
+}
 void UiHandler::draw() {
 	glClear(GL_DEPTH_BUFFER_BIT);
 	spriteRenderer->draw();
 	textRenderer->draw();
+	dotRenderer->draw();
 }
 #pragma endregion// UiHandler
 #pragma region Button
@@ -177,12 +193,15 @@ void TextInput::on_key(const int& key, const int& scancode, const int& action, c
 			if(!value.empty()) value.erase(value.size()-1);
 			update();
 		} else if(key==GLFW_KEY_ENTER) {
-			if(!value.empty()) {
-				if(onenter) onenter(value);
-				if(clearOnEnter) value="";
-				update();
-			}
+			Submit();
 		}
+	}
+}
+void TextInput::Submit() {
+	if(!value.empty()) {
+		if(onenter) onenter(value);
+		if(clearOnEnter) value="";
+		update();
 	}
 }
 void TextInput::update() {
@@ -200,3 +219,64 @@ TextInput::TextInput(UiHandler* _handler, ClickDetector* _detector, const std::s
 	quad->addChild(text);
 }
 #pragma endregion/ TextInput
+#pragma region Checkbox
+void Checkbox::on_click(const Vector2 &pos) {}
+void Checkbox::on_release(const Vector2 &pos) {
+	UiElement::on_release(pos);
+	checked=!checked;
+	quad->modulate=checked ? checkedColor : uncheckedColor;
+	if(checked) { if(oncheck) oncheck(); } else { if(onuncheck)onuncheck(); }
+}
+void Checkbox::on_hover(const Vector2 &pos) {
+	if(onhover) onhover();
+}
+void Checkbox::on_unhover(const Vector2 &pos) {
+	if(onunhover) onunhover();
+}
+void Checkbox::on_key(const int &key, const int &scancode, const int &action, const int &mods) {
+	if(action>GLFW_RELEASE&&key==GLFW_KEY_ENTER) {
+		on_click(Vector2::ZERO);
+		on_release(Vector2::ZERO);
+	}
+}
+Checkbox::Checkbox(UiHandler *_handler, ClickDetector *_detector, const Vector4 &_checkedColor, const Vector4 &_uncheckedColor, const Vector2 &_position, const float &_zIndex, const Vector2 &_scale, const Vector2 &_anchor) :
+	hasTransform2D(_position, _zIndex, _scale, _anchor), UiElement(_handler, _detector), quad(nullptr), uncheckedColor(_uncheckedColor), checkedColor(_checkedColor) {
+	quad=handler->Quad(checked ? checkedColor : uncheckedColor, Vector2::ZERO, _zIndex, Vector2::ONE, _anchor);
+	addChild(quad);
+}
+#pragma endregion// Checkbox
+#pragma region HorizontalSlider
+#define _ENGINE_DEBUG 1
+void HorizontalSlider::on_mouse(const double &mouseX, const double &mouseY) {
+	Vector2 res=Engine::instance->curResolution;
+	OrthoCam* cam = detector->cam;
+	Vector2 camScale=cam->scale;
+	Vector2 mouse=cam->getWorldPos()+Vector2((mouseX/res.x-0.5f)*camScale.x, (0.5f-mouseY/res.y)*camScale.y);
+	Vector2 quadPos = quad->getWorldPos();
+	Vector2 quadScale = quad->getWorldScale();
+	Vector2 transformScale = transform.scale;
+	value = std::max(0.0f,std::min(((mouse.x-quadPos.x)/quadScale.x)+1.0f,1.0f));
+	dot->position = Vector2((value-1.0f)*quadScale.x-transformScale.y/3.0f, 0.5f*transformScale.y);
+	value=minValue+value*(maxValue-minValue);
+	if (onchange) onchange(value);
+}
+HorizontalSlider::HorizontalSlider(UiHandler *_handler, ClickDetector *_detector, const Vector4 &_barColor, const Vector4 &_sliderColor, const float &_value, const Vector2 &_position, const float &_zIndex, const Vector2 &_scale, const Vector2 &_anchor) :
+	hasTransform2D(_position, _zIndex, _scale, _anchor), UiElement(_handler, _detector), quad(nullptr), barColor(_barColor), sliderColor(_sliderColor), value(_value) {
+	Vector2 barPos(0.0f-transform.scale.y/3.0f, 0.5f*transform.scale.y);
+	Vector2 barSize(1.0f-transform.scale.y/1.5f/transform.scale.x, 1/3.0f);
+	quad=handler->Quad(barColor, barPos, _zIndex, barSize, Vector2::RightCenter);
+	addChild(quad);
+	dot=handler->Dot(sliderColor, 1.0f, Vector2(0.0f, 0.5f*transform.scale.y), _zIndex+1.0f, Vector2((1/3.0f)/transform.scale.x*transform.scale.y, 1/3.0f), Vector2::Center);
+	addChild(dot);
+}
+void HorizontalSlider::setValue(float _value) {
+	value=_value;
+	Vector2 quadScale = quad->getWorldScale();
+	Vector2 transformScale = transform.scale;
+	dot->position = Vector2((value/(maxValue-minValue)-minValue-1.0f)*quadScale.x-transformScale.y/3.0f, 0.5f*transformScale.y);
+	if (onchange) onchange(value);
+}
+float HorizontalSlider::getValue() {
+	return value;
+}
+#pragma endregion// HorizontalSlider
