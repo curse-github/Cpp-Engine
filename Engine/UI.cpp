@@ -75,7 +75,7 @@ void UiHandler::selectElement(UiElement* el) {
 }
 UiHandler* UiHandler::instance=nullptr;
 UiHandler::UiHandler(OrthoCam* _cam) :
-	Object(), cam(_cam), clickableHandler(new ClickDetector(_cam)), spriteRenderer(new BatchedSpriteRenderer(_cam)), textRenderer(new BatchedTextRenderer(_cam)) {
+	Object(), cam(_cam), clickableHandler(new ClickDetector(_cam)), spriteRenderer(new BatchedSpriteRenderer(_cam)), textRenderer(new BatchedTextRenderer(_cam)), dotRenderer(new BatchedDotRenderer(_cam)) {
 	engine_assert(cam!=nullptr, "[UiHandler]: cam is nullptr");
 	instance=this;
 	Engine::instance->sub_key(this);
