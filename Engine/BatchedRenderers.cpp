@@ -137,7 +137,7 @@ void StaticBatchedSpriteRenderer::bind() {
 	numTextures=0u;
 	quadVerticesBuffer.reserve(std::min(quads.size(), static_cast<size_t>(maxQuadCount))*4u);// we know there will be 4 vertices per quad so reserve the memory for that many vertices
 	for(BatchedQuadData* quad:quads) bufferQuad(quad);
-	VBO->dynamicSub((float*)(&quadVerticesBuffer[0u]), static_cast<size_t>(10u*4u*numQuads));//10 floats per vertex, 4 vertices per quad
+	if (numQuads!=0u) VBO->dynamicSub((float*)(&quadVerticesBuffer[0u]), static_cast<size_t>(10u*4u*numQuads));//draw 10 floats per vertex, 4 vertices per quad
 	quadVerticesBuffer.clear();// clear out the memory for it, it is no longer being used
 }
 void StaticBatchedSpriteRenderer::draw() {
@@ -412,7 +412,7 @@ void StaticBatchedLineRenderer::bind() {
 	numVertices=0u;
 	for(BatchedLineData* line:lines) bufferLine(line);
 	for(BatchedRectData* rect:rects) bufferRect(rect);
-	VBO->dynamicSub((float*)(&verticesBuffer[0u]), static_cast<size_t>(10u*numVertices));//10 floats per vertex
+	if (numVertices!=0u) VBO->dynamicSub((float*)(&verticesBuffer[0u]), static_cast<size_t>(10u*numVertices));//10 floats per vertex
 	verticesBuffer.clear();// clear out the memory for it, it is no longer being used
 }
 void StaticBatchedLineRenderer::draw() {
@@ -554,7 +554,7 @@ void StaticBatchedDotRenderer::bind() {
 	// reserve space for vertices equal to the amount of dots x 4
 	if(dots.size()<=maxDotCount) dotVerticesBuffer.reserve(dots.size()*3u); else dotVerticesBuffer.reserve(maxVertices);
 	for(BatchedDotData* dot:dots) bufferDot(dot);
-	VBO->dynamicSub((float*)(&dotVerticesBuffer[0u]), static_cast<size_t>(10u*3u*numDots));//10 floats per vertex, 4 vertices per quad
+	if (numDots!=0u) VBO->dynamicSub((float*)(&dotVerticesBuffer[0u]), static_cast<size_t>(10u*3u*numDots));//10 floats per vertex, 4 vertices per quad
 	dotVerticesBuffer.clear();// clear out the memory for it, it is no longer being used
 }
 void StaticBatchedDotRenderer::draw() {
@@ -706,7 +706,7 @@ void StaticBatchedSpritesheetRenderer::bind() {
 	numTextures=0u;
 	quadVerticesBuffer.reserve(std::min(quads.size(), static_cast<size_t>(maxQuadCount))*4u);// we know there will be 4 vertices per quad so reserve the memory for that many vertices
 	for(BatchedAtlasedSpriteData* quad:quads) bufferQuad(quad);
-	VBO->dynamicSub((float*)(&quadVerticesBuffer[0u]), static_cast<size_t>(10u*4u*numQuads));//10 floats per vertex, 4 vertices per quad
+	if (numQuads!=0u) VBO->dynamicSub((float*)(&quadVerticesBuffer[0u]), static_cast<size_t>(10u*4u*numQuads));//10 floats per vertex, 4 vertices per quad
 	quadVerticesBuffer.clear();// clear out the memory for it, it is no longer being used
 }
 void StaticBatchedSpritesheetRenderer::draw() {
