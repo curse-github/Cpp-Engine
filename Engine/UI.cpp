@@ -69,7 +69,7 @@ void UiHandler::on_mouse(const double &mouseX, const double &mouseY) {
 	}
 }
 void UiHandler::selectElement(UiElement* el) {
-	if(selected) selected->selected=false;
+	if(selected!=nullptr) selected->selected=false;
 	selected=el;
 	el->selected=true;
 }
@@ -82,8 +82,11 @@ UiHandler::UiHandler(OrthoCam* _cam) :
 	Engine::instance->sub_loop(this);
 	Engine::instance->sub_mouse(this);
 	clickableHandler->on_click_background=[&]() {
-		this->selected=nullptr;
-		};
+		if(this->selected!=nullptr) {
+			this->selected->selected=false;
+			this->selected=nullptr;
+		}
+	};
 }
 BatchedQuadData* UiHandler::Sprite(const Vector4& _modulate, Texture* tex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
 	return spriteRenderer->addSprite(_modulate, tex, _position, _zIndex, _scale, _anchor);
