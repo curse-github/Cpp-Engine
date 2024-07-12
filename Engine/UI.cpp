@@ -212,10 +212,9 @@ TextInput::TextInput(UiHandler* _handler, ClickDetector* _detector, const std::s
 	hasTransform2D(_position, _zIndex, _scale, _anchor), UiElement(_handler, _detector), quad(nullptr), text(nullptr), value(_value), placeholder(_placeholder) {
 	quad=handler->Quad(Vector4(Vector3(0.25f), 1.0f), Vector2::ZERO, _zIndex, Vector2::ONE, _anchor);
 	addChild(quad);
-	Vector2 textPos=Vector2(-_scale.x+9.0f, _scale.y/2.0f);
 	float textZIndex=getZIndex()+1.0f;
-	if(!value.empty()) text=handler->Text(value, Vector4::ONE, textPos, textZIndex, 2.0f, Vector2::LeftCenter);
-	else text=handler->Text(placeholder, Vector4(Vector3(0.5f), 1.0f), textPos, textZIndex, 2.0f, Vector2::LeftCenter);
+	if(!value.empty()) text=handler->Text(value, Vector4::ONE, Vector2::ZERO, textZIndex, 2.0f, Vector2::LeftCenter);
+	else text=handler->Text(placeholder, Vector4(Vector3(0.5f), 1.0f), Vector2::ZERO, textZIndex, 2.0f, Vector2::LeftCenter);
 	quad->addChild(text);
 }
 #pragma endregion/ TextInput
