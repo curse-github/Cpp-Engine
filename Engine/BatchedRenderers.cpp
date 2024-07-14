@@ -1,5 +1,16 @@
 #include "BatchedRenderers.h"
 
+Vector2 translateRotateScaleUvs(const Vector2& uv, const float& texRot) {
+	if(texRot!=0.0f) {
+		float rad=deg_to_rad(texRot);
+		return Vector2(
+			(cosf(rad)*(uv.x-0.5f)+sinf(rad)*(uv.y-0.5f)+0.5f),
+			(cosf(rad)*(uv.y-0.5f)-sinf(rad)*(uv.x-0.5f)+0.5f)
+		);
+	} else {
+		return uv;
+	}
+}
 #pragma region BatchedSpriteRenderer
 void BatchedSpriteRenderer::bufferQuad(BatchedQuadData* data) {
 	if (!data->isActive()) return;
@@ -15,12 +26,14 @@ void BatchedSpriteRenderer::bufferQuad(BatchedQuadData* data) {
 	}
 	Vector2 worldPos=data->getWorldPos();
 	Vector2 worldScale=data->getWorldScale();
+	float worldRot=data->getWorldRot();
 	for(unsigned int i=0u; i<4u*5u; i+=5u) {
+		Vector2 newUv=translateRotateScaleUvs(Vector2(SpriteRenderer::quadvertices[i+3u], SpriteRenderer::quadvertices[i+4u]), worldRot);
 		Vector2 tmp=Vector2(SpriteRenderer::quadvertices[i+0u], SpriteRenderer::quadvertices[i+1u])-data->anchor;
 		quadVerticesBuffer.push_back((BatchedVertex&&)BatchedVertex(
 			worldPos+Vector2(tmp.x*worldScale.x, tmp.y*worldScale.y),
 			data->zIndex-100.0f,
-			Vector2(SpriteRenderer::quadvertices[i+3u], SpriteRenderer::quadvertices[i+4u]),
+			newUv,
 			data->modulate,
 			texIndex
 		));
@@ -87,12 +100,14 @@ void StaticBatchedSpriteRenderer::bufferQuad(BatchedQuadData* data) {
 	}
 	Vector2 worldPos=data->getWorldPos();
 	Vector2 worldScale=data->getWorldScale();
+	float worldRot=data->getWorldRot();
 	for(unsigned int i=0u; i<4u*5u; i+=5u) {
+		Vector2 newUv=translateRotateScaleUvs(Vector2(SpriteRenderer::quadvertices[i+3u], SpriteRenderer::quadvertices[i+4u]), worldRot);
 		Vector2 tmp=Vector2(SpriteRenderer::quadvertices[i+0u], SpriteRenderer::quadvertices[i+1u])-data->anchor;
 		quadVerticesBuffer.push_back((BatchedVertex&&)BatchedVertex(
 			worldPos+Vector2(tmp.x*worldScale.x, tmp.y*worldScale.y),
 			data->zIndex-100.0f,
-			Vector2(SpriteRenderer::quadvertices[i+3u], SpriteRenderer::quadvertices[i+4u]),
+			newUv,
 			data->modulate,
 			texIndex
 		));
@@ -563,17 +578,6 @@ void StaticBatchedDotRenderer::draw() {
 #pragma endregion// StaticBatchedDotRenderer
 
 #pragma region BatchedSpritesheetRenderer
-Vector2 translateRotateScaleUvs(const Vector2& uv, const Vector2i& atlasSize, const Vector2i& texPos, const Vector2i& texSize, const float& texRot) {
-	if(texRot!=0.0f) {
-		float rad=deg_to_rad(texRot);
-		return Vector2(texPos.x/(float)atlasSize.x, texPos.y/(float)atlasSize.y)+Vector2(
-			(cosf(rad)*(uv.x-0.5f)+sinf(rad)*(uv.y-0.5f)+0.5f)*(texSize.x/(float)atlasSize.x),
-			(cosf(rad)*(uv.y-0.5f)-sinf(rad)*(uv.x-0.5f)+0.5f)*(texSize.y/(float)atlasSize.y)
-		);
-	} else {
-		return Vector2(texPos.x/(float)atlasSize.x, texPos.y/(float)atlasSize.y)+Vector2(uv.x*(texSize.x/(float)atlasSize.x), uv.y*(texSize.y/(float)atlasSize.y));
-	}
-}
 void BatchedSpritesheetRenderer::bufferQuad(BatchedAtlasedSpriteData* data) {
 	if (!data->isActive()) return;
 	float texIndex=-1.0f;
@@ -587,7 +591,8 @@ void BatchedSpritesheetRenderer::bufferQuad(BatchedAtlasedSpriteData* data) {
 	Vector2 worldPos=data->getWorldPos();
 	Vector2 worldScale=data->getWorldScale();
 	for(unsigned int i=0u; i<4u*5u; i+=5u) {
-		Vector2 newUv=translateRotateScaleUvs(Vector2(SpriteRenderer::quadvertices[i+3u], SpriteRenderer::quadvertices[i+4u]), data->atlasSize, data->texPos, data->texSize, data->texRot);
+		Vector2 newUv=translateRotateScaleUvs(Vector2(SpriteRenderer::quadvertices[i+3u], SpriteRenderer::quadvertices[i+4u]), data->texRot);
+		newUv = Vector2(data->texPos.x/(float)data->atlasSize.x, data->texPos.y/(float)data->atlasSize.y)+Vector2(newUv.x*data->texSize.x/data->atlasSize.x,newUv.y*data->texSize.y/data->atlasSize.y);
 		Vector2 tmp=Vector2(SpriteRenderer::quadvertices[i+0u], SpriteRenderer::quadvertices[i+1u])-data->anchor;
 		quadVerticesBuffer.push_back((BatchedVertex&&)BatchedVertex(
 			worldPos+Vector2(tmp.x*worldScale.x, tmp.y*worldScale.y),
@@ -657,7 +662,8 @@ void StaticBatchedSpritesheetRenderer::bufferQuad(BatchedAtlasedSpriteData* data
 	Vector2 worldPos=data->getWorldPos();
 	Vector2 worldScale=data->getWorldScale();
 	for(unsigned int i=0; i<4u*5u; i+=5u) {
-		Vector2 newUv=translateRotateScaleUvs(Vector2(SpriteRenderer::quadvertices[i+3u], SpriteRenderer::quadvertices[i+4u]), data->atlasSize, data->texPos, data->texSize, data->texRot);
+		Vector2 newUv=translateRotateScaleUvs(Vector2(SpriteRenderer::quadvertices[i+3u], SpriteRenderer::quadvertices[i+4u]), data->texRot);
+		newUv = Vector2(data->texPos.x/(float)data->atlasSize.x, data->texPos.y/(float)data->atlasSize.y)+Vector2(newUv.x*data->texSize.x/data->atlasSize.x,newUv.y*data->texSize.y/data->atlasSize.y);
 		Vector2 tmp=Vector2(SpriteRenderer::quadvertices[i+0u], SpriteRenderer::quadvertices[i+1u])-data->anchor;
 		quadVerticesBuffer.push_back((BatchedVertex&&)BatchedVertex(
 			worldPos+Vector2(tmp.x*worldScale.x, tmp.y*worldScale.y),
@@ -728,7 +734,9 @@ void BatchedSpritesheetAnimationRenderer::bufferQuad(BatchedAtlasedAnimationData
 	Vector2 worldPos=data->getWorldPos();
 	Vector2 worldScale=data->getWorldScale();
 	for(unsigned int i=0; i<4u*5u; i+=5u) {
-		Vector2 newUv=translateRotateScaleUvs(Vector2(SpriteRenderer::quadvertices[i+3u], SpriteRenderer::quadvertices[i+4u]), data->atlasSize, data->texPos+data->frameIndex*data->animationDir, data->texSize, data->texRot);
+
+		Vector2 newUv=translateRotateScaleUvs(Vector2(SpriteRenderer::quadvertices[i+3u], SpriteRenderer::quadvertices[i+4u]), data->texRot);
+		newUv = Vector2(data->texPos.x/(float)data->atlasSize.x, data->texPos.y/(float)data->atlasSize.y)+Vector2(newUv.x*data->texSize.x/data->atlasSize.x,newUv.y*data->texSize.y/data->atlasSize.y);
 		Vector2 tmp=Vector2(SpriteRenderer::quadvertices[i+0u], SpriteRenderer::quadvertices[i+1u])-data->anchor;
 		quadVerticesBuffer.push_back((BatchedVertex&&)BatchedVertex(
 			worldPos+Vector2(tmp.x*worldScale.x, tmp.y*worldScale.y),
