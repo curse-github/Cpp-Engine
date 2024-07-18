@@ -204,7 +204,6 @@ void TextInput::Submit() {
 	if(!value.empty()) {
 		if(onenter) onenter(value);
 		if(clearOnEnter) value="";
-		update();
 	}
 }
 void TextInput::on_loop(const double& delta) {
