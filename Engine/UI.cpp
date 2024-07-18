@@ -207,9 +207,16 @@ void TextInput::Submit() {
 		update();
 	}
 }
-void TextInput::update() {
-	if(!value.empty()) { text->text=value; text->color=Vector4::ONE; }// show current value in white
-	else { text->text=placeholder; text->color=Vector4(Vector3(0.5f), 1.0f); }// show placeholder value in gray
+void TextInput::on_loop(const double& delta) {
+	if(selected) {
+		const bool cursorShouldBeOn=(static_cast<unsigned int>(floor(glfwGetTime()))%2)==1;
+		text->color=Vector4::ONE;
+		if(!value.empty()) text->text=value+(cursorShouldBeOn?"|":"");// show current value
+		else text->text=cursorShouldBeOn?"|":"";
+	} else {
+		if(!value.empty()) { text->text=value; text->color=Vector4::ONE; }// show current value in white
+		else { text->text=placeholder; text->color=Vector4(Vector3(0.5f), 1.0f); }// show placeholder value in gray
+	}
 }
 TextInput::TextInput(UiHandler* _handler, ClickDetector* _detector, const std::string& _value, const std::string& _placeholder, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) :
 	hasTransform2D(_position, _zIndex, _scale, _anchor), UiElement(_handler, _detector), quad(nullptr), text(nullptr), value(_value), placeholder(_placeholder) {
