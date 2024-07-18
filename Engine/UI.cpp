@@ -56,7 +56,10 @@ Clickable::~Clickable() {
 
 #pragma region UiHandler
 void UiHandler::on_key(const int& key, const int& scancode, const int& action, const int& mods) {
-	if(selected!=nullptr) selected->on_key(key, scancode, action, mods);
+	if(selected!=nullptr) {
+		if(key==GLFW_KEY_TAB && selected->selectOnTab!=nullptr) selectElement(selected->selectOnTab);
+		else selected->on_key(key, scancode, action, mods);
+	}
 }
 void UiHandler::on_loop(const double& delta) {
 	for(UiElement* el:uiElements) {
@@ -68,11 +71,6 @@ void UiHandler::on_mouse(const double &mouseX, const double &mouseY) {
 		if (el->isPressed) el->on_mouse(mouseX,mouseY);
 	}
 }
-void UiHandler::selectElement(UiElement* el) {
-	if(selected!=nullptr) selected->selected=false;
-	selected=el;
-	el->selected=true;
-}
 UiHandler* UiHandler::instance=nullptr;
 UiHandler::UiHandler(OrthoCam* _cam) :
 	Object(), cam(_cam), clickableHandler(new ClickDetector(_cam)), spriteRenderer(new BatchedSpriteRenderer(_cam)), textRenderer(new BatchedTextRenderer(_cam)), dotRenderer(new BatchedDotRenderer(_cam)) {
@@ -82,10 +80,7 @@ UiHandler::UiHandler(OrthoCam* _cam) :
 	Engine::instance->sub_loop(this);
 	Engine::instance->sub_mouse(this);
 	clickableHandler->on_click_background=[&]() {
-		if(this->selected!=nullptr) {
-			this->selected->selected=false;
-			this->selected=nullptr;
-		}
+		unselect();
 	};
 }
 BatchedQuadData* UiHandler::Sprite(const Vector4& _modulate, Texture* tex, const Vector2& _position, const float& _zIndex, const Vector2& _scale, const Vector2& _anchor) {
@@ -117,6 +112,17 @@ void UiHandler::draw() {
 	spriteRenderer->draw();
 	textRenderer->draw();
 	dotRenderer->draw();
+}
+void UiHandler::selectElement(UiElement* el) {
+	if(selected!=nullptr) selected->selected=false;
+	selected=el;
+	el->selected=true;
+}
+void UiHandler::unselect() {
+	if(this->selected!=nullptr) {
+		this->selected->selected=false;
+		this->selected=nullptr;
+	}
 }
 #pragma endregion// UiHandler
 #pragma region Button
@@ -206,7 +212,7 @@ void TextInput::Submit() {
 }
 void TextInput::on_loop(const double& delta) {
 	if(selected) {
-		const bool cursorShouldBeOn=(static_cast<unsigned int>(floor(glfwGetTime()))%2)==1;
+		const bool cursorShouldBeOn=(static_cast<unsigned int>(floor(glfwGetTime()*2))%2)==1;
 		text->color=Vector4::ONE;
 		if(!value.empty()) text->text=value+(cursorShouldBeOn?"|":"");// show current value
 		else text->text=cursorShouldBeOn?"|":"";

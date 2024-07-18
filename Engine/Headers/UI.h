@@ -44,7 +44,6 @@ class UiHandler : public Object {
 	void on_key(const int& key, const int& scancode, const int& action, const int& mods) override;
 	void on_loop(const double& delta) override;
 	void on_mouse(const double &mouseX, const double &mouseY) override;
-	void selectElement(UiElement* el);
 	friend UiElement;
 	public:
 	static UiHandler* instance;
@@ -72,6 +71,8 @@ class UiHandler : public Object {
 	TextInput *createTextInput(const std::string &_value="", const std::string &_placeholder="", const Vector2 &_position=Vector2::ZERO, const float &_zIndex=0.0f, const Vector2 &_scale=Vector2::ONE, const Vector2 &_anchor=Vector2::Center);
 	Checkbox *createCheckbox(const Vector4 &_checkedColor, const Vector4 &_uncheckedColor, const Vector2 &_position=Vector2::ZERO, const float &_zIndex=0.0f, const Vector2 &_scale=Vector2::ONE, const Vector2 &_anchor=Vector2::Center);
 	void draw();
+	void selectElement(UiElement* el);
+	void unselect();
 };
 
 class UiElement : virtual public hasTransform2D, public Clickable {
@@ -96,6 +97,7 @@ class UiElement : virtual public hasTransform2D, public Clickable {
 	public:
 	UiHandler* handler;
 	bool selected=false;
+	UiElement* selectOnTab=nullptr;
 };
 class Button : virtual public hasTransform2D, public UiElement {
 	protected:
