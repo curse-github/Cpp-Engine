@@ -57,7 +57,7 @@ Clickable::~Clickable() {
 #pragma region UiHandler
 void UiHandler::on_key(const int& key, const int& scancode, const int& action, const int& mods) {
 	if(selected!=nullptr) {
-		if(key==GLFW_KEY_TAB && selected->selectOnTab!=nullptr) selectElement(selected->selectOnTab);
+		if(key==GLFW_KEY_TAB && action==GLFW_PRESS && selected->selectOnTab!=nullptr) selectElement(selected->selectOnTab);
 		else selected->on_key(key, scancode, action, mods);
 	}
 }
