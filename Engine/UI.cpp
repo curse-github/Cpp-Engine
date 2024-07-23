@@ -213,7 +213,7 @@ void TextInput::on_key(const int& key, const int& scancode, const int& action, c
 					setClipboard(value);
 				} else if(key==GLFW_KEY_V && ctr) {
 					value+=getClipboardText();
-					if(value.size()>maxLength) {
+					if(maxLength!=0 && value.size()>maxLength) {
 						std::string tmp = value;
 						value="";
 						for(unsigned int i=0; i<maxLength; i++) value+=tmp[i]; // make value just the first "maxLength" characters of tmp
