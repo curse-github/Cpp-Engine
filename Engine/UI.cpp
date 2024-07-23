@@ -162,13 +162,59 @@ void TextInput::on_release(const Vector2& pos) {
 }
 void TextInput::on_hover(const Vector2& pos) {}
 void TextInput::on_unhover(const Vector2& pos) {}
+
+#ifdef _WIN32
+#include <windows.h>
+#include <chrono>
+#include <thread>
+void sleep(unsigned int milliseconds) {
+	std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+}
+void openClipboard() {
+	for (unsigned int i = 0; i < 10; i++) {
+		if (OpenClipboard(nullptr)) return;
+		sleep(15);
+	}
+	exit(0);
+}
+std::string getClipboardText() {
+	openClipboard();
+	HANDLE h1 = GetClipboardData(CF_TEXT);
+	CloseClipboard();
+	return std::string((char*)h1);
+}
+void setClipboard(const std::string& str) {
+	openClipboard();
+	EmptyClipboard();
+	HGLOBAL clipbuffer = GlobalAlloc(GMEM_DDESHARE, str.size()+1);
+	char * buffer = (char*)GlobalLock(clipbuffer);
+	strcpy(buffer, str.c_str());
+	GlobalUnlock(clipbuffer);
+	SetClipboardData(CF_TEXT,clipbuffer);
+	CloseClipboard();
+}
+#else
+std::string getClipboardText() {
+	return "";
+}
+void setClipboard(const std::string& str) {
+}
+#endif
+
 void TextInput::on_key(const int& key, const int& scancode, const int& action, const int& mods) {
 	if(action>GLFW_RELEASE) {
 		if(key>=GLFW_KEY_SPACE&&key<=GLFW_KEY_GRAVE_ACCENT) {
 			if(key>=GLFW_KEY_A&&key<=GLFW_KEY_Z) {// letter values
 				bool shift=(mods&GLFW_MOD_SHIFT)>0;
 				bool capsLock=(mods&GLFW_MOD_CAPS_LOCK)>0;
-				value+=static_cast<char>(key+((shift^capsLock) ? 0 : 32));// shift character by 32 if not caps
+				bool ctr=(mods&GLFW_MOD_CONTROL)>0;
+				if(key==GLFW_KEY_C && ctr) {
+					setClipboard(value);
+				} else if(key==GLFW_KEY_V && ctr) {
+					value+=getClipboardText();
+				} else {
+					value+=static_cast<char>(key+((shift^capsLock) ? 0 : 32));// shift character by 32 if not caps
+				}
 			} else {// non letter values
 				if((mods&GLFW_MOD_SHIFT)>0) {
 					switch(key) {
@@ -264,11 +310,12 @@ void HorizontalSlider::on_mouse(const double &mouseX, const double &mouseY) {
 	Vector2 res=Engine::instance->curResolution;
 	OrthoCam* cam = detector->cam;
 	Vector2 camScale=cam->scale;
-	Vector2 mouse=cam->getWorldPos()+Vector2((mouseX/res.x-0.5f)*camScale.x, (0.5f-mouseY/res.y)*camScale.y);
+	Vector2 mouse=cam->getWorldPos()+Vector2((static_cast<float>(mouseX)/res.x-0.5f)*camScale.x, (0.5f-static_cast<float>(mouseY)/res.y)*camScale.y);
 	Vector2 quadPos = quad->getWorldPos();
 	Vector2 quadScale = quad->getWorldScale();
 	Vector2 transformScale = transform.scale;
-	value = std::max(0.0f,std::min(((mouse.x-quadPos.x)/quadScale.x)+1.0f,1.0f));
+	float tmp = ((mouse.x-quadPos.x)/quadScale.x)+1.0f;
+	value = max(0.0f,min(1.0f,tmp));
 	dot->position = Vector2((value-1.0f)*quadScale.x-transformScale.y/3.0f, 0.5f*transformScale.y);
 	value=minValue+value*(maxValue-minValue);
 	if (onchange) onchange(value);
