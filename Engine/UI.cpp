@@ -202,6 +202,7 @@ void setClipboard(const std::string& str) {
 #endif
 
 void TextInput::on_key(const int& key, const int& scancode, const int& action, const int& mods) {
+	if(maxLength!=0&&value.size()==maxLength) return;
 	if(action>GLFW_RELEASE) {
 		if(key>=GLFW_KEY_SPACE&&key<=GLFW_KEY_GRAVE_ACCENT) {
 			if(key>=GLFW_KEY_A&&key<=GLFW_KEY_Z) {// letter values
@@ -212,6 +213,11 @@ void TextInput::on_key(const int& key, const int& scancode, const int& action, c
 					setClipboard(value);
 				} else if(key==GLFW_KEY_V && ctr) {
 					value+=getClipboardText();
+					if(value.size()>maxLength) {
+						std::string tmp = value;
+						value="";
+						for(unsigned int i=0; i<maxLength; i++) value+=tmp[i]; // make value just the first "maxLength" characters of tmp
+					}
 				} else {
 					value+=static_cast<char>(key+((shift^capsLock) ? 0 : 32));// shift character by 32 if not caps
 				}

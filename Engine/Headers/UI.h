@@ -136,6 +136,7 @@ class TextInput : virtual public hasTransform2D, public UiElement {
 	std::string placeholder="";
 	std::string value="";
 	bool clearOnEnter=false;
+	unsigned int maxLength=0;
 	typedef std::function<void(std::string)> enterfun;
 	void Submit();
 	enterfun onenter;
