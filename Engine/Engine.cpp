@@ -666,7 +666,7 @@ void IndexBufferObject::dynamicSub(std::vector<unsigned int> indices) {
 void StencilSimple::Enable() {
 	glClear(GL_STENCIL_BUFFER_BIT);
 	glEnable(GL_STENCIL_TEST);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+	glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
 }
 void StencilSimple::Write() {
 	glStencilFunc(GL_ALWAYS, 1, 0b0);// compare against none
