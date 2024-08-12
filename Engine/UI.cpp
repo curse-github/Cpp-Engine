@@ -202,9 +202,9 @@ void setClipboard(const std::string& str) {
 #endif
 
 void TextInput::on_key(const int& key, const int& scancode, const int& action, const int& mods) {
-	if(maxLength!=0&&value.size()==maxLength) return;
 	if(action>GLFW_RELEASE) {
 		if(key>=GLFW_KEY_SPACE&&key<=GLFW_KEY_GRAVE_ACCENT) {
+			if(maxLength!=0&&value.size()==maxLength) return;
 			if(key>=GLFW_KEY_A&&key<=GLFW_KEY_Z) {// letter values
 				bool shift=(mods&GLFW_MOD_SHIFT)>0;
 				bool capsLock=(mods&GLFW_MOD_CAPS_LOCK)>0;
